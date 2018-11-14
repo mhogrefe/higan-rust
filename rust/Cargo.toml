@@ -1,0 +1,6 @@
+[package]
+name = "higan-rust"
+version = "0.1.0"
+authors = ["Mikhail Hogrefe <mikhailhogrefe@gmail.com>"]
+
+[dependencies]
