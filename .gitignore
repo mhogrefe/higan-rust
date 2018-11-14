@@ -4,6 +4,7 @@
 *.iml
 *.o
 *.tmp
-cpp/higan/out*
-cpp/icarus/out*
+cpp/higan/out
+cpp/icarus/out
+rust/target
 
