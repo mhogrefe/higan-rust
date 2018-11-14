@@ -3,9 +3,9 @@ include ../nall/GNUmakefile
 
 binary := application
 target := tomoko
-objects := libco emulator audio video resource
+objects := libco emulator audio video resource test
 
-flags += -I. -I..
+flags += -I. -I.. -Wno-shift-count-overflow
 
 ifeq ($(platform),windows)
   link += $(if $(call streq,$(console),true),-mconsole,-mwindows)
@@ -56,6 +56,7 @@ obj/emulator.o: emulator/emulator.cpp $(call rwildcard,emulator)
 obj/audio.o: audio/audio.cpp $(call rwildcard,audio)
 obj/video.o: video/video.cpp $(call rwildcard,video)
 obj/resource.o: resource/resource.cpp $(call rwildcard,resource)
+obj/test.o: test/test_all.cpp $(call rwildcard,test)
 
 ui := target-$(target)
 include $(ui)/GNUmakefile

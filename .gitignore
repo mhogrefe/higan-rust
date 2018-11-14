@@ -2,3 +2,8 @@
 **/*.rs.bk
 .idea*
 *.iml
+*.o
+*.tmp
+cpp/higan/out*
+cpp/icarus/out*
+

@@ -11,9 +11,19 @@
 #include "medium.cpp"
 #include "state.cpp"
 #include "utility.cpp"
+
+#include "test/test_all.hpp"
+
+#include <iostream>
+
 unique_pointer<Program> program;
 
 Program::Program(string_vector args) {
+  std::cout << "Testing..." << std::endl;
+  TestAll();
+  std::cout << "Testing complete!" << std::endl;
+
+
   program = this;
 
   Emulator::platform = this;
