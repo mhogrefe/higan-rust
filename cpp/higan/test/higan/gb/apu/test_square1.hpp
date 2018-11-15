@@ -10,19 +10,19 @@ void TestDacEnable() {
 
   square1.envelopeVolume = 0;
   square1.envelopeDirection = false;
-  EXPECT_EQ("Square1 dacEnable", square1.dacEnable(), false);
+  EXPECT_FALSE("Square1 dacEnable", square1.dacEnable());
 
   square1.envelopeVolume = 3;
   square1.envelopeDirection = false;
-  EXPECT_EQ("Square1 dacEnable", square1.dacEnable(), true);
+  EXPECT_TRUE("Square1 dacEnable", square1.dacEnable());
 
   square1.envelopeVolume = 0;
   square1.envelopeDirection = true;
-  EXPECT_EQ("Square1 dacEnable", square1.dacEnable(), true);
+  EXPECT_TRUE("Square1 dacEnable", square1.dacEnable());
 
   square1.envelopeVolume = 3;
   square1.envelopeDirection = true;
-  EXPECT_EQ("Square1 dacEnable", square1.dacEnable(), true);
+  EXPECT_TRUE("Square1 dacEnable", square1.dacEnable());
 }
 
 void RunHelper(APU::Square1 *square1, uint cycles,
@@ -134,21 +134,73 @@ void TestRun() {
                           "0, 0, 0, 13, 13, 13, 13, 0, 0, 0, 0, 0, 0, 0, 0]");
 }
 
+void TestSweep() {
+  APU::Square1 square1;
+
+  // sweepEnable false
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = false;
+  square1.frequencyShadow = 10;
+  square1.sweepShift = 1;
+  square1.sweep(true);
+  EXPECT_TRUE("Square1 sweep", square1.enable);
+  EXPECT_EQ("Square1 sweep", square1.frequencyShadow, 10);
+  EXPECT_EQ("Square1 sweep", square1.frequency, (uint11)0);
+  EXPECT_EQ("Square1 sweep", square1.period, 0u);
+
+  // positive delta
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = true;
+  square1.frequencyShadow = 10;
+  square1.sweepShift = 1;
+  square1.sweep(true);
+  EXPECT_TRUE("Square1 sweep", square1.enable);
+  EXPECT_EQ("Square1 sweep", square1.frequencyShadow, 15);
+  EXPECT_EQ("Square1 sweep", square1.frequency, (uint11)15);
+  EXPECT_EQ("Square1 sweep", square1.period, 4066u);
+
+  // freq exceeds 2047
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = true;
+  square1.frequencyShadow = 2047;
+  square1.sweepShift = 1;
+  square1.sweep(true);
+  EXPECT_FALSE("Square1 sweep", square1.enable);
+  EXPECT_EQ("Square1 sweep", square1.frequencyShadow, 2047);
+  EXPECT_EQ("Square1 sweep", square1.frequency, (uint11)0);
+  EXPECT_EQ("Square1 sweep", square1.period, 0u);
+
+  // negative delta
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepDirection = true;
+  square1.sweepEnable = true;
+  square1.frequencyShadow = 10;
+  square1.sweepShift = 1;
+  square1.sweep(true);
+  EXPECT_TRUE("Square1 sweep", square1.enable);
+  EXPECT_EQ("Square1 sweep", square1.frequencyShadow, 5);
+  EXPECT_EQ("Square1 sweep", square1.frequency, (uint11)5);
+  EXPECT_EQ("Square1 sweep", square1.period, 4086u);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
   square1.power(true);
-  EXPECT_EQ("Testing Square1 power with initializeLength true", square1.length,
-            64u);
+  EXPECT_EQ("Square1 power", square1.length, 64u);
 
   square1.length = 0;
   square1.power(false);
-  EXPECT_EQ("Testing Square1 power with initializeLength false", square1.length,
-            0u);
+  EXPECT_EQ("Square1 power", square1.length, 0u);
 }
 
 void TestSquare1() {
   TestDacEnable();
   TestRun();
+  TestSweep();
   TestPower();
 }

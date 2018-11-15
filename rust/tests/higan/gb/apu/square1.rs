@@ -1,4 +1,4 @@
-use higan_rust::higan::emulator::types::{U11, U2, U4};
+use higan_rust::higan::emulator::types::{U11, U2, U3, U4};
 use higan_rust::higan::gb::apu::square_1::Square1;
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{One, Zero};
@@ -159,4 +159,70 @@ fn test_run() {
             0, 0, 0, 0,
         ],
     );
+}
+
+#[test]
+fn test_sweep() {
+    let mut square_1 = Square1::default();
+
+    // sweep_enable false
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = false;
+    square_1.frequency_shadow = 10;
+    square_1.sweep_shift = U3::ONE;
+    square_1.sweep(true);
+    assert!(square_1.enable);
+    assert_eq!(square_1.frequency_shadow, 10);
+    assert_eq!(square_1.frequency, U11::ZERO);
+    assert_eq!(square_1.period, 0);
+
+    // positive delta
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = true;
+    square_1.frequency_shadow = 10;
+    square_1.sweep_shift = U3::ONE;
+    square_1.sweep(true);
+    assert!(square_1.enable);
+    assert_eq!(square_1.frequency_shadow, 15);
+    assert_eq!(square_1.frequency, U11::wrapping_from(15));
+    assert_eq!(square_1.period, 4066);
+
+    // freq exceeds 2047
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = true;
+    square_1.frequency_shadow = 2047;
+    square_1.sweep_shift = U3::ONE;
+    square_1.sweep(true);
+    assert!(!square_1.enable);
+    assert_eq!(square_1.frequency_shadow, 2047);
+    assert_eq!(square_1.frequency, U11::ZERO);
+    assert_eq!(square_1.period, 0);
+
+    // negative delta
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_direction = true;
+    square_1.sweep_enable = true;
+    square_1.frequency_shadow = 10;
+    square_1.sweep_shift = U3::ONE;
+    square_1.sweep(true);
+    assert!(square_1.enable);
+    assert_eq!(square_1.frequency_shadow, 5);
+    assert_eq!(square_1.frequency, U11::wrapping_from(5));
+    assert_eq!(square_1.period, 4086);
+}
+
+#[test]
+fn test_power() {
+    let mut square_1 = Square1::default();
+    square_1.length = 0;
+    square_1.power(true);
+    assert_eq!(square_1.length, 64);
+
+    square_1.length = 0;
+    square_1.power(false);
+    assert_eq!(square_1.length, 0);
 }
