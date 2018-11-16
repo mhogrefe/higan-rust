@@ -256,6 +256,51 @@ fn test_clock_length() {
 }
 
 #[test]
+fn test_clock_sweep() {
+    let mut square_1 = Square1::default();
+
+    square_1.power(true);
+    square_1.sweep_period = U3::wrapping_from(5);
+    square_1.clock_sweep();
+    assert_eq!(square_1.sweep_period, U3::wrapping_from(4));
+
+    square_1.power(true);
+    square_1.sweep_period = U3::ONE;
+    square_1.sweep_frequency = U3::ZERO;
+    square_1.clock_sweep();
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = true;
+    square_1.sweep_period = U3::ONE;
+    square_1.sweep_frequency = U3::wrapping_from(5);
+    square_1.frequency_shadow = 10;
+    square_1.sweep_shift = U3::ONE;
+    square_1.clock_sweep();
+    assert_eq!(square_1.sweep_period, U3::wrapping_from(5));
+    assert!(square_1.enable);
+    assert_eq!(square_1.frequency_shadow, 15);
+    assert_eq!(square_1.frequency, U11::wrapping_from(15));
+    assert_eq!(square_1.period, 4066);
+
+    // sweep_enable is false
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = false;
+    square_1.sweep_period = U3::ONE;
+    square_1.sweep_frequency = U3::wrapping_from(5);
+    square_1.frequency_shadow = 10;
+    square_1.sweep_shift = U3::ONE;
+    square_1.clock_sweep();
+    assert_eq!(square_1.sweep_period, U3::wrapping_from(5));
+    assert!(square_1.enable);
+    assert_eq!(square_1.frequency_shadow, 10);
+    assert_eq!(square_1.frequency, U11::ZERO);
+    assert_eq!(square_1.period, 0);
+}
+
+#[test]
 fn test_power() {
     let mut square_1 = Square1::default();
     square_1.length = 0;

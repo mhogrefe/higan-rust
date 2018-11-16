@@ -226,6 +226,50 @@ void TestClockLength() {
   EXPECT_FALSE("Square1 clockLength", square1.enable);
 }
 
+void TestClockSweep() {
+  APU::Square1 square1;
+
+  square1.power(true);
+  square1.sweepPeriod = (uint3)5;
+  square1.clockSweep();
+  EXPECT_EQ("Square1 clockSweep", square1.sweepPeriod, (uint3)4);
+
+  square1.power(true);
+  square1.sweepPeriod = (uint3)1;
+  square1.sweepFrequency = 0;
+  square1.clockSweep();
+  EXPECT_EQ("Square1 clockSweep", square1.sweepPeriod, (uint3)0);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = true;
+  square1.sweepPeriod = (uint3)1;
+  square1.sweepFrequency = 5;
+  square1.frequencyShadow = 10;
+  square1.sweepShift = 1;
+  square1.clockSweep();
+  EXPECT_EQ("Square1 clockSweep", square1.sweepPeriod, (uint3)5);
+  EXPECT_TRUE("Square1 clockSweep", square1.enable);
+  EXPECT_EQ("Square1 clockSweep", square1.frequencyShadow, 15);
+  EXPECT_EQ("Square1 clockSweep", square1.frequency, (uint11)15);
+  EXPECT_EQ("Square1 clockSweep", square1.period, 4066u);
+
+  // sweepEnable is false
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = false;
+  square1.sweepPeriod = (uint3)1;
+  square1.sweepFrequency = 5;
+  square1.frequencyShadow = 10;
+  square1.sweepShift = 1;
+  square1.clockSweep();
+  EXPECT_EQ("Square1 clockSweep", square1.sweepPeriod, (uint3)5);
+  EXPECT_TRUE("Square1 clockSweep", square1.enable);
+  EXPECT_EQ("Square1 clockSweep", square1.frequencyShadow, 10);
+  EXPECT_EQ("Square1 clockSweep", square1.frequency, (uint11)0);
+  EXPECT_EQ("Square1 clockSweep", square1.period, 0u);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
@@ -242,5 +286,6 @@ void TestSquare1() {
   TestRun();
   TestSweep();
   TestClockLength();
+  TestClockSweep();
   TestPower();
 }
