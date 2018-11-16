@@ -77,8 +77,8 @@ impl Square1 {
             self.enable = false;
         } else if self.sweep_shift.0 != 0 && update {
             self.frequency_shadow = freq;
-            self.frequency = U11::wrapping_from(freq & 2047);
-            self.period = 2 * (2048 - u32::from(self.frequency.0));
+            self.frequency = U11::wrapping_from(freq & 2_047);
+            self.period = 2 * (2_048 - u32::from(self.frequency.0));
         }
     }
 

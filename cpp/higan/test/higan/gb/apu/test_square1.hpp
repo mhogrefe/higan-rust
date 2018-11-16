@@ -187,6 +187,45 @@ void TestSweep() {
   EXPECT_EQ("Square1 sweep", square1.period, 4086u);
 }
 
+void TestClockLength() {
+  APU::Square1 square1;
+
+  // counter is false
+  square1.power(true);
+  square1.counter = false;
+  square1.enable = true;
+  square1.length = 5;
+  square1.clockLength();
+  EXPECT_EQ("Square1 clockLength", square1.length, 5u);
+  EXPECT_TRUE("Square1 clockLength", square1.enable);
+
+  square1.power(true);
+  square1.counter = true;
+  square1.enable = true;
+  square1.length = 5;
+  square1.clockLength();
+  EXPECT_EQ("Square1 clockLength", square1.length, 4u);
+  EXPECT_TRUE("Square1 clockLength", square1.enable);
+
+  // length is initially 0
+  square1.power(true);
+  square1.counter = true;
+  square1.enable = true;
+  square1.length = 0;
+  square1.clockLength();
+  EXPECT_EQ("Square1 clockLength", square1.length, 0u);
+  EXPECT_TRUE("Square1 clockLength", square1.enable);
+
+  // length is initially 1
+  square1.power(true);
+  square1.counter = true;
+  square1.enable = true;
+  square1.length = 1;
+  square1.clockLength();
+  EXPECT_EQ("Square1 clockLength", square1.length, 0u);
+  EXPECT_FALSE("Square1 clockLength", square1.enable);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
@@ -202,5 +241,6 @@ void TestSquare1() {
   TestDacEnable();
   TestRun();
   TestSweep();
+  TestClockLength();
   TestPower();
 }

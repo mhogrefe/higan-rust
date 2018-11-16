@@ -187,17 +187,17 @@ fn test_sweep() {
     assert!(square_1.enable);
     assert_eq!(square_1.frequency_shadow, 15);
     assert_eq!(square_1.frequency, U11::wrapping_from(15));
-    assert_eq!(square_1.period, 4066);
+    assert_eq!(square_1.period, 4_066);
 
-    // freq exceeds 2047
+    // freq exceeds 2,047
     square_1.power(true);
     square_1.enable = true;
     square_1.sweep_enable = true;
-    square_1.frequency_shadow = 2047;
+    square_1.frequency_shadow = 2_047;
     square_1.sweep_shift = U3::ONE;
     square_1.sweep(true);
     assert!(!square_1.enable);
-    assert_eq!(square_1.frequency_shadow, 2047);
+    assert_eq!(square_1.frequency_shadow, 2_047);
     assert_eq!(square_1.frequency, U11::ZERO);
     assert_eq!(square_1.period, 0);
 
@@ -212,7 +212,47 @@ fn test_sweep() {
     assert!(square_1.enable);
     assert_eq!(square_1.frequency_shadow, 5);
     assert_eq!(square_1.frequency, U11::wrapping_from(5));
-    assert_eq!(square_1.period, 4086);
+    assert_eq!(square_1.period, 4_086);
+}
+
+#[test]
+fn test_clock_length() {
+    let mut square_1 = Square1::default();
+
+    // counter is false
+    square_1.power(true);
+    square_1.counter = false;
+    square_1.enable = true;
+    square_1.length = 5;
+    square_1.clock_length();
+    assert_eq!(square_1.length, 5);
+    assert!(square_1.enable);
+
+    square_1.power(true);
+    square_1.counter = true;
+    square_1.enable = true;
+    square_1.length = 5;
+    square_1.clock_length();
+    assert_eq!(square_1.length, 4);
+    assert!(square_1.enable);
+
+    // length is initially 0
+    square_1.power(true);
+    square_1.counter = true;
+    square_1.enable = true;
+    square_1.length = 0;
+    square_1.clock_length();
+    assert_eq!(square_1.length, 0);
+    assert!(square_1.enable);
+
+    // length is initially 1
+    square_1.power(true);
+    square_1.counter = true;
+    square_1.enable = true;
+    square_1.length = 1;
+    square_1.clock_length();
+    assert_eq!(square_1.length, 0);
+    assert!(!square_1.enable);
 }
 
 #[test]
