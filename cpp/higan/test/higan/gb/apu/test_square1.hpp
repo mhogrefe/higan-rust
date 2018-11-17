@@ -370,6 +370,92 @@ void TestRead() {
   EXPECT_EQ("Square1 read", square1.read(0xff14), (uint8)0b10111111);
 }
 
+void TestWrite() {
+  APU::Square1 square1;
+
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = true;
+  square1.sweepNegate = true;
+  square1.write(0xff10, 0b11011010);
+  EXPECT_EQ("Square1 write", square1.sweepFrequency, (uint3)0b101);
+  EXPECT_TRUE("Square1 write", square1.sweepDirection);
+  EXPECT_EQ("Square1 write", square1.sweepShift, (uint3)0b010);
+  EXPECT_TRUE("Square1 write", square1.enable);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.sweepEnable = true;
+  square1.sweepNegate = true;
+  square1.write(0xff10, 0b11010010);
+  EXPECT_EQ("Square1 write", square1.sweepFrequency, (uint3)0b101);
+  EXPECT_FALSE("Square1 write", square1.sweepDirection);
+  EXPECT_EQ("Square1 write", square1.sweepShift, (uint3)0b010);
+  EXPECT_FALSE("Square1 write", square1.enable);
+
+  square1.power(true);
+  square1.write(0xff11, 0b01110010);
+  EXPECT_EQ("Square1 write", square1.duty, (uint2)0b01);
+  EXPECT_EQ("Square1 write", square1.length, 14u);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.write(0xff12, 0b10111010);
+  EXPECT_EQ("Square1 write", square1.envelopeVolume, (uint4)0b1011);
+  EXPECT_TRUE("Square1 write", square1.envelopeDirection);
+  EXPECT_EQ("Square1 write", square1.envelopeFrequency, (uint3)0b010);
+  EXPECT_TRUE("Square1 write", square1.enable);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.write(0xff12, 0);
+  EXPECT_EQ("Square1 write", square1.envelopeVolume, (uint4)0);
+  EXPECT_FALSE("Square1 write", square1.envelopeDirection);
+  EXPECT_EQ("Square1 write", square1.envelopeFrequency, (uint3)0);
+  EXPECT_FALSE("Square1 write", square1.enable);
+
+  square1.power(true);
+  square1.write(0xff13, 0b10110100);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b10110100);
+
+  square1.power(true);
+  square1.write(0xff14, 0b10110011);
+  EXPECT_FALSE("Square1 write", square1.enable);
+  EXPECT_FALSE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.period, 2560u);
+  EXPECT_EQ("Square1 write", square1.envelopePeriod, (uint3)0);
+  EXPECT_EQ("Square1 write", square1.volume, (uint4)0);
+  EXPECT_EQ("Square1 write", square1.length, 64u);
+  EXPECT_EQ("Square1 write", square1.frequencyShadow, 768);
+  EXPECT_FALSE("Square1 write", square1.sweepNegate);
+  EXPECT_EQ("Square1 write", square1.sweepPeriod, (uint3)0);
+  EXPECT_FALSE("Square1 write", square1.sweepEnable);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.write(0xff14, 0b00110011);
+  EXPECT_TRUE("Square1 write", square1.enable);
+  EXPECT_FALSE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+
+  square1.power(true);
+  square1.length = 1;
+  square1.enable = true;
+  square1.write(0xff14, 0b11110011);
+  EXPECT_FALSE("Square1 write", square1.enable);
+  EXPECT_TRUE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.period, 2560u);
+  EXPECT_EQ("Square1 write", square1.envelopePeriod, (uint3)0);
+  EXPECT_EQ("Square1 write", square1.volume, (uint4)0);
+  EXPECT_EQ("Square1 write", square1.length, 1u);
+  EXPECT_EQ("Square1 write", square1.frequencyShadow, 768);
+  EXPECT_FALSE("Square1 write", square1.sweepNegate);
+  EXPECT_EQ("Square1 write", square1.sweepPeriod, (uint3)0);
+  EXPECT_FALSE("Square1 write", square1.sweepEnable);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
@@ -389,5 +475,6 @@ void TestSquare1() {
   TestClockSweep();
   TestClockEnvelope();
   TestRead();
+  TestWrite();
   TestPower();
 }

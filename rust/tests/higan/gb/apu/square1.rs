@@ -403,6 +403,93 @@ fn test_read() {
 }
 
 #[test]
+fn test_write() {
+    let mut square_1 = Square1::default();
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = true;
+    square_1.sweep_negate = true;
+    square_1.write(U3::ZERO, 0xff10, 0b11011010);
+    assert_eq!(square_1.sweep_frequency, U3::wrapping_from(0b101));
+    assert!(square_1.sweep_direction);
+    assert_eq!(square_1.sweep_shift, U3::wrapping_from(0b010));
+    assert!(square_1.enable);
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.sweep_enable = true;
+    square_1.sweep_negate = true;
+    square_1.write(U3::ZERO, 0xff10, 0b11010010);
+    assert_eq!(square_1.sweep_frequency, U3::wrapping_from(0b101));
+    assert!(!square_1.sweep_direction);
+    assert_eq!(square_1.sweep_shift, U3::wrapping_from(0b010));
+    assert!(!square_1.enable);
+
+    square_1.power(true);
+    square_1.write(U3::ZERO, 0xff11, 0b01110010);
+    assert_eq!(square_1.duty, U2::wrapping_from(0b01));
+    assert_eq!(square_1.length, 14);
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.write(U3::ZERO, 0xff12, 0b10111010);
+    assert_eq!(square_1.envelope_volume, U4::wrapping_from(0b1011));
+    assert!(square_1.envelope_direction);
+    assert_eq!(square_1.envelope_frequency, U3::wrapping_from(0b010));
+    assert!(square_1.enable);
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.write(U3::ZERO, 0xff12, 0);
+    assert_eq!(square_1.envelope_volume, U4::ZERO);
+    assert!(!square_1.envelope_direction);
+    assert_eq!(square_1.envelope_frequency, U3::ZERO);
+    assert!(!square_1.enable);
+
+    square_1.power(true);
+    square_1.write(U3::ZERO, 0xff13, 0b10110100);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b10110100));
+
+    square_1.power(true);
+    square_1.write(U3::ZERO, 0xff14, 0b10110011);
+    assert!(!square_1.enable);
+    assert!(!square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.period, 2560);
+    assert_eq!(square_1.envelope_period, U3::ZERO);
+    assert_eq!(square_1.volume, U4::ZERO);
+    assert_eq!(square_1.length, 64);
+    assert_eq!(square_1.frequency_shadow, 768);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(!square_1.sweep_enable);
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.write(U3::ZERO, 0xff14, 0b00110011);
+    assert!(square_1.enable);
+    assert!(!square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+
+    square_1.power(true);
+    square_1.length = 1;
+    square_1.enable = true;
+    square_1.write(U3::ZERO, 0xff14, 0b11110011);
+    assert!(!square_1.enable);
+    assert!(square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.period, 2560);
+    assert_eq!(square_1.envelope_period, U3::ZERO);
+    assert_eq!(square_1.volume, U4::ZERO);
+    assert_eq!(square_1.length, 1);
+    assert_eq!(square_1.frequency_shadow, 768);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(!square_1.sweep_enable);
+}
+
+#[test]
 fn test_power() {
     let mut square_1 = Square1::default();
     square_1.length = 0;
