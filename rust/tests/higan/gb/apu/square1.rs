@@ -1,6 +1,6 @@
 use higan_rust::higan::emulator::types::{U11, U2, U3, U4};
 use higan_rust::higan::gb::apu::square_1::Square1;
-use malachite_base::misc::WrappingFrom;
+use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{One, Zero};
 
 #[test]
@@ -298,6 +298,80 @@ fn test_clock_sweep() {
     assert_eq!(square_1.frequency_shadow, 10);
     assert_eq!(square_1.frequency, U11::ZERO);
     assert_eq!(square_1.period, 0);
+}
+
+#[test]
+fn test_clock_envelope() {
+    let mut square_1 = Square1::default();
+
+    square_1.power(true);
+    square_1.enable = false;
+    square_1.envelope_frequency = U3::wrapping_from(5);
+    square_1.envelope_period = U3::ONE;
+    square_1.volume = U4::wrapping_from(10);
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::ONE);
+    assert_eq!(square_1.volume, U4::wrapping_from(10));
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_frequency = U3::ZERO;
+    square_1.envelope_period = U3::ONE;
+    square_1.volume = U4::wrapping_from(10);
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::ONE);
+    assert_eq!(square_1.volume, U4::wrapping_from(10));
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_frequency = U3::wrapping_from(5);
+    square_1.envelope_period = U3::wrapping_from(5);
+    square_1.volume = U4::wrapping_from(10);
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::wrapping_from(4));
+    assert_eq!(square_1.volume, U4::wrapping_from(10));
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_direction = false;
+    square_1.envelope_frequency = U3::wrapping_from(5);
+    square_1.envelope_period = U3::ONE;
+    square_1.volume = U4::wrapping_from(10);
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::wrapping_from(5));
+    assert_eq!(square_1.volume, U4::wrapping_from(9));
+
+    // volume already at min
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_direction = false;
+    square_1.envelope_frequency = U3::wrapping_from(5);
+    square_1.envelope_period = U3::ONE;
+    square_1.volume = U4::ZERO;
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::wrapping_from(5));
+    assert_eq!(square_1.volume, U4::ZERO);
+
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_direction = true;
+    square_1.envelope_frequency = U3::wrapping_from(5);
+    square_1.envelope_period = U3::ONE;
+    square_1.volume = U4::wrapping_from(10);
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::wrapping_from(5));
+    assert_eq!(square_1.volume, U4::wrapping_from(11));
+
+    // volume already at max
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_direction = true;
+    square_1.envelope_frequency = U3::wrapping_from(5);
+    square_1.envelope_period = U3::ONE;
+    square_1.volume = U4::MAX;
+    square_1.clock_envelope();
+    assert_eq!(square_1.envelope_period, U3::wrapping_from(5));
+    assert_eq!(square_1.volume, U4::MAX);
 }
 
 #[test]

@@ -270,6 +270,79 @@ void TestClockSweep() {
   EXPECT_EQ("Square1 clockSweep", square1.period, 0u);
 }
 
+void TestClockEnvelope() {
+  APU::Square1 square1;
+
+  square1.power(true);
+  square1.enable = false;
+  square1.envelopeFrequency = (uint3)5;
+  square1.envelopePeriod = (uint3)1;
+  square1.volume = (uint4)10;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)1);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)10);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeFrequency = (uint3)0;
+  square1.envelopePeriod = (uint3)1;
+  square1.volume = (uint4)10;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)1);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)10);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeFrequency = (uint3)5;
+  square1.envelopePeriod = (uint3)5;
+  square1.volume = (uint4)10;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)4);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)10);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeDirection = false;
+  square1.envelopeFrequency = (uint3)5;
+  square1.envelopePeriod = (uint3)1;
+  square1.volume = (uint4)10;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)9);
+
+  // volume already at min
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeDirection = false;
+  square1.envelopeFrequency = (uint3)5;
+  square1.envelopePeriod = (uint3)1;
+  square1.volume = (uint4)0;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)0);
+
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeDirection = true;
+  square1.envelopeFrequency = (uint3)5;
+  square1.envelopePeriod = (uint3)1;
+  square1.volume = (uint4)10;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)11);
+
+  // volume already at max
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeDirection = true;
+  square1.envelopeFrequency = (uint3)5;
+  square1.envelopePeriod = (uint3)1;
+  square1.volume = (uint4)15;
+  square1.clockEnvelope();
+  EXPECT_EQ("Square1 clockEnvelope", square1.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)15);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
@@ -287,5 +360,6 @@ void TestSquare1() {
   TestSweep();
   TestClockLength();
   TestClockSweep();
+  TestClockEnvelope();
   TestPower();
 }
