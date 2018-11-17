@@ -343,6 +343,33 @@ void TestClockEnvelope() {
   EXPECT_EQ("Square1 clockEnvelope", square1.volume, (uint4)15);
 }
 
+void TestRead() {
+  APU::Square1 square1;
+
+  square1.power(true);
+  square1.sweepFrequency = (uint3)0b101;
+  square1.sweepDirection = true;
+  square1.sweepShift = (uint3)0b010;
+  EXPECT_EQ("Square1 read", square1.read(0xff10), (uint8)0b11011010);
+
+  square1.power(true);
+  square1.duty = (uint2)0b01;
+  EXPECT_EQ("Square1 read", square1.read(0xff11), (uint8)0b01111111);
+
+  square1.power(true);
+  square1.envelopeVolume = (uint4)0b1011;
+  square1.envelopeDirection = true;
+  square1.envelopeFrequency = (uint3)0b010;
+  EXPECT_EQ("Square1 read", square1.read(0xff12), (uint8)0b10111010);
+
+  square1.power(true);
+  EXPECT_EQ("Square1 read", square1.read(0xff13), (uint8)0b11111111);
+
+  square1.power(true);
+  square1.counter = false;
+  EXPECT_EQ("Square1 read", square1.read(0xff14), (uint8)0b10111111);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
@@ -361,5 +388,6 @@ void TestSquare1() {
   TestClockLength();
   TestClockSweep();
   TestClockEnvelope();
+  TestRead();
   TestPower();
 }
