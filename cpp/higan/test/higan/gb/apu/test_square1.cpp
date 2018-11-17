@@ -1,8 +1,4 @@
-#include "higan/gb/gb.hpp"
-#include "test/test-utils.hpp"
-#include <vector>
-
-using GameBoy::APU;
+namespace square1 {
 
 void TestDacEnable() {
   APU::Square1 square1;
@@ -467,7 +463,7 @@ void TestPower() {
   EXPECT_EQ("Square1 power", square1.length, 0u);
 }
 
-void TestSquare1() {
+void TestAll() {
   TestDacEnable();
   TestRun();
   TestSweep();
@@ -477,4 +473,5 @@ void TestSquare1() {
   TestRead();
   TestWrite();
   TestPower();
+}
 }

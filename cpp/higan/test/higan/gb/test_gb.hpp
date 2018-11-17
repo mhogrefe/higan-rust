@@ -1,3 +1,8 @@
-#include "apu/test_apu.hpp"
+namespace test {
+namespace higan {
+namespace gb {
 
-void TestGB() { TestAPU(); }
+void TestGB();
+}
+}
+}

@@ -19,7 +19,7 @@ unique_pointer<Program> program;
 
 Program::Program(string_vector args) {
   std::cout << "Testing..." << std::endl;
-  TestAll();
+  test::TestAll();
   std::cout << "Testing complete!" << std::endl;
   program = this;
 

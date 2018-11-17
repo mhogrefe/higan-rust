@@ -1,3 +1,10 @@
-#include "test_square1.hpp"
+namespace test {
+namespace higan {
+namespace gb {
+namespace apu {
 
-void TestAPU() { TestSquare1(); }
+void TestAPU();
+}
+}
+}
+}

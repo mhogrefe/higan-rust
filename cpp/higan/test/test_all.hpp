@@ -1,1 +1,4 @@
+namespace test {
+
 void TestAll();
+}

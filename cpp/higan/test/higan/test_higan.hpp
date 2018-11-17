@@ -1,3 +1,6 @@
-#include "gb/test_gb.hpp"
+namespace test {
+namespace higan {
 
-void TestHigan() { TestGB(); }
+void TestHigan();
+}
+}
