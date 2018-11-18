@@ -5,6 +5,7 @@ pub mod higan {
     pub mod gb {
         pub mod apu {
             pub mod square1;
+            pub mod square2;
         }
     }
 }

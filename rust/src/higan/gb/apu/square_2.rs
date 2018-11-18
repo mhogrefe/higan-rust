@@ -48,7 +48,7 @@ impl Square2 {
         } else {
             U4::ZERO
         };
-        if self.enable {
+        if !self.enable {
             sample = U4::ZERO;
         }
         self.output = i16::from(sample.0);
