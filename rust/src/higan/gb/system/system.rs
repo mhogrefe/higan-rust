@@ -1,3 +1,5 @@
+//TODO test
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Model {
     GameBoy,
