@@ -215,7 +215,7 @@ macro_rules! uint {
             #[inline]
             fn from_str(src: &str) -> Result<Self, ()> {
                 $base::from_str(src).map_err(|_| ()).and_then(|x| {
-                    if x < $u::MASK {
+                    if x <= $u::MASK {
                         Ok($u(x))
                     } else {
                         Err(())
