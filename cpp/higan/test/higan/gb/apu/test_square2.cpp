@@ -242,15 +242,97 @@ void TestClockEnvelope() {
   EXPECT_EQ("Square2 clockEnvelope", square2.volume, (uint4)15);
 }
 
+void TestRead() {
+  APU::Square2 square2;
+
+  square2.power(true);
+  EXPECT_EQ("Square2 read", square2.read(0xff15), (uint8)0b11111111);
+
+  square2.power(true);
+  square2.duty = (uint2)0b01;
+  EXPECT_EQ("Square2 read", square2.read(0xff16), (uint8)0b01111111);
+
+  square2.power(true);
+  square2.envelopeVolume = (uint4)0b1011;
+  square2.envelopeDirection = true;
+  square2.envelopeFrequency = (uint3)0b010;
+  EXPECT_EQ("Square2 read", square2.read(0xff17), (uint8)0b10111010);
+
+  square2.power(true);
+  EXPECT_EQ("Square2 read", square2.read(0xff18), (uint8)0b11111111);
+
+  square2.power(true);
+  square2.counter = false;
+  EXPECT_EQ("Square2 read", square2.read(0xff19), (uint8)0b10111111);
+}
+
+void TestWrite() {
+  APU::Square2 square2;
+
+  square2.power(true);
+  square2.write(0xff16, 0b01110010);
+  EXPECT_EQ("Square2 write", square2.duty, (uint2)0b01);
+  EXPECT_EQ("Square2 write", square2.length, 14u);
+
+  square2.power(true);
+  square2.enable = true;
+  square2.write(0xff17, 0b10111010);
+  EXPECT_EQ("Square2 write", square2.envelopeVolume, (uint4)0b1011);
+  EXPECT_TRUE("Square2 write", square2.envelopeDirection);
+  EXPECT_EQ("Square2 write", square2.envelopeFrequency, (uint3)0b010);
+  EXPECT_TRUE("Square2 write", square2.enable);
+
+  square2.power(true);
+  square2.enable = true;
+  square2.write(0xff17, 0);
+  EXPECT_EQ("Square2 write", square2.envelopeVolume, (uint4)0);
+  EXPECT_FALSE("Square2 write", square2.envelopeDirection);
+  EXPECT_EQ("Square2 write", square2.envelopeFrequency, (uint3)0);
+  EXPECT_FALSE("Square2 write", square2.enable);
+
+  square2.power(true);
+  square2.write(0xff18, 0b10110100);
+  EXPECT_EQ("Square2 write", square2.frequency, (uint11)0b10110100);
+
+  square2.power(true);
+  square2.write(0xff19, 0b10110011);
+  EXPECT_FALSE("Square2 write", square2.enable);
+  EXPECT_FALSE("Square2 write", square2.counter);
+  EXPECT_EQ("Square2 write", square2.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square2 write", square2.period, 2560u);
+  EXPECT_EQ("Square2 write", square2.envelopePeriod, (uint3)0);
+  EXPECT_EQ("Square2 write", square2.volume, (uint4)0);
+  EXPECT_EQ("Square2 write", square2.length, 64u);
+
+  square2.power(true);
+  square2.enable = true;
+  square2.write(0xff19, 0b00110011);
+  EXPECT_TRUE("Square2 write", square2.enable);
+  EXPECT_FALSE("Square2 write", square2.counter);
+  EXPECT_EQ("Square2 write", square2.frequency, (uint11)0b01100000000);
+
+  square2.power(true);
+  square2.length = 1;
+  square2.enable = true;
+  square2.write(0xff19, 0b11110011);
+  EXPECT_FALSE("Square2 write", square2.enable);
+  EXPECT_TRUE("Square2 write", square2.counter);
+  EXPECT_EQ("Square2 write", square2.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square2 write", square2.period, 2560u);
+  EXPECT_EQ("Square2 write", square2.envelopePeriod, (uint3)0);
+  EXPECT_EQ("Square2 write", square2.volume, (uint4)0);
+  EXPECT_EQ("Square2 write", square2.length, 1u);
+}
+
 void TestPower() {
   APU::Square2 square2;
   square2.length = 0;
   square2.power(true);
-  EXPECT_EQ("Square1 power", square2.length, 64u);
+  EXPECT_EQ("Square2 power", square2.length, 64u);
 
   square2.length = 0;
   square2.power(false);
-  EXPECT_EQ("Square1 power", square2.length, 0u);
+  EXPECT_EQ("Square2 power", square2.length, 0u);
 }
 
 void TestAll() {
@@ -258,6 +340,8 @@ void TestAll() {
   TestRun();
   TestClockLength();
   TestClockEnvelope();
+  TestRead();
+  TestWrite();
   TestPower();
 }
 }
