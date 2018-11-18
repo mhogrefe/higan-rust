@@ -24,7 +24,7 @@ pub struct Square2 {
 
 impl Square2 {
     pub fn dac_enable(&self) -> bool {
-        return self.envelope_volume.0 != 0 || self.envelope_direction;
+        self.envelope_volume.0 != 0 || self.envelope_direction
     }
 
     pub fn run(&mut self) {
