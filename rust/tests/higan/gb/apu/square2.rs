@@ -8,18 +8,22 @@ fn test_dac_enable() {
     let mut square_2 = Square2::default();
     square_2.power(true);
 
+    square_2.power(true);
     square_2.envelope_volume = U4::ZERO;
     square_2.envelope_direction = false;
     assert_eq!(square_2.dac_enable(), false);
 
+    square_2.power(true);
     square_2.envelope_volume = U4::wrapping_from(3);
     square_2.envelope_direction = false;
     assert_eq!(square_2.dac_enable(), true);
 
+    square_2.power(true);
     square_2.envelope_volume = U4::ZERO;
     square_2.envelope_direction = true;
     assert_eq!(square_2.dac_enable(), true);
 
+    square_2.power(true);
     square_2.envelope_volume = U4::wrapping_from(3);
     square_2.envelope_direction = true;
     assert_eq!(square_2.dac_enable(), true);

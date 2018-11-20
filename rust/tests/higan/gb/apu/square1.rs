@@ -6,20 +6,23 @@ use malachite_base::num::{One, Zero};
 #[test]
 fn test_dac_enable() {
     let mut square_1 = Square1::default();
-    square_1.power(true);
 
+    square_1.power(true);
     square_1.envelope_volume = U4::ZERO;
     square_1.envelope_direction = false;
     assert_eq!(square_1.dac_enable(), false);
 
+    square_1.power(true);
     square_1.envelope_volume = U4::wrapping_from(3);
     square_1.envelope_direction = false;
     assert_eq!(square_1.dac_enable(), true);
 
+    square_1.power(true);
     square_1.envelope_volume = U4::ZERO;
     square_1.envelope_direction = true;
     assert_eq!(square_1.dac_enable(), true);
 
+    square_1.power(true);
     square_1.envelope_volume = U4::wrapping_from(3);
     square_1.envelope_direction = true;
     assert_eq!(square_1.dac_enable(), true);
@@ -456,7 +459,7 @@ fn test_write() {
     assert!(!square_1.enable);
     assert!(!square_1.counter);
     assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
-    assert_eq!(square_1.period, 2560);
+    assert_eq!(square_1.period, 2_560);
     assert_eq!(square_1.envelope_period, U3::ZERO);
     assert_eq!(square_1.volume, U4::ZERO);
     assert_eq!(square_1.length, 64);
@@ -479,7 +482,7 @@ fn test_write() {
     assert!(!square_1.enable);
     assert!(square_1.counter);
     assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
-    assert_eq!(square_1.period, 2560);
+    assert_eq!(square_1.period, 2_560);
     assert_eq!(square_1.envelope_period, U3::ZERO);
     assert_eq!(square_1.volume, U4::ZERO);
     assert_eq!(square_1.length, 1);

@@ -2,20 +2,23 @@ namespace square1 {
 
 void TestDacEnable() {
   APU::Square1 square1;
-  square1.power(true);
 
+  square1.power(true);
   square1.envelopeVolume = 0;
   square1.envelopeDirection = false;
   EXPECT_FALSE("Square1 dacEnable", square1.dacEnable());
 
+  square1.power(true);
   square1.envelopeVolume = 3;
   square1.envelopeDirection = false;
   EXPECT_TRUE("Square1 dacEnable", square1.dacEnable());
 
+  square1.power(true);
   square1.envelopeVolume = 0;
   square1.envelopeDirection = true;
   EXPECT_TRUE("Square1 dacEnable", square1.dacEnable());
 
+  square1.power(true);
   square1.envelopeVolume = 3;
   square1.envelopeDirection = true;
   EXPECT_TRUE("Square1 dacEnable", square1.dacEnable());
