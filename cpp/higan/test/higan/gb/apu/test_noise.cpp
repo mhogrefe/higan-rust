@@ -213,11 +213,38 @@ void TestClockEnvelope() {
   EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)15);
 }
 
+void TestRead() {
+  APU::Noise noise;
+
+  noise.power(true);
+  EXPECT_EQ("Noise read", noise.read(0xff1f), (uint8)0b11111111);
+
+  noise.power(true);
+  EXPECT_EQ("Noise read", noise.read(0xff20), (uint8)0b11111111);
+
+  noise.power(true);
+  noise.envelopeVolume = (uint4)0b1011;
+  noise.envelopeDirection = true;
+  noise.envelopeFrequency = (uint3)0b010;
+  EXPECT_EQ("Noise read", noise.read(0xff21), (uint8)0b10111010);
+
+  noise.power(true);
+  noise.frequency = (uint4)0b1011;
+  noise.narrow = true;
+  noise.divisor = (uint3)0b010;
+  EXPECT_EQ("Noise read", noise.read(0xff22), (uint8)0b10111010);
+
+  noise.power(true);
+  noise.counter = false;
+  EXPECT_EQ("Noise read", noise.read(0xff23), (uint8)0b10111111);
+}
+
 void TestAll() {
   TestDacEnable();
   TestGetPeriod();
   TestRun();
   TestClockLength();
   TestClockEnvelope();
+  TestRead();
 }
 }
