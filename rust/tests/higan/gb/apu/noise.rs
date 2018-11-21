@@ -1,6 +1,6 @@
 use higan_rust::higan::emulator::types::{U15, U3, U4};
 use higan_rust::higan::gb::apu::noise::Noise;
-use malachite_base::misc::WrappingFrom;
+use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{One, Zero};
 
 #[test]
@@ -119,4 +119,118 @@ fn test_run() {
             0, 0, 0, 0, 0, 0, 0, 0,
         ],
     );
+}
+
+#[test]
+fn test_clock_length() {
+    let mut noise = Noise::default();
+
+    // counter is false
+    noise.power(true);
+    noise.counter = false;
+    noise.enable = true;
+    noise.length = 5;
+    noise.clock_length();
+    assert_eq!(noise.length, 5);
+    assert!(noise.enable);
+
+    noise.power(true);
+    noise.counter = true;
+    noise.enable = true;
+    noise.length = 5;
+    noise.clock_length();
+    assert_eq!(noise.length, 4);
+    assert!(noise.enable);
+
+    // length is initially 0
+    noise.power(true);
+    noise.counter = true;
+    noise.enable = true;
+    noise.length = 0;
+    noise.clock_length();
+    assert_eq!(noise.length, 0);
+    assert!(noise.enable);
+
+    // length is initially 1
+    noise.power(true);
+    noise.counter = true;
+    noise.enable = true;
+    noise.length = 1;
+    noise.clock_length();
+    assert_eq!(noise.length, 0);
+    assert!(!noise.enable);
+}
+
+#[test]
+fn test_clock_envelope() {
+    let mut noise = Noise::default();
+
+    noise.power(true);
+    noise.enable = false;
+    noise.envelope_frequency = U3::wrapping_from(5);
+    noise.envelope_period = U3::ONE;
+    noise.volume = U4::wrapping_from(10);
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::ONE);
+    assert_eq!(noise.volume, U4::wrapping_from(10));
+
+    noise.power(true);
+    noise.enable = true;
+    noise.envelope_frequency = U3::ZERO;
+    noise.envelope_period = U3::ONE;
+    noise.volume = U4::wrapping_from(10);
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::ONE);
+    assert_eq!(noise.volume, U4::wrapping_from(10));
+
+    noise.power(true);
+    noise.enable = true;
+    noise.envelope_frequency = U3::wrapping_from(5);
+    noise.envelope_period = U3::wrapping_from(5);
+    noise.volume = U4::wrapping_from(10);
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::wrapping_from(4));
+    assert_eq!(noise.volume, U4::wrapping_from(10));
+
+    noise.power(true);
+    noise.enable = true;
+    noise.envelope_direction = false;
+    noise.envelope_frequency = U3::wrapping_from(5);
+    noise.envelope_period = U3::ONE;
+    noise.volume = U4::wrapping_from(10);
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::wrapping_from(5));
+    assert_eq!(noise.volume, U4::wrapping_from(9));
+
+    // volume already at min
+    noise.power(true);
+    noise.enable = true;
+    noise.envelope_direction = false;
+    noise.envelope_frequency = U3::wrapping_from(5);
+    noise.envelope_period = U3::ONE;
+    noise.volume = U4::ZERO;
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::wrapping_from(5));
+    assert_eq!(noise.volume, U4::ZERO);
+
+    noise.power(true);
+    noise.enable = true;
+    noise.envelope_direction = true;
+    noise.envelope_frequency = U3::wrapping_from(5);
+    noise.envelope_period = U3::ONE;
+    noise.volume = U4::wrapping_from(10);
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::wrapping_from(5));
+    assert_eq!(noise.volume, U4::wrapping_from(11));
+
+    // volume already at max
+    noise.power(true);
+    noise.enable = true;
+    noise.envelope_direction = true;
+    noise.envelope_frequency = U3::wrapping_from(5);
+    noise.envelope_period = U3::ONE;
+    noise.volume = U4::MAX;
+    noise.clock_envelope();
+    assert_eq!(noise.envelope_period, U3::wrapping_from(5));
+    assert_eq!(noise.volume, U4::MAX);
 }

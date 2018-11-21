@@ -101,9 +101,123 @@ void TestRun() {
                         "0, 0]");
 }
 
+void TestClockLength() {
+  APU::Noise noise;
+
+  // counter is false
+  noise.power(true);
+  noise.counter = false;
+  noise.enable = true;
+  noise.length = 5;
+  noise.clockLength();
+  EXPECT_EQ("Noise clockLength", noise.length, 5u);
+  EXPECT_TRUE("Noise clockLength", noise.enable);
+
+  noise.power(true);
+  noise.counter = true;
+  noise.enable = true;
+  noise.length = 5;
+  noise.clockLength();
+  EXPECT_EQ("Noise clockLength", noise.length, 4u);
+  EXPECT_TRUE("Noise clockLength", noise.enable);
+
+  // length is initially 0
+  noise.power(true);
+  noise.counter = true;
+  noise.enable = true;
+  noise.length = 0;
+  noise.clockLength();
+  EXPECT_EQ("Noise clockLength", noise.length, 0u);
+  EXPECT_TRUE("Noise clockLength", noise.enable);
+
+  // length is initially 1
+  noise.power(true);
+  noise.counter = true;
+  noise.enable = true;
+  noise.length = 1;
+  noise.clockLength();
+  EXPECT_EQ("Noise clockLength", noise.length, 0u);
+  EXPECT_FALSE("Noise clockLength", noise.enable);
+}
+
+void TestClockEnvelope() {
+  APU::Noise noise;
+
+  noise.power(true);
+  noise.enable = false;
+  noise.envelopeFrequency = (uint3)5;
+  noise.envelopePeriod = (uint3)1;
+  noise.volume = (uint4)10;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)1);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)10);
+
+  noise.power(true);
+  noise.enable = true;
+  noise.envelopeFrequency = (uint3)0;
+  noise.envelopePeriod = (uint3)1;
+  noise.volume = (uint4)10;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)1);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)10);
+
+  noise.power(true);
+  noise.enable = true;
+  noise.envelopeFrequency = (uint3)5;
+  noise.envelopePeriod = (uint3)5;
+  noise.volume = (uint4)10;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)4);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)10);
+
+  noise.power(true);
+  noise.enable = true;
+  noise.envelopeDirection = false;
+  noise.envelopeFrequency = (uint3)5;
+  noise.envelopePeriod = (uint3)1;
+  noise.volume = (uint4)10;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)9);
+
+  // volume already at min
+  noise.power(true);
+  noise.enable = true;
+  noise.envelopeDirection = false;
+  noise.envelopeFrequency = (uint3)5;
+  noise.envelopePeriod = (uint3)1;
+  noise.volume = (uint4)0;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)0);
+
+  noise.power(true);
+  noise.enable = true;
+  noise.envelopeDirection = true;
+  noise.envelopeFrequency = (uint3)5;
+  noise.envelopePeriod = (uint3)1;
+  noise.volume = (uint4)10;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)11);
+
+  // volume already at max
+  noise.power(true);
+  noise.enable = true;
+  noise.envelopeDirection = true;
+  noise.envelopeFrequency = (uint3)5;
+  noise.envelopePeriod = (uint3)1;
+  noise.volume = (uint4)15;
+  noise.clockEnvelope();
+  EXPECT_EQ("Noise clockEnvelope", noise.envelopePeriod, (uint3)5);
+  EXPECT_EQ("Noise clockEnvelope", noise.volume, (uint4)15);
+}
+
 void TestAll() {
   TestDacEnable();
   TestGetPeriod();
   TestRun();
+  TestClockLength();
+  TestClockEnvelope();
 }
 }
