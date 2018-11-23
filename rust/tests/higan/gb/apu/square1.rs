@@ -1,4 +1,5 @@
 use higan_rust::higan::emulator::types::{U11, U2, U3, U4};
+use higan_rust::higan::gb::apu::apu::APU;
 use higan_rust::higan::gb::apu::square_1::Square1;
 use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{One, Zero};
@@ -407,13 +408,14 @@ fn test_read() {
 
 #[test]
 fn test_write() {
+    let mut apu = APU::default();
     let mut square_1 = Square1::default();
 
     square_1.power(true);
     square_1.enable = true;
     square_1.sweep_enable = true;
     square_1.sweep_negate = true;
-    square_1.write(U3::ZERO, 0xff10, 0b11011010);
+    square_1.write(apu.phase, 0xff10, 0b11011010);
     assert_eq!(square_1.sweep_frequency, U3::wrapping_from(0b101));
     assert!(square_1.sweep_direction);
     assert_eq!(square_1.sweep_shift, U3::wrapping_from(0b010));
@@ -423,20 +425,20 @@ fn test_write() {
     square_1.enable = true;
     square_1.sweep_enable = true;
     square_1.sweep_negate = true;
-    square_1.write(U3::ZERO, 0xff10, 0b11010010);
+    square_1.write(apu.phase, 0xff10, 0b11010010);
     assert_eq!(square_1.sweep_frequency, U3::wrapping_from(0b101));
     assert!(!square_1.sweep_direction);
     assert_eq!(square_1.sweep_shift, U3::wrapping_from(0b010));
     assert!(!square_1.enable);
 
     square_1.power(true);
-    square_1.write(U3::ZERO, 0xff11, 0b01110010);
+    square_1.write(apu.phase, 0xff11, 0b01110010);
     assert_eq!(square_1.duty, U2::wrapping_from(0b01));
     assert_eq!(square_1.length, 14);
 
     square_1.power(true);
     square_1.enable = true;
-    square_1.write(U3::ZERO, 0xff12, 0b10111010);
+    square_1.write(apu.phase, 0xff12, 0b10111010);
     assert_eq!(square_1.envelope_volume, U4::wrapping_from(0b1011));
     assert!(square_1.envelope_direction);
     assert_eq!(square_1.envelope_frequency, U3::wrapping_from(0b010));
@@ -444,22 +446,23 @@ fn test_write() {
 
     square_1.power(true);
     square_1.enable = true;
-    square_1.write(U3::ZERO, 0xff12, 0);
+    square_1.write(apu.phase, 0xff12, 0);
     assert_eq!(square_1.envelope_volume, U4::ZERO);
     assert!(!square_1.envelope_direction);
     assert_eq!(square_1.envelope_frequency, U3::ZERO);
     assert!(!square_1.enable);
 
     square_1.power(true);
-    square_1.write(U3::ZERO, 0xff13, 0b10110100);
+    square_1.write(apu.phase, 0xff13, 0b10110100);
     assert_eq!(square_1.frequency, U11::wrapping_from(0b10110100));
 
+    // data.bit(6) is false, data.bit(7) is true
     square_1.power(true);
-    square_1.write(U3::ZERO, 0xff14, 0b10110011);
+    square_1.write(apu.phase, 0xff14, 0b10110011);
     assert!(!square_1.enable);
     assert!(!square_1.counter);
     assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
-    assert_eq!(square_1.period, 2_560);
+    assert_eq!(square_1.period, 2560);
     assert_eq!(square_1.envelope_period, U3::ZERO);
     assert_eq!(square_1.volume, U4::ZERO);
     assert_eq!(square_1.length, 64);
@@ -468,28 +471,102 @@ fn test_write() {
     assert_eq!(square_1.sweep_period, U3::ZERO);
     assert!(!square_1.sweep_enable);
 
+    // data.bit(6) is false, data.bit(7) is false. Length stays 0
     square_1.power(true);
     square_1.enable = true;
-    square_1.write(U3::ZERO, 0xff14, 0b00110011);
+    square_1.length = 0;
+    square_1.write(apu.phase, 0xff14, 0b00110011);
     assert!(square_1.enable);
     assert!(!square_1.counter);
     assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.length, 0);
 
+    // data.bit(6) is true, data.bit(7) is true, enable stays true
     square_1.power(true);
     square_1.length = 1;
     square_1.enable = true;
-    square_1.write(U3::ZERO, 0xff14, 0b11110011);
-    assert!(!square_1.enable);
+    square_1.envelope_volume = U4::wrapping_from(5);
+    square_1.envelope_direction = true;
+    square_1.write(apu.phase, 0xff14, 0b11110011);
+    assert!(square_1.enable);
     assert!(square_1.counter);
     assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
-    assert_eq!(square_1.period, 2_560);
+    assert_eq!(square_1.period, 2560);
     assert_eq!(square_1.envelope_period, U3::ZERO);
-    assert_eq!(square_1.volume, U4::ZERO);
+    assert_eq!(square_1.volume, U4::wrapping_from(5));
     assert_eq!(square_1.length, 1);
     assert_eq!(square_1.frequency_shadow, 768);
     assert!(!square_1.sweep_negate);
     assert_eq!(square_1.sweep_period, U3::ZERO);
     assert!(!square_1.sweep_enable);
+
+    // same as previous, but length is initially 0 and becomes 64
+    square_1.power(true);
+    square_1.enable = true;
+    square_1.envelope_volume = U4::wrapping_from(5);
+    square_1.length = 0;
+    square_1.envelope_direction = true;
+    square_1.write(apu.phase, 0xff14, 0b11110011);
+    assert!(square_1.enable);
+    assert!(square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.period, 2560);
+    assert_eq!(square_1.envelope_period, U3::ZERO);
+    assert_eq!(square_1.volume, U4::wrapping_from(5));
+    assert_eq!(square_1.length, 64);
+    assert_eq!(square_1.frequency_shadow, 768);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(!square_1.sweep_enable);
+
+    // same as previous, but length is initially 0 and becomes 63 because of
+    // apu.phase
+    apu.power();
+    square_1.power(true);
+    apu.phase = U3::ONE;
+    square_1.enable = true;
+    square_1.envelope_volume = U4::wrapping_from(5);
+    square_1.length = 0;
+    square_1.envelope_direction = true;
+    square_1.write(apu.phase, 0xff14, 0b11110011);
+    assert!(square_1.enable);
+    assert!(square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.period, 2560);
+    assert_eq!(square_1.envelope_period, U3::ZERO);
+    assert_eq!(square_1.volume, U4::wrapping_from(5));
+    assert_eq!(square_1.length, 63);
+    assert_eq!(square_1.frequency_shadow, 768);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(!square_1.sweep_enable);
+    // clear phase
+    apu.power();
+
+    // data.bit(6) is true, data.bit(7) is false, enable stays true
+    square_1.power(true);
+    square_1.length = 1;
+    square_1.enable = true;
+    square_1.write(apu.phase, 0xff14, 0b01110011);
+    assert!(square_1.enable);
+    assert!(square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.length, 1);
+
+    // same as previous, but apu.phase = 1, so enable becomes false
+    apu.power();
+    square_1.power(true);
+    apu.phase = U3::ONE;
+    square_1.length = 1;
+    square_1.enable = true;
+    square_1.write(apu.phase, 0xff14, 0b01110011);
+
+    assert!(!square_1.enable);
+    assert!(square_1.counter);
+    assert_eq!(square_1.frequency, U11::wrapping_from(0b01100000000));
+    assert_eq!(square_1.length, 0);
+    // clear phase
+    apu.power();
 }
 
 #[test]

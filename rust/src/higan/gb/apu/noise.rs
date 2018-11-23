@@ -1,5 +1,3 @@
-//TODO test
-
 use higan::emulator::types::{Bits, U15, U3, U4};
 use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{BitAccess, One, WrappingSubAssign, Zero};

@@ -417,6 +417,7 @@ void TestWrite() {
   square1.write(0xff13, 0b10110100);
   EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b10110100);
 
+  // data.bit(6) is false, data.bit(7) is true
   square1.power(true);
   square1.write(0xff14, 0b10110011);
   EXPECT_FALSE("Square1 write", square1.enable);
@@ -431,28 +432,102 @@ void TestWrite() {
   EXPECT_EQ("Square1 write", square1.sweepPeriod, (uint3)0);
   EXPECT_FALSE("Square1 write", square1.sweepEnable);
 
+  // data.bit(6) is false, data.bit(7) is false. Length stays 0
   square1.power(true);
   square1.enable = true;
+  square1.length = 0;
   square1.write(0xff14, 0b00110011);
   EXPECT_TRUE("Square1 write", square1.enable);
   EXPECT_FALSE("Square1 write", square1.counter);
   EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.length, 0u);
 
+  // data.bit(6) is true, data.bit(7) is true, enable stays true
   square1.power(true);
   square1.length = 1;
   square1.enable = true;
+  square1.envelopeVolume = 5;
+  square1.envelopeDirection = true;
   square1.write(0xff14, 0b11110011);
-  EXPECT_FALSE("Square1 write", square1.enable);
+  EXPECT_TRUE("Square1 write", square1.enable);
   EXPECT_TRUE("Square1 write", square1.counter);
   EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
   EXPECT_EQ("Square1 write", square1.period, 2560u);
   EXPECT_EQ("Square1 write", square1.envelopePeriod, (uint3)0);
-  EXPECT_EQ("Square1 write", square1.volume, (uint4)0);
+  EXPECT_EQ("Square1 write", square1.volume, (uint4)5);
   EXPECT_EQ("Square1 write", square1.length, 1u);
   EXPECT_EQ("Square1 write", square1.frequencyShadow, 768);
   EXPECT_FALSE("Square1 write", square1.sweepNegate);
   EXPECT_EQ("Square1 write", square1.sweepPeriod, (uint3)0);
   EXPECT_FALSE("Square1 write", square1.sweepEnable);
+
+  // same as previous, but length is initially 0 and becomes 64
+  square1.power(true);
+  square1.enable = true;
+  square1.envelopeVolume = 5;
+  square1.length = 0;
+  square1.envelopeDirection = true;
+  square1.write(0xff14, 0b11110011);
+  EXPECT_TRUE("Square1 write", square1.enable);
+  EXPECT_TRUE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.period, 2560u);
+  EXPECT_EQ("Square1 write", square1.envelopePeriod, (uint3)0);
+  EXPECT_EQ("Square1 write", square1.volume, (uint4)5);
+  EXPECT_EQ("Square1 write", square1.length, 64u);
+  EXPECT_EQ("Square1 write", square1.frequencyShadow, 768);
+  EXPECT_FALSE("Square1 write", square1.sweepNegate);
+  EXPECT_EQ("Square1 write", square1.sweepPeriod, (uint3)0);
+  EXPECT_FALSE("Square1 write", square1.sweepEnable);
+
+  // same as previous, but length is initially 0 and becomes 63 because of
+  // apu.phase
+  GameBoy::apu.power();
+  square1.power(true);
+  GameBoy::apu.phase = 1;
+  square1.enable = true;
+  square1.envelopeVolume = 5;
+  square1.length = 0;
+  square1.envelopeDirection = true;
+  square1.write(0xff14, 0b11110011);
+  EXPECT_TRUE("Square1 write", square1.enable);
+  EXPECT_TRUE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.period, 2560u);
+  EXPECT_EQ("Square1 write", square1.envelopePeriod, (uint3)0);
+  EXPECT_EQ("Square1 write", square1.volume, (uint4)5);
+  EXPECT_EQ("Square1 write", square1.length, 63u);
+  EXPECT_EQ("Square1 write", square1.frequencyShadow, 768);
+  EXPECT_FALSE("Square1 write", square1.sweepNegate);
+  EXPECT_EQ("Square1 write", square1.sweepPeriod, (uint3)0);
+  EXPECT_FALSE("Square1 write", square1.sweepEnable);
+  // clear phase
+  GameBoy::apu.power();
+
+  // data.bit(6) is true, data.bit(7) is false, enable stays true
+  square1.power(true);
+  square1.length = 1;
+  square1.enable = true;
+  square1.write(0xff14, 0b01110011);
+  EXPECT_TRUE("Square1 write", square1.enable);
+  EXPECT_TRUE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.length, 1u);
+
+  // same as previous, but GameBoy::apu.phase = 1, so enable becomes false
+  GameBoy::apu.power();
+  square1.power(true);
+  GameBoy::apu.phase = 1;
+  square1.length = 1;
+  square1.enable = true;
+  square1.write(0xff14, 0b01110011);
+
+  EXPECT_FALSE("Square1 write", square1.enable);
+  EXPECT_TRUE("Square1 write", square1.counter);
+  EXPECT_EQ("Square1 write", square1.frequency, (uint11)0b01100000000);
+  EXPECT_EQ("Square1 write", square1.length, 0u);
+  // clear phase
+  GameBoy::apu.power();
 }
 
 void TestPower() {

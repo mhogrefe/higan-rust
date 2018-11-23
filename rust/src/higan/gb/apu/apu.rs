@@ -67,9 +67,12 @@ impl APU {
         //TODO Thread::step(1);
         //TODO synchronize(cpu);
     }
-}
 
-//TODO power
+    pub fn power(&mut self) {
+        //TODO expand stub
+        *self = APU::default();
+    }
+}
 
 impl MMIO for APU {
     fn read_io(&self, system: &System, addr: u16) -> u8 {
