@@ -7,6 +7,7 @@ pub mod higan {
             pub mod noise;
             pub mod square1;
             pub mod square2;
+            pub mod wave;
         }
     }
 }
