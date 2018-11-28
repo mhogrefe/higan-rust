@@ -38,7 +38,7 @@ impl Wave {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = u32::from(2048 - self.frequency.0);
+                self.period = u32::from(2_048 - self.frequency.0);
                 self.pattern_offset.wrapping_add_assign(U5::ONE);
                 self.pattern_sample = self.get_pattern(self.pattern_offset);
                 self.pattern_hold = 1;
