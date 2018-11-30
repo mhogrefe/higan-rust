@@ -32,9 +32,11 @@ impl Default for MMIOType {
     }
 }
 
+const MMIO_SIZE: usize = 65_536;
+
 #[derive(Clone)]
 pub struct Bus {
-    pub mmio: [MMIOType; 65536],
+    pub mmio: [MMIOType; MMIO_SIZE],
     pub unmapped: Unmapped,
     pub apu: APU,
 }
@@ -42,7 +44,7 @@ pub struct Bus {
 impl Default for Bus {
     fn default() -> Bus {
         Bus {
-            mmio: [MMIOType::default(); 65536],
+            mmio: [MMIOType::default(); MMIO_SIZE],
             unmapped: Unmapped,
             apu: APU::default(),
         }
