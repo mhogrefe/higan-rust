@@ -117,7 +117,7 @@ void TestClockLength() {
   APU::Wave wave;
 
   // counter is false
-  wave.power(true);
+  PowerAndZeroPattern(&wave);
   wave.counter = false;
   wave.enable = true;
   wave.length = 5;
@@ -125,7 +125,7 @@ void TestClockLength() {
   EXPECT_EQ("Wave clockLength", wave.length, 5u);
   EXPECT_TRUE("Wave clockLength", wave.enable);
 
-  wave.power(true);
+  PowerAndZeroPattern(&wave);
   wave.counter = true;
   wave.enable = true;
   wave.length = 5;
@@ -134,7 +134,7 @@ void TestClockLength() {
   EXPECT_TRUE("Wave clockLength", wave.enable);
 
   // length is initially 0
-  wave.power(true);
+  PowerAndZeroPattern(&wave);
   wave.counter = true;
   wave.enable = true;
   wave.length = 0;
@@ -143,7 +143,7 @@ void TestClockLength() {
   EXPECT_TRUE("Wave clockLength", wave.enable);
 
   // length is initially 1
-  wave.power(true);
+  PowerAndZeroPattern(&wave);
   wave.counter = true;
   wave.enable = true;
   wave.length = 1;
@@ -152,9 +152,67 @@ void TestClockLength() {
   EXPECT_FALSE("Wave clockLength", wave.enable);
 }
 
+void TestRead() {
+  APU::Wave wave;
+
+  PowerAndZeroPattern(&wave);
+  wave.dacEnable = false;
+  EXPECT_EQ("Wave read", wave.read(0xff1a), (uint8)0b01111111);
+
+  PowerAndZeroPattern(&wave);
+  EXPECT_EQ("Wave read", wave.read(0xff1b), (uint8)0b11111111);
+
+  PowerAndZeroPattern(&wave);
+  wave.volume = 0b10;
+  EXPECT_EQ("Wave read", wave.read(0xff1c), (uint8)0b11011111);
+
+  PowerAndZeroPattern(&wave);
+  EXPECT_EQ("Wave read", wave.read(0xff1d), (uint8)0b11111111);
+
+  PowerAndZeroPattern(&wave);
+  wave.counter = false;
+  EXPECT_EQ("Wave read", wave.read(0xff1e), (uint8)0b10111111);
+
+  // Model::GameBoyColor() is false, patternHold is zero
+  PowerAndZeroPattern(&wave);
+  wave.enable = true;
+  wave.patternHold = 0;
+  wave.patternOffset = 3;
+  wave.pattern[1] = 0xab;
+  EXPECT_EQ("Wave read", wave.read(0xff3a), (uint8)0xff);
+
+  // Model::GameBoyColor() is false, patternHold is nonzero
+  PowerAndZeroPattern(&wave);
+  wave.enable = true;
+  wave.patternHold = 5;
+  wave.patternOffset = 3;
+  wave.pattern[1] = 0xab;
+  EXPECT_EQ("Wave read", wave.read(0xff3a), (uint8)0xab);
+
+  // Model::GameBoyColor() is true, patternHold is zero
+  PowerAndZeroPattern(&wave);
+  auto old_model = GameBoy::system._model;
+  GameBoy::system._model = GameBoy::System::Model::GameBoyColor;
+  wave.enable = true;
+  wave.patternHold = 0;
+  wave.patternOffset = 3;
+  wave.pattern[1] = 0xab;
+  EXPECT_EQ("Wave read", wave.read(0xff3a), (uint8)0xab);
+  GameBoy::system._model = old_model;
+
+  // enable is false
+  PowerAndZeroPattern(&wave);
+  wave.enable = false;
+  wave.patternHold = 0;
+  wave.patternOffset = 3;
+  wave.pattern[5] = 0xab;
+  EXPECT_EQ("Wave read", wave.read(0xff35), (uint8)0xab);
+}
+
 void TestAll() {
   TestGetPattern();
   TestRun();
   TestClockLength();
+  TestRead();
 }
 }

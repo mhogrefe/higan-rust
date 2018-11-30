@@ -1,6 +1,6 @@
 //TODO test
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Model {
     GameBoy,
     GameBoyColor,
@@ -13,7 +13,7 @@ impl Default for Model {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct System {
     pub model: Model,
 }

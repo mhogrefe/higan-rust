@@ -10,13 +10,13 @@ use higan::gb::system::system::System;
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{BitAccess, One, WrappingAdd, WrappingAddAssign, Zero};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Channel {
     pub left_enable: bool,
     pub right_enable: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Sequencer {
     pub left_enable: bool,
     pub left_volume: U3,

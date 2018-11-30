@@ -8,6 +8,7 @@ pub trait MMIO {
     fn write_io(&mut self, system: &System, addr: u16, data: u8);
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Unmapped;
 
 impl MMIO for Unmapped {

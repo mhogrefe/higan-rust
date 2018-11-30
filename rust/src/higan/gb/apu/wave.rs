@@ -5,7 +5,7 @@ use higan::gb::system::system::System;
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{BitAccess, One, WrappingAddAssign, Zero};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Wave {
     pub enable: bool,
 

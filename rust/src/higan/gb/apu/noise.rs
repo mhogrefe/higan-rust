@@ -2,7 +2,7 @@ use higan::emulator::types::{Bits, U15, U3, U4};
 use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{BitAccess, One, WrappingSubAssign, Zero};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Noise {
     pub enable: bool,
 

@@ -13,7 +13,7 @@ use malachite_base::num::{One, WrappingAddAssign};
 //TODO impl Thread
 //TODO auto APU::Enter() -> void
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct APU {
     pub square1: Square1,
     pub square2: Square2,
