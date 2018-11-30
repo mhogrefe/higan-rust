@@ -113,8 +113,48 @@ void TestRun() {
                        "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]");
 }
 
+void TestClockLength() {
+  APU::Wave wave;
+
+  // counter is false
+  wave.power(true);
+  wave.counter = false;
+  wave.enable = true;
+  wave.length = 5;
+  wave.clockLength();
+  EXPECT_EQ("Wave clockLength", wave.length, 5u);
+  EXPECT_TRUE("Wave clockLength", wave.enable);
+
+  wave.power(true);
+  wave.counter = true;
+  wave.enable = true;
+  wave.length = 5;
+  wave.clockLength();
+  EXPECT_EQ("Wave clockLength", wave.length, 4u);
+  EXPECT_TRUE("Wave clockLength", wave.enable);
+
+  // length is initially 0
+  wave.power(true);
+  wave.counter = true;
+  wave.enable = true;
+  wave.length = 0;
+  wave.clockLength();
+  EXPECT_EQ("Wave clockLength", wave.length, 0u);
+  EXPECT_TRUE("Wave clockLength", wave.enable);
+
+  // length is initially 1
+  wave.power(true);
+  wave.counter = true;
+  wave.enable = true;
+  wave.length = 1;
+  wave.clockLength();
+  EXPECT_EQ("Wave clockLength", wave.length, 0u);
+  EXPECT_FALSE("Wave clockLength", wave.enable);
+}
+
 void TestAll() {
   TestGetPattern();
   TestRun();
+  TestClockLength();
 }
 }

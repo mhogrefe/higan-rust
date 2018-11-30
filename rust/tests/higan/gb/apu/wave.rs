@@ -136,3 +136,43 @@ fn test_run() {
         ],
     );
 }
+
+#[test]
+fn test_clock_length() {
+    let mut wave = Wave::default();
+
+    // counter is false
+    wave.power(true);
+    wave.counter = false;
+    wave.enable = true;
+    wave.length = 5;
+    wave.clock_length();
+    assert_eq!(wave.length, 5);
+    assert!(wave.enable);
+
+    wave.power(true);
+    wave.counter = true;
+    wave.enable = true;
+    wave.length = 5;
+    wave.clock_length();
+    assert_eq!(wave.length, 4);
+    assert!(wave.enable);
+
+    // length is initially 0
+    wave.power(true);
+    wave.counter = true;
+    wave.enable = true;
+    wave.length = 0;
+    wave.clock_length();
+    assert_eq!(wave.length, 0);
+    assert!(wave.enable);
+
+    // length is initially 1
+    wave.power(true);
+    wave.counter = true;
+    wave.enable = true;
+    wave.length = 1;
+    wave.clock_length();
+    assert_eq!(wave.length, 0);
+    assert!(!wave.enable);
+}

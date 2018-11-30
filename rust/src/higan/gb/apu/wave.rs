@@ -3,7 +3,7 @@
 use higan::emulator::types::{Bits, U11, U2, U3, U4, U5};
 use higan::gb::system::system::System;
 use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, One, WrappingAddAssign, WrappingSubAssign, Zero};
+use malachite_base::num::{BitAccess, One, WrappingAddAssign, Zero};
 
 #[derive(Debug, Default)]
 pub struct Wave {
@@ -55,9 +55,11 @@ impl Wave {
 
     pub fn clock_length(&mut self) {
         if self.counter {
-            self.length.wrapping_sub_assign(1);
-            if self.length == 0 {
-                self.enable = false;
+            if self.length != 0 {
+                self.length -= 1;
+                if self.length == 0 {
+                    self.enable = false;
+                }
             }
         }
     }
