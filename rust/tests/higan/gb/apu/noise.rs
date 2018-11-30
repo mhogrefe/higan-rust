@@ -1,6 +1,6 @@
 use higan_rust::higan::emulator::types::{U15, U3, U4};
-use higan_rust::higan::gb::apu::apu::APU;
 use higan_rust::higan::gb::apu::noise::Noise;
+use higan_rust::higan::gb::memory::memory::Bus;
 use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{One, Zero};
 
@@ -238,16 +238,16 @@ fn test_clock_envelope() {
 
 #[test]
 fn test_write() {
-    let mut apu = APU::default();
+    let mut bus = Bus::default();
     let mut noise = Noise::default();
 
     noise.power(true);
-    noise.write(apu.phase, 0xff20, 0b10110100);
+    noise.write(bus.apu.phase, 0xff20, 0b10110100);
     assert_eq!(noise.length, 12);
 
     noise.power(true);
     noise.enable = true;
-    noise.write(apu.phase, 0xff21, 0b10111010);
+    noise.write(bus.apu.phase, 0xff21, 0b10111010);
     assert_eq!(noise.envelope_volume, U4::wrapping_from(0b1011));
     assert!(noise.envelope_direction);
     assert_eq!(noise.envelope_frequency, U3::wrapping_from(0b010));
@@ -255,7 +255,7 @@ fn test_write() {
 
     noise.power(true);
     noise.enable = true;
-    noise.write(apu.phase, 0xff21, 0);
+    noise.write(bus.apu.phase, 0xff21, 0);
     assert_eq!(noise.envelope_volume, U4::ZERO);
     assert!(!noise.envelope_direction);
     assert_eq!(noise.envelope_frequency, U3::ZERO);
@@ -263,14 +263,14 @@ fn test_write() {
 
     noise.power(true);
     noise.enable = true;
-    noise.write(apu.phase, 0xff22, 0b10111010);
+    noise.write(bus.apu.phase, 0xff22, 0b10111010);
     assert_eq!(noise.frequency, U4::wrapping_from(0b1011));
     assert!(noise.narrow);
     assert_eq!(noise.divisor, U3::wrapping_from(0b010));
 
     // data.bit(6) is false, data.bit(7) is true
     noise.power(true);
-    noise.write(apu.phase, 0xff23, 0b10110011);
+    noise.write(bus.apu.phase, 0xff23, 0b10110011);
     assert!(!noise.enable);
     assert!(!noise.counter);
     assert_eq!(noise.envelope_period, U3::ZERO);
@@ -282,7 +282,7 @@ fn test_write() {
     noise.power(true);
     noise.enable = true;
     noise.length = 0;
-    noise.write(apu.phase, 0xff23, 0b00110011);
+    noise.write(bus.apu.phase, 0xff23, 0b00110011);
     assert!(noise.enable);
     assert!(!noise.counter);
     assert_eq!(noise.length, 0);
@@ -293,7 +293,7 @@ fn test_write() {
     noise.enable = true;
     noise.envelope_volume = U4::wrapping_from(5);
     noise.envelope_direction = true;
-    noise.write(apu.phase, 0xff23, 0b11110011);
+    noise.write(bus.apu.phase, 0xff23, 0b11110011);
     assert!(noise.enable);
     assert!(noise.counter);
     assert_eq!(noise.envelope_period, U3::ZERO);
@@ -307,7 +307,7 @@ fn test_write() {
     noise.envelope_volume = U4::wrapping_from(5);
     noise.length = 0;
     noise.envelope_direction = true;
-    noise.write(apu.phase, 0xff23, 0b11110011);
+    noise.write(bus.apu.phase, 0xff23, 0b11110011);
     assert!(noise.enable);
     assert!(noise.counter);
     assert_eq!(noise.envelope_period, U3::ZERO);
@@ -317,14 +317,14 @@ fn test_write() {
 
     // same as previous, but length is initially 0 and becomes 63 because of
     // apu.phase
-    apu.power();
+    bus.power_apu();
     noise.power(true);
-    apu.phase = U3::ONE;
+    bus.apu.phase = U3::ONE;
     noise.enable = true;
     noise.envelope_volume = U4::wrapping_from(5);
     noise.length = 0;
     noise.envelope_direction = true;
-    noise.write(apu.phase, 0xff23, 0b11110011);
+    noise.write(bus.apu.phase, 0xff23, 0b11110011);
     assert!(noise.enable);
     assert!(noise.counter);
     assert_eq!(noise.envelope_period, U3::ZERO);
@@ -332,30 +332,30 @@ fn test_write() {
     assert_eq!(noise.volume, U4::wrapping_from(5));
     assert_eq!(noise.length, 63);
     // clear phase
-    apu.power();
+    bus.power_apu();
 
     // data.bit(6) is true, data.bit(7) is false, enable stays true
     noise.power(true);
     noise.length = 1;
     noise.enable = true;
-    noise.write(apu.phase, 0xff23, 0b01110011);
+    noise.write(bus.apu.phase, 0xff23, 0b01110011);
     assert!(noise.enable);
     assert!(noise.counter);
     assert_eq!(noise.length, 1);
 
     // same as previous, but apu.phase = 1, so enable becomes false
-    apu.power();
+    bus.power_apu();
     noise.power(true);
-    apu.phase = U3::ONE;
+    bus.apu.phase = U3::ONE;
     noise.length = 1;
     noise.enable = true;
-    noise.write(apu.phase, 0xff23, 0b01110011);
+    noise.write(bus.apu.phase, 0xff23, 0b01110011);
 
     assert!(!noise.enable);
     assert!(noise.counter);
     assert_eq!(noise.length, 0);
     // clear phase
-    apu.power();
+    bus.power_apu();
 }
 
 #[test]

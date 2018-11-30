@@ -6,9 +6,9 @@ use higan::gb::apu::sequencer::Sequencer;
 use higan::gb::apu::square_1::Square1;
 use higan::gb::apu::square_2::Square2;
 use higan::gb::apu::wave::Wave;
-use higan::gb::memory::memory::MMIO;
+use higan::gb::memory::memory::{Bus, MMIOType, MMIO};
 use higan::gb::system::system::System;
-use malachite_base::num::{One, WrappingAddAssign};
+use malachite_base::num::{One, WrappingAddAssign, Zero};
 
 //TODO impl Thread
 //TODO auto APU::Enter() -> void
@@ -67,10 +67,30 @@ impl APU {
         //TODO Thread::step(1);
         //TODO synchronize(cpu);
     }
+}
 
-    pub fn power(&mut self) {
-        //TODO expand stub
-        *self = APU::default();
+impl Bus {
+    pub fn power_apu(&mut self) {
+        //TODO create(Enter, 2 * 1024 * 1024);
+        //TODO if(!Model::SuperGameBoy()) {
+        //TODO   stream = Emulator::audio.createStream(2, frequency());
+        //TODO   stream->addFilter(Emulator::Filter::Order::First, Emulator::Filter::Type::HighPass, 20.0);
+        //TODO   stream->addFilter(Emulator::Filter::Order::Second, Emulator::Filter::Type::LowPass, 20000.0, 3);
+        //TODO }
+        for n in 0xff10..0xff3f {
+            self.mmio[n] = MMIOType::APU;
+        }
+
+        self.apu.square1.power(false);
+        self.apu.square2.power(false);
+        self.apu.wave.power(false);
+        self.apu.noise.power(false);
+        self.apu.sequencer.power();
+        self.apu.phase = U3::ZERO;
+        self.apu.cycle = U12::ZERO;
+
+        //TODO LinearFeedbackShiftRegisterGenerator r;
+        //TODO for(auto& n : wave.pattern) n = r();
     }
 }
 

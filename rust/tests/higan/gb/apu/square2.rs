@@ -1,6 +1,6 @@
 use higan_rust::higan::emulator::types::{U11, U2, U3, U4};
-use higan_rust::higan::gb::apu::apu::APU;
 use higan_rust::higan::gb::apu::square_2::Square2;
+use higan_rust::higan::gb::memory::memory::Bus;
 use malachite_base::misc::{Max, WrappingFrom};
 use malachite_base::num::{One, Zero};
 
@@ -307,17 +307,17 @@ fn test_read() {
 
 #[test]
 fn test_write() {
-    let mut apu = APU::default();
+    let mut bus = Bus::default();
     let mut square_2 = Square2::default();
 
     square_2.power(true);
-    square_2.write(apu.phase, 0xff16, 0b01110010);
+    square_2.write(bus.apu.phase, 0xff16, 0b01110010);
     assert_eq!(square_2.duty, U2::wrapping_from(0b01));
     assert_eq!(square_2.length, 14);
 
     square_2.power(true);
     square_2.enable = true;
-    square_2.write(apu.phase, 0xff17, 0b10111010);
+    square_2.write(bus.apu.phase, 0xff17, 0b10111010);
     assert_eq!(square_2.envelope_volume, U4::wrapping_from(0b1011));
     assert!(square_2.envelope_direction);
     assert_eq!(square_2.envelope_frequency, U3::wrapping_from(0b010));
@@ -325,19 +325,19 @@ fn test_write() {
 
     square_2.power(true);
     square_2.enable = true;
-    square_2.write(apu.phase, 0xff17, 0);
+    square_2.write(bus.apu.phase, 0xff17, 0);
     assert_eq!(square_2.envelope_volume, U4::ZERO);
     assert!(!square_2.envelope_direction);
     assert_eq!(square_2.envelope_frequency, U3::ZERO);
     assert!(!square_2.enable);
 
     square_2.power(true);
-    square_2.write(apu.phase, 0xff18, 0b10110100);
+    square_2.write(bus.apu.phase, 0xff18, 0b10110100);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b10110100));
 
     // data.bit(6) is false, data.bit(7) is true
     square_2.power(true);
-    square_2.write(apu.phase, 0xff19, 0b10110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b10110011);
     assert!(!square_2.enable);
     assert!(!square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
@@ -350,7 +350,7 @@ fn test_write() {
     square_2.power(true);
     square_2.enable = true;
     square_2.length = 0;
-    square_2.write(apu.phase, 0xff19, 0b00110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b00110011);
     assert!(square_2.enable);
     assert!(!square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
@@ -362,7 +362,7 @@ fn test_write() {
     square_2.enable = true;
     square_2.envelope_volume = U4::wrapping_from(5);
     square_2.envelope_direction = true;
-    square_2.write(apu.phase, 0xff19, 0b11110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b11110011);
     assert!(square_2.enable);
     assert!(square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
@@ -377,7 +377,7 @@ fn test_write() {
     square_2.envelope_volume = U4::wrapping_from(5);
     square_2.length = 0;
     square_2.envelope_direction = true;
-    square_2.write(apu.phase, 0xff19, 0b11110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b11110011);
     assert!(square_2.enable);
     assert!(square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
@@ -388,14 +388,14 @@ fn test_write() {
 
     // same as previous, but length is initially 0 and becomes 63 because of
     // apu.phase
-    apu.power();
+    bus.power_apu();
     square_2.power(true);
-    apu.phase = U3::ONE;
+    bus.apu.phase = U3::ONE;
     square_2.enable = true;
     square_2.envelope_volume = U4::wrapping_from(5);
     square_2.length = 0;
     square_2.envelope_direction = true;
-    square_2.write(apu.phase, 0xff19, 0b11110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b11110011);
     assert!(square_2.enable);
     assert!(square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
@@ -404,32 +404,32 @@ fn test_write() {
     assert_eq!(square_2.volume, U4::wrapping_from(5));
     assert_eq!(square_2.length, 63);
     // clear phase
-    apu.power();
+    bus.power_apu();
 
     // data.bit(6) is true, data.bit(7) is false, enable stays true
     square_2.power(true);
     square_2.length = 1;
     square_2.enable = true;
-    square_2.write(apu.phase, 0xff19, 0b01110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b01110011);
     assert!(square_2.enable);
     assert!(square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
     assert_eq!(square_2.length, 1);
 
     // same as previous, but apu.phase = 1, so enable becomes false
-    apu.power();
+    bus.power_apu();
     square_2.power(true);
-    apu.phase = U3::ONE;
+    bus.apu.phase = U3::ONE;
     square_2.length = 1;
     square_2.enable = true;
-    square_2.write(apu.phase, 0xff19, 0b01110011);
+    square_2.write(bus.apu.phase, 0xff19, 0b01110011);
 
     assert!(!square_2.enable);
     assert!(square_2.counter);
     assert_eq!(square_2.frequency, U11::wrapping_from(0b01100000000));
     assert_eq!(square_2.length, 0);
     // clear phase
-    apu.power();
+    bus.power_apu();
 }
 
 #[test]
