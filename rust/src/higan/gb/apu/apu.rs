@@ -77,7 +77,7 @@ impl Bus {
         //TODO   stream->addFilter(Emulator::Filter::Order::First, Emulator::Filter::Type::HighPass, 20.0);
         //TODO   stream->addFilter(Emulator::Filter::Order::Second, Emulator::Filter::Type::LowPass, 20000.0, 3);
         //TODO }
-        for n in 0xff10..0xff3f {
+        for n in 0xff10..=0xff3f {
             self.mmio[n] = MMIOType::APU;
         }
 

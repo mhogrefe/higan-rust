@@ -1,5 +1,3 @@
-//TODO test
-
 use higan::emulator::types::{Bits, U11, U2, U3, U4, U5};
 use higan::gb::system::system::System;
 use malachite_base::misc::WrappingFrom;

@@ -209,10 +209,185 @@ void TestRead() {
   EXPECT_EQ("Wave read", wave.read(0xff35), (uint8)0xab);
 }
 
+void TestWrite() {
+  APU::Wave wave;
+
+  PowerAndZeroPattern(&wave);
+  wave.dacEnable = false;
+  wave.write(0xff1a, 0b10000000);
+  EXPECT_TRUE("Wave write", wave.dacEnable);
+
+  PowerAndZeroPattern(&wave);
+  wave.dacEnable = true;
+  wave.enable = true;
+  wave.write(0xff1a, 0);
+  EXPECT_FALSE("Wave write", wave.dacEnable);
+  EXPECT_FALSE("Wave write", wave.enable);
+
+  PowerAndZeroPattern(&wave);
+  wave.write(0xff1b, 100);
+  EXPECT_EQ("Wave write", wave.length, 156u);
+
+  PowerAndZeroPattern(&wave);
+  wave.write(0xff1c, 0b01000000);
+  EXPECT_EQ("Wave write", wave.volume, (uint2)0b10);
+
+  PowerAndZeroPattern(&wave);
+  wave.write(0xff1d, 0b10101010);
+  EXPECT_EQ("Wave write", wave.frequency, (uint11)0b00010101010);
+
+  // apu.phase.bit(0) is false so enable stays true
+  PowerAndZeroPattern(&wave);
+  wave.enable = true;
+  wave.length = 1;
+  wave.write(0xff1e, 0b01000101);
+  EXPECT_TRUE("Wave write", wave.enable);
+  EXPECT_EQ("Wave write", wave.length, 1u);
+  EXPECT_TRUE("Wave write", wave.counter);
+  EXPECT_EQ("Wave write", wave.frequency, (uint11)0b10100000000);
+
+  // apu.phase.bit(0) is true so enable becomes false
+  GameBoy::apu.power();
+  PowerAndZeroPattern(&wave);
+  GameBoy::apu.phase = 1;
+  PowerAndZeroPattern(&wave);
+  wave.enable = true;
+  wave.length = 1;
+  wave.write(0xff1e, 0b01000000);
+  EXPECT_FALSE("Wave write", wave.enable);
+  EXPECT_EQ("Wave write", wave.length, 0u);
+  // clear phase
+  GameBoy::apu.power();
+
+  // pattern[0] corrupted
+  PowerAndZeroPattern(&wave);
+  for (int i = 0; i < 16; ++i) {
+    wave.pattern[i] = i;
+  }
+  wave.patternHold = 5;
+  wave.patternOffset = 2;
+  wave.write(0xff1e, 0b11000101);
+  EXPECT_EQ("Wave write", wave.pattern[0], (uint8)1);
+  EXPECT_EQ("Wave write", wave.pattern[1], (uint8)1);
+  EXPECT_EQ("Wave write", wave.pattern[2], (uint8)2);
+  EXPECT_EQ("Wave write", wave.pattern[3], (uint8)3);
+  EXPECT_EQ("Wave write", wave.pattern[4], (uint8)4);
+
+  // pattern[0-3] corrupted
+  PowerAndZeroPattern(&wave);
+  for (int i = 0; i < 16; ++i) {
+    wave.pattern[i] = i;
+  }
+  wave.patternHold = 5;
+  wave.patternOffset = 9;
+  wave.write(0xff1e, 0b11000101);
+  EXPECT_EQ("Wave write", wave.pattern[0], (uint8)4);
+  EXPECT_EQ("Wave write", wave.pattern[1], (uint8)5);
+  EXPECT_EQ("Wave write", wave.pattern[2], (uint8)6);
+  EXPECT_EQ("Wave write", wave.pattern[3], (uint8)7);
+  EXPECT_EQ("Wave write", wave.pattern[4], (uint8)4);
+
+  // no corruption when system is Game Boy Color
+  PowerAndZeroPattern(&wave);
+  auto old_model = GameBoy::system._model;
+  GameBoy::system._model = GameBoy::System::Model::GameBoyColor;
+  for (int i = 0; i < 16; ++i) {
+    wave.pattern[i] = i;
+  }
+  wave.patternHold = 5;
+  wave.patternOffset = 9;
+  wave.write(0xff1e, 0b11000101);
+  EXPECT_EQ("Wave write", wave.pattern[0], (uint8)0);
+  EXPECT_EQ("Wave write", wave.pattern[1], (uint8)1);
+  EXPECT_EQ("Wave write", wave.pattern[2], (uint8)2);
+  EXPECT_EQ("Wave write", wave.pattern[3], (uint8)3);
+  EXPECT_EQ("Wave write", wave.pattern[4], (uint8)4);
+  GameBoy::system._model = old_model;
+
+  // no corruption when data.bit(7) is false
+  PowerAndZeroPattern(&wave);
+  for (int i = 0; i < 16; ++i) {
+    wave.pattern[i] = i;
+  }
+  wave.patternHold = 5;
+  wave.patternOffset = 9;
+  wave.write(0xff1e, 0b01000101);
+  EXPECT_EQ("Wave write", wave.pattern[0], (uint8)0);
+  EXPECT_EQ("Wave write", wave.pattern[1], (uint8)1);
+  EXPECT_EQ("Wave write", wave.pattern[2], (uint8)2);
+  EXPECT_EQ("Wave write", wave.pattern[3], (uint8)3);
+  EXPECT_EQ("Wave write", wave.pattern[4], (uint8)4);
+
+  PowerAndZeroPattern(&wave);
+  wave.patternOffset = 9;
+  wave.frequency = 1;
+  wave.patternSample = 1;
+  wave.patternHold = 5;
+  wave.dacEnable = true;
+  wave.write(0xff1e, 0b11000000);
+  EXPECT_TRUE("Wave write", wave.enable);
+  EXPECT_EQ("Wave write", wave.period, 2047u);
+  EXPECT_EQ("Wave write", wave.patternOffset, (uint5)0);
+  EXPECT_EQ("Wave write", wave.patternSample, (uint4)0);
+  EXPECT_EQ("Wave write", wave.patternHold, 0u);
+
+  PowerAndZeroPattern(&wave);
+  wave.write(0xff1e, 0b11000000);
+  EXPECT_EQ("Wave write", wave.length, 256u);
+
+  PowerAndZeroPattern(&wave);
+  wave.length = 100;
+  wave.write(0xff1e, 0b11000000);
+  EXPECT_EQ("Wave write", wave.length, 100u);
+
+  GameBoy::apu.power();
+  PowerAndZeroPattern(&wave);
+  GameBoy::apu.phase = 1;
+  wave.length = 100;
+  wave.write(0xff1e, 0b11000000);
+  EXPECT_EQ("Wave write", wave.length, 99u);
+  // clear phase
+  GameBoy::apu.power();
+
+  PowerAndZeroPattern(&wave);
+  wave.write(0xff3a, 123);
+  EXPECT_EQ("Wave write", wave.pattern[0xa], (uint8)123);
+
+  PowerAndZeroPattern(&wave);
+  wave.patternOffset = 5;
+  wave.enable = true;
+  wave.patternHold = 5;
+  wave.write(0xff3a, 123);
+  EXPECT_EQ("Wave write", wave.pattern[2], (uint8)123);
+
+  GameBoy::apu.power();
+  PowerAndZeroPattern(&wave);
+  GameBoy::apu.phase = 1;
+  wave.patternOffset = 5;
+  wave.enable = true;
+  wave.write(0xff3a, 123);
+  EXPECT_EQ("Wave write", wave.pattern[2], (uint8)0);
+  // clear phase
+  GameBoy::apu.power();
+}
+
+void TestPower() {
+  APU::Wave wave;
+  wave.length = 0;
+  wave.power(true);
+  EXPECT_EQ("Wave power", wave.length, 256u);
+
+  wave.length = 0;
+  wave.power(false);
+  EXPECT_EQ("Wave power", wave.length, 0u);
+}
+
 void TestAll() {
   TestGetPattern();
   TestRun();
   TestClockLength();
   TestRead();
+  TestWrite();
+  TestPower();
 }
 }

@@ -1,5 +1,6 @@
-use higan_rust::higan::emulator::types::{U11, U2, U4, U5};
+use higan_rust::higan::emulator::types::{U11, U2, U3, U4, U5};
 use higan_rust::higan::gb::apu::wave::Wave;
+use higan_rust::higan::gb::memory::memory::Bus;
 use higan_rust::higan::gb::system::system::{Model, System};
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{One, Zero};
@@ -235,4 +236,181 @@ fn test_read() {
     wave.pattern_offset = U5::wrapping_from(3);
     wave.pattern[5] = 0xab;
     assert_eq!(wave.read(&system, 0xff35), 0xab);
+}
+
+#[test]
+fn test_write() {
+    let mut wave = Wave::default();
+    let mut bus = Bus::default();
+    let mut system = System::default();
+
+    wave.power(true);
+    wave.dac_enable = false;
+    wave.write(&system, bus.apu.phase, 0xff1a, 0b10000000);
+    assert!(wave.dac_enable);
+
+    wave.power(true);
+    wave.dac_enable = true;
+    wave.enable = true;
+    wave.write(&system, bus.apu.phase, 0xff1a, 0);
+    assert!(!wave.dac_enable);
+    assert!(!wave.enable);
+
+    wave.power(true);
+    wave.write(&system, bus.apu.phase, 0xff1b, 100);
+    assert_eq!(wave.length, 156);
+
+    wave.power(true);
+    wave.write(&system, bus.apu.phase, 0xff1c, 0b01000000);
+    assert_eq!(wave.volume, U2::wrapping_from(0b10));
+
+    wave.power(true);
+    wave.write(&system, bus.apu.phase, 0xff1d, 0b10101010);
+    assert_eq!(wave.frequency, U11::wrapping_from(0b00010101010));
+
+    // apu.phase.bit(0) is false so enable stays true
+    wave.power(true);
+    wave.enable = true;
+    wave.length = 1;
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b01000101);
+    assert!(wave.enable);
+    assert_eq!(wave.length, 1);
+    assert!(wave.counter);
+    assert_eq!(wave.frequency, U11::wrapping_from(0b10100000000));
+
+    // apu.phase.bit(0) is true so enable becomes false
+    bus.power_apu();
+    wave.power(true);
+    bus.apu.phase = U3::ONE;
+    wave.power(true);
+    wave.enable = true;
+    wave.length = 1;
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b01000000);
+    assert!(!wave.enable);
+    assert_eq!(wave.length, 0);
+    // clear phase
+    bus.power_apu();
+
+    // pattern[0] corrupted
+    wave.power(true);
+    for i in 0..16 {
+        wave.pattern[i] = i as u8;
+    }
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::wrapping_from(2);
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000101);
+    assert_eq!(wave.pattern[0], 1);
+    assert_eq!(wave.pattern[1], 1);
+    assert_eq!(wave.pattern[2], 2);
+    assert_eq!(wave.pattern[3], 3);
+    assert_eq!(wave.pattern[4], 4);
+
+    // pattern[0-3] corrupted
+    wave.power(true);
+    for i in 0..16 {
+        wave.pattern[i] = i as u8;
+    }
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::wrapping_from(9);
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000101);
+    assert_eq!(wave.pattern[0], 4);
+    assert_eq!(wave.pattern[1], 5);
+    assert_eq!(wave.pattern[2], 6);
+    assert_eq!(wave.pattern[3], 7);
+    assert_eq!(wave.pattern[4], 4);
+
+    // no corruption when system is Game Boy Color
+    wave.power(true);
+    let old_system = system.clone();
+    system.model = Model::GameBoyColor;
+    for i in 0..16 {
+        wave.pattern[i] = i as u8;
+    }
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::wrapping_from(9);
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000101);
+    assert_eq!(wave.pattern[0], 0);
+    assert_eq!(wave.pattern[1], 1);
+    assert_eq!(wave.pattern[2], 2);
+    assert_eq!(wave.pattern[3], 3);
+    assert_eq!(wave.pattern[4], 4);
+    system = old_system;
+
+    // no corruption when data.bit(7) is false
+    wave.power(true);
+    for i in 0..16 {
+        wave.pattern[i] = i as u8;
+    }
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::wrapping_from(9);
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b01000101);
+    assert_eq!(wave.pattern[0], 0);
+    assert_eq!(wave.pattern[1], 1);
+    assert_eq!(wave.pattern[2], 2);
+    assert_eq!(wave.pattern[3], 3);
+    assert_eq!(wave.pattern[4], 4);
+
+    wave.power(true);
+    wave.pattern_offset = U5::wrapping_from(9);
+    wave.frequency = U11::ONE;
+    wave.pattern_sample = U4::ONE;
+    wave.pattern_hold = 5;
+    wave.dac_enable = true;
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    assert!(wave.enable);
+    assert_eq!(wave.period, 2047);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+
+    wave.power(true);
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    assert_eq!(wave.length, 256);
+
+    wave.power(true);
+    wave.length = 100;
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    assert_eq!(wave.length, 100);
+
+    bus.power_apu();
+    wave.power(true);
+    bus.apu.phase = U3::ONE;
+    wave.length = 100;
+    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    assert_eq!(wave.length, 99);
+    // clear phase
+    bus.power_apu();
+
+    wave.power(true);
+    wave.write(&system, bus.apu.phase, 0xff3a, 123);
+    assert_eq!(wave.pattern[0xa], 123);
+
+    wave.power(true);
+    wave.pattern_offset = U5::wrapping_from(5);
+    wave.enable = true;
+    wave.pattern_hold = 5;
+    wave.write(&system, bus.apu.phase, 0xff3a, 123);
+    assert_eq!(wave.pattern[2], 123);
+
+    bus.power_apu();
+    wave.power(true);
+    bus.apu.phase = U3::ONE;
+    wave.pattern_offset = U5::wrapping_from(5);
+    wave.enable = true;
+    wave.write(&system, bus.apu.phase, 0xff3a, 123);
+    assert_eq!(wave.pattern[2], 0);
+    // clear phase
+    bus.power_apu();
+}
+
+#[test]
+fn test_power() {
+    let mut wave = Wave::default();
+    wave.length = 0;
+    wave.power(true);
+    assert_eq!(wave.length, 256);
+
+    wave.length = 0;
+    wave.power(false);
+    assert_eq!(wave.length, 0);
 }
