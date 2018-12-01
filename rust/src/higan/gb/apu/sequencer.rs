@@ -1,7 +1,6 @@
 //TODO test
 
 use higan::emulator::types::{Bits, U3};
-use higan::gb::apu::apu::APU;
 use higan::gb::apu::noise::Noise;
 use higan::gb::apu::square_1::Square1;
 use higan::gb::apu::square_2::Square2;
@@ -18,15 +17,20 @@ pub struct Channel {
 
 #[derive(Clone, Debug, Default)]
 pub struct Sequencer {
+    pub square1: Square1,
+    pub square2: Square2,
+    pub wave: Wave,
+    pub noise: Noise,
+
     pub left_enable: bool,
     pub left_volume: U3,
     pub right_enable: bool,
     pub right_volume: U3,
 
-    pub square1: Channel,
-    pub square2: Channel,
-    pub wave: Channel,
-    pub noise: Channel,
+    pub square1_channel: Channel,
+    pub square2_channel: Channel,
+    pub wave_channel: Channel,
+    pub noise_channel: Channel,
 
     pub enable: bool,
 
@@ -36,13 +40,7 @@ pub struct Sequencer {
 }
 
 impl Sequencer {
-    pub fn run(
-        &mut self,
-        apu_square1: &Square1,
-        apu_square2: &Square2,
-        apu_wave: &Wave,
-        apu_noise: &Noise,
-    ) {
+    pub fn run(&mut self) {
         if !self.enable {
             self.center = 0;
             self.left = 0;
@@ -51,43 +49,43 @@ impl Sequencer {
         }
 
         let mut sample: i32 = 0;
-        sample.wrapping_add_assign(i32::from(apu_square1.output));
-        sample.wrapping_add_assign(i32::from(apu_square2.output));
-        sample.wrapping_add_assign(i32::from(apu_wave.output));
-        sample.wrapping_add_assign(i32::from(apu_noise.output));
+        sample.wrapping_add_assign(i32::from(self.square1.output));
+        sample.wrapping_add_assign(i32::from(self.square2.output));
+        sample.wrapping_add_assign(i32::from(self.wave.output));
+        sample.wrapping_add_assign(i32::from(self.noise.output));
         self.center = i16::wrapping_from(sample)
             .wrapping_mul(512)
             .wrapping_sub(16_384);
 
         sample = 0;
-        if self.square1.left_enable {
-            sample.wrapping_add_assign(i32::from(apu_square1.output));
+        if self.square1_channel.left_enable {
+            sample.wrapping_add_assign(i32::from(self.square1.output));
         }
-        if self.square2.left_enable {
-            sample.wrapping_add_assign(i32::from(apu_square2.output));
+        if self.square2_channel.left_enable {
+            sample.wrapping_add_assign(i32::from(self.square2.output));
         }
-        if self.wave.left_enable {
-            sample.wrapping_add_assign(i32::from(apu_wave.output));
+        if self.wave_channel.left_enable {
+            sample.wrapping_add_assign(i32::from(self.wave.output));
         }
-        if self.noise.left_enable {
-            sample.wrapping_add_assign(i32::from(apu_noise.output));
+        if self.noise_channel.left_enable {
+            sample.wrapping_add_assign(i32::from(self.noise.output));
         }
         sample = sample.wrapping_mul(512).wrapping_sub(16_384);
         sample = sample.wrapping_mul(i32::from(self.left_volume.wrapping_add(U3::ONE).0)) / 8;
         self.left = i16::wrapping_from(sample);
 
         sample = 0;
-        if self.square1.right_enable {
-            sample.wrapping_add_assign(i32::from(apu_square1.output));
+        if self.square1_channel.right_enable {
+            sample.wrapping_add_assign(i32::from(self.square1.output));
         }
-        if self.square2.right_enable {
-            sample.wrapping_add_assign(i32::from(apu_square2.output));
+        if self.square2_channel.right_enable {
+            sample.wrapping_add_assign(i32::from(self.square2.output));
         }
-        if self.wave.right_enable {
-            sample.wrapping_add_assign(i32::from(apu_wave.output));
+        if self.wave_channel.right_enable {
+            sample.wrapping_add_assign(i32::from(self.wave.output));
         }
-        if self.noise.right_enable {
-            sample.wrapping_add_assign(i32::from(apu_noise.output));
+        if self.noise_channel.right_enable {
+            sample.wrapping_add_assign(i32::from(self.noise.output));
         }
         sample = sample.wrapping_mul(512).wrapping_sub(16_384);
         sample = sample.wrapping_mul(i32::from(self.right_volume.wrapping_add(U3::ONE).0)) / 8;
@@ -99,7 +97,7 @@ impl Sequencer {
         self.right >>= 1;
     }
 
-    pub fn read(&self, apu: &APU, addr: u16) -> u8 {
+    pub fn read(&self, addr: u16) -> u8 {
         match addr {
             //NR50
             0xff24 => {
@@ -110,39 +108,49 @@ impl Sequencer {
             }
             //NR51
             0xff25 => {
-                (if self.noise.left_enable { 1 } else { 0 }) << 7
-                    | (if self.wave.left_enable { 1 } else { 0 }) << 6
-                    | (if self.square2.left_enable { 1 } else { 0 }) << 5
-                    | (if self.square1.left_enable { 1 } else { 0 }) << 4
-                    | (if self.noise.right_enable { 1 } else { 0 }) << 3
-                    | (if self.wave.right_enable { 1 } else { 0 }) << 2
-                    | (if self.square2.right_enable { 1 } else { 0 }) << 1
-                    | (if self.square1.right_enable { 1 } else { 0 }) << 0
+                (if self.noise_channel.left_enable { 1 } else { 0 }) << 7
+                    | (if self.wave_channel.left_enable { 1 } else { 0 }) << 6
+                    | (if self.square2_channel.left_enable {
+                        1
+                    } else {
+                        0
+                    }) << 5
+                    | (if self.square1_channel.left_enable {
+                        1
+                    } else {
+                        0
+                    }) << 4
+                    | (if self.noise_channel.right_enable {
+                        1
+                    } else {
+                        0
+                    }) << 3
+                    | (if self.wave_channel.right_enable { 1 } else { 0 }) << 2
+                    | (if self.square2_channel.right_enable {
+                        1
+                    } else {
+                        0
+                    }) << 1
+                    | (if self.square1_channel.right_enable {
+                        1
+                    } else {
+                        0
+                    }) << 0
             }
             //NR52
             0xff26 => {
                 (if self.enable { 1 } else { 0 }) << 7
                     | 0x70
-                    | (if apu.noise.enable { 1 } else { 0 }) << 3
-                    | (if apu.wave.enable { 1 } else { 0 }) << 2
-                    | (if apu.square2.enable { 1 } else { 0 }) << 1
-                    | (if apu.square1.enable { 1 } else { 0 }) << 0
+                    | (if self.noise.enable { 1 } else { 0 }) << 3
+                    | (if self.wave.enable { 1 } else { 0 }) << 2
+                    | (if self.square2.enable { 1 } else { 0 }) << 1
+                    | (if self.square1.enable { 1 } else { 0 }) << 0
             }
             _ => 0xff,
         }
     }
 
-    pub fn write(
-        &mut self,
-        system: &System,
-        apu_phase: &mut U3,
-        apu_square1: &mut Square1,
-        apu_square2: &mut Square2,
-        apu_wave: &mut Wave,
-        apu_noise: &mut Noise,
-        addr: u16,
-        data: u8,
-    ) {
+    pub fn write(&mut self, system: &System, apu_phase: &mut U3, addr: u16, data: u8) {
         match addr {
             //NR50
             0xff24 => {
@@ -153,14 +161,14 @@ impl Sequencer {
             }
             //NR51
             0xff25 => {
-                self.noise.left_enable = data.get_bit(7);
-                self.wave.left_enable = data.get_bit(6);
-                self.square2.left_enable = data.get_bit(5);
-                self.square1.left_enable = data.get_bit(4);
-                self.noise.right_enable = data.get_bit(3);
-                self.wave.right_enable = data.get_bit(2);
-                self.square2.right_enable = data.get_bit(1);
-                self.square1.right_enable = data.get_bit(0);
+                self.noise_channel.left_enable = data.get_bit(7);
+                self.wave_channel.left_enable = data.get_bit(6);
+                self.square2_channel.left_enable = data.get_bit(5);
+                self.square1_channel.left_enable = data.get_bit(4);
+                self.noise_channel.right_enable = data.get_bit(3);
+                self.wave_channel.right_enable = data.get_bit(2);
+                self.square1_channel.right_enable = data.get_bit(1);
+                self.square1_channel.right_enable = data.get_bit(0);
             }
             //NR52
             0xff26 => {
@@ -169,10 +177,10 @@ impl Sequencer {
 
                     if !self.enable {
                         //power(bool) resets length counters when true (eg for CGB only)
-                        apu_square1.power(system.model_is_game_boy_color());
-                        apu_square2.power(system.model_is_game_boy_color());
-                        apu_wave.power(system.model_is_game_boy_color());
-                        apu_noise.power(system.model_is_game_boy_color());
+                        self.square1.power(system.model_is_game_boy_color());
+                        self.square2.power(system.model_is_game_boy_color());
+                        self.wave.power(system.model_is_game_boy_color());
+                        self.noise.power(system.model_is_game_boy_color());
                         self.power();
                     } else {
                         *apu_phase = U3::ZERO;
