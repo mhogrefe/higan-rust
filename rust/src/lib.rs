@@ -30,3 +30,6 @@ pub mod higan {
         }
     }
 }
+pub mod nall {
+    pub mod random;
+}

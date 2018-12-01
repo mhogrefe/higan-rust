@@ -9,6 +9,7 @@ use higan::gb::apu::wave::Wave;
 use higan::gb::memory::memory::{Bus, MMIOType, MMIO};
 use higan::gb::system::system::System;
 use malachite_base::num::{One, WrappingAddAssign, Zero};
+use nall::random::{LinearFeedbackShiftRegisterGenerator, RandomNumberGenerator};
 
 //TODO impl Thread
 //TODO auto APU::Enter() -> void
@@ -89,8 +90,10 @@ impl Bus {
         self.apu.phase = U3::ZERO;
         self.apu.cycle = U12::ZERO;
 
-        //TODO LinearFeedbackShiftRegisterGenerator r;
-        //TODO for(auto& n : wave.pattern) n = r();
+        let mut r = LinearFeedbackShiftRegisterGenerator::new();
+        for n in self.apu.wave.pattern.iter_mut() {
+            *n = r.call() as u8;
+        }
     }
 }
 
