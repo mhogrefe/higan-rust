@@ -20,8 +20,8 @@ pub struct APU {
 
 impl APU {
     pub fn main(&mut self, system: &System) {
-        self.sequencer.square1.run();
-        self.sequencer.square2.run();
+        self.sequencer.square_1.run();
+        self.sequencer.square_2.run();
         self.sequencer.wave.run();
         self.sequencer.noise.run();
         self.sequencer.run();
@@ -37,19 +37,19 @@ impl APU {
             //512hz
             if self.phase.0 == 0 || self.phase.0 == 2 || self.phase.0 == 4 || self.phase.0 == 6 {
                 //256hz
-                self.sequencer.square1.clock_length();
-                self.sequencer.square2.clock_length();
+                self.sequencer.square_1.clock_length();
+                self.sequencer.square_2.clock_length();
                 self.sequencer.wave.clock_length();
                 self.sequencer.noise.clock_length();
             }
             if self.phase.0 == 2 || self.phase.0 == 6 {
                 //128hz
-                self.sequencer.square1.clock_sweep();
+                self.sequencer.square_1.clock_sweep();
             }
             if self.phase.0 == 7 {
                 //64hz
-                self.sequencer.square1.clock_envelope();
-                self.sequencer.square2.clock_envelope();
+                self.sequencer.square_1.clock_envelope();
+                self.sequencer.square_2.clock_envelope();
                 self.sequencer.noise.clock_envelope();
             }
             self.phase.wrapping_add_assign(U3::ONE);
@@ -73,8 +73,8 @@ impl Bus {
             self.mmio[n] = MMIOType::APU;
         }
 
-        self.apu.sequencer.square1.power(false);
-        self.apu.sequencer.square2.power(false);
+        self.apu.sequencer.square_1.power(false);
+        self.apu.sequencer.square_2.power(false);
         self.apu.sequencer.wave.power(false);
         self.apu.sequencer.noise.power(false);
         self.apu.sequencer.power();
@@ -91,8 +91,8 @@ impl Bus {
 impl MMIO for APU {
     fn read_io(&self, system: &System, addr: u16) -> u8 {
         match addr {
-            0xff10...0xff14 => self.sequencer.square1.read(addr),
-            0xff15...0xff19 => self.sequencer.square2.read(addr),
+            0xff10...0xff14 => self.sequencer.square_1.read(addr),
+            0xff15...0xff19 => self.sequencer.square_2.read(addr),
             0xff1a...0xff1e => self.sequencer.wave.read(system, addr),
             0xff1f...0xff23 => self.sequencer.noise.read(addr),
             0xff24...0xff26 => self.sequencer.read(addr),
@@ -131,8 +131,8 @@ impl MMIO for APU {
             }
         }
         match addr {
-            0xff10...0xff14 => self.sequencer.square1.write(self.phase, addr, data),
-            0xff15...0xff19 => self.sequencer.square2.write(self.phase, addr, data),
+            0xff10...0xff14 => self.sequencer.square_1.write(self.phase, addr, data),
+            0xff15...0xff19 => self.sequencer.square_2.write(self.phase, addr, data),
             0xff1a...0xff1e => self.sequencer.wave.write(system, self.phase, addr, data),
             0xff1f...0xff23 => self.sequencer.noise.write(self.phase, addr, data),
             0xff24...0xff26 => self.sequencer.write(system, &mut self.phase, addr, data),

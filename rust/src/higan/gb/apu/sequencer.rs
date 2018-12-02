@@ -17,8 +17,8 @@ pub struct Channel {
 
 #[derive(Clone, Debug, Default)]
 pub struct Sequencer {
-    pub square1: Square1,
-    pub square2: Square2,
+    pub square_1: Square1,
+    pub square_2: Square2,
     pub wave: Wave,
     pub noise: Noise,
 
@@ -27,8 +27,8 @@ pub struct Sequencer {
     pub right_enable: bool,
     pub right_volume: U3,
 
-    pub square1_channel: Channel,
-    pub square2_channel: Channel,
+    pub square_1_channel: Channel,
+    pub square_2_channel: Channel,
     pub wave_channel: Channel,
     pub noise_channel: Channel,
 
@@ -49,8 +49,8 @@ impl Sequencer {
         }
 
         let mut sample: i32 = 0;
-        sample.wrapping_add_assign(i32::from(self.square1.output));
-        sample.wrapping_add_assign(i32::from(self.square2.output));
+        sample.wrapping_add_assign(i32::from(self.square_1.output));
+        sample.wrapping_add_assign(i32::from(self.square_2.output));
         sample.wrapping_add_assign(i32::from(self.wave.output));
         sample.wrapping_add_assign(i32::from(self.noise.output));
         self.center = i16::wrapping_from(sample)
@@ -58,11 +58,11 @@ impl Sequencer {
             .wrapping_sub(16_384);
 
         sample = 0;
-        if self.square1_channel.left_enable {
-            sample.wrapping_add_assign(i32::from(self.square1.output));
+        if self.square_1_channel.left_enable {
+            sample.wrapping_add_assign(i32::from(self.square_1.output));
         }
-        if self.square2_channel.left_enable {
-            sample.wrapping_add_assign(i32::from(self.square2.output));
+        if self.square_2_channel.left_enable {
+            sample.wrapping_add_assign(i32::from(self.square_2.output));
         }
         if self.wave_channel.left_enable {
             sample.wrapping_add_assign(i32::from(self.wave.output));
@@ -75,11 +75,11 @@ impl Sequencer {
         self.left = i16::wrapping_from(sample);
 
         sample = 0;
-        if self.square1_channel.right_enable {
-            sample.wrapping_add_assign(i32::from(self.square1.output));
+        if self.square_1_channel.right_enable {
+            sample.wrapping_add_assign(i32::from(self.square_1.output));
         }
-        if self.square2_channel.right_enable {
-            sample.wrapping_add_assign(i32::from(self.square2.output));
+        if self.square_2_channel.right_enable {
+            sample.wrapping_add_assign(i32::from(self.square_2.output));
         }
         if self.wave_channel.right_enable {
             sample.wrapping_add_assign(i32::from(self.wave.output));
@@ -110,12 +110,12 @@ impl Sequencer {
             0xff25 => {
                 (if self.noise_channel.left_enable { 1 } else { 0 }) << 7
                     | (if self.wave_channel.left_enable { 1 } else { 0 }) << 6
-                    | (if self.square2_channel.left_enable {
+                    | (if self.square_2_channel.left_enable {
                         1
                     } else {
                         0
                     }) << 5
-                    | (if self.square1_channel.left_enable {
+                    | (if self.square_1_channel.left_enable {
                         1
                     } else {
                         0
@@ -126,12 +126,12 @@ impl Sequencer {
                         0
                     }) << 3
                     | (if self.wave_channel.right_enable { 1 } else { 0 }) << 2
-                    | (if self.square2_channel.right_enable {
+                    | (if self.square_2_channel.right_enable {
                         1
                     } else {
                         0
                     }) << 1
-                    | (if self.square1_channel.right_enable {
+                    | (if self.square_1_channel.right_enable {
                         1
                     } else {
                         0
@@ -143,8 +143,8 @@ impl Sequencer {
                     | 0x70
                     | (if self.noise.enable { 1 } else { 0 }) << 3
                     | (if self.wave.enable { 1 } else { 0 }) << 2
-                    | (if self.square2.enable { 1 } else { 0 }) << 1
-                    | (if self.square1.enable { 1 } else { 0 }) << 0
+                    | (if self.square_2.enable { 1 } else { 0 }) << 1
+                    | (if self.square_1.enable { 1 } else { 0 }) << 0
             }
             _ => 0xff,
         }
@@ -163,12 +163,12 @@ impl Sequencer {
             0xff25 => {
                 self.noise_channel.left_enable = data.get_bit(7);
                 self.wave_channel.left_enable = data.get_bit(6);
-                self.square2_channel.left_enable = data.get_bit(5);
-                self.square1_channel.left_enable = data.get_bit(4);
+                self.square_2_channel.left_enable = data.get_bit(5);
+                self.square_1_channel.left_enable = data.get_bit(4);
                 self.noise_channel.right_enable = data.get_bit(3);
                 self.wave_channel.right_enable = data.get_bit(2);
-                self.square1_channel.right_enable = data.get_bit(1);
-                self.square1_channel.right_enable = data.get_bit(0);
+                self.square_1_channel.right_enable = data.get_bit(1);
+                self.square_1_channel.right_enable = data.get_bit(0);
             }
             //NR52
             0xff26 => {
@@ -177,8 +177,8 @@ impl Sequencer {
 
                     if !self.enable {
                         //power(bool) resets length counters when true (eg for CGB only)
-                        self.square1.power(system.model_is_game_boy_color());
-                        self.square2.power(system.model_is_game_boy_color());
+                        self.square_1.power(system.model_is_game_boy_color());
+                        self.square_2.power(system.model_is_game_boy_color());
                         self.wave.power(system.model_is_game_boy_color());
                         self.noise.power(system.model_is_game_boy_color());
                         self.power();
