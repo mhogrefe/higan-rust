@@ -156,6 +156,9 @@ void TestRead() {
   APU::Wave wave;
 
   PowerAndZeroPattern(&wave);
+  EXPECT_EQ("Wave read", wave.read(0), (uint8)0xff);
+
+  PowerAndZeroPattern(&wave);
   wave.dacEnable = false;
   EXPECT_EQ("Wave read", wave.read(0xff1a), (uint8)0b01111111);
 

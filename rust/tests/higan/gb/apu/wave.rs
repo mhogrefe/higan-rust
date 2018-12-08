@@ -185,6 +185,9 @@ fn test_read() {
     let mut system = System::default();
 
     wave.power(true);
+    assert_eq!(wave.read(&system, 0), 0xff);
+
+    wave.power(true);
     wave.dac_enable = false;
     assert_eq!(wave.read(&system, 0xff1a), 0b01111111);
 

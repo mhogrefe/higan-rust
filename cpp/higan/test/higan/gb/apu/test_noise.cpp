@@ -217,6 +217,9 @@ void TestRead() {
   APU::Noise noise;
 
   noise.power(true);
+  EXPECT_EQ("Noise read", noise.read(0), (uint8)0xff);
+
+  noise.power(true);
   EXPECT_EQ("Noise read", noise.read(0xff1f), (uint8)0b11111111);
 
   noise.power(true);

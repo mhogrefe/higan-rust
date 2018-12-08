@@ -249,6 +249,9 @@ void TestRead() {
   APU::Square2 square2;
 
   square2.power(true);
+  EXPECT_EQ("Square2 read", square2.read(0), (uint8)0xff);
+
+  square2.power(true);
   EXPECT_EQ("Square2 read", square2.read(0xff15), (uint8)0b11111111);
 
   square2.power(true);

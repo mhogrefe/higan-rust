@@ -285,6 +285,9 @@ fn test_read() {
     let mut square_2 = Square2::default();
 
     square_2.power(true);
+    assert_eq!(square_2.read(0), 0xff);
+
+    square_2.power(true);
     assert_eq!(square_2.read(0xff15), 0b11111111);
 
     square_2.power(true);

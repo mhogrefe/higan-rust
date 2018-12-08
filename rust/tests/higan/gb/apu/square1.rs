@@ -383,6 +383,9 @@ fn test_read() {
     let mut square_1 = Square1::default();
 
     square_1.power(true);
+    assert_eq!(square_1.read(0), 0xff);
+
+    square_1.power(true);
     square_1.sweep_frequency = U3::wrapping_from(0b101);
     square_1.sweep_direction = true;
     square_1.sweep_shift = U3::wrapping_from(0b010);
