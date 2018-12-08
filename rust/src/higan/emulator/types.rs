@@ -6,9 +6,9 @@ use malachite_base::misc::{
 use malachite_base::num::{
     BitAccess, BitScan, CeilingDivAssignNegMod, CeilingDivNegMod, CheckedAdd, CheckedDiv,
     CheckedMul, CheckedNeg, CheckedRem, CheckedShl, CheckedShr, CheckedSub, CountOnes, CountZeros,
-    DivAssignMod, DivAssignRem, DivExact, DivExactAssign, DivMod, DivRem, DivisibleBy,
-    DivisibleByPowerOfTwo, Endian, EqModPowerOfTwo, HammingDistance, LeadingZeros, Mod, ModAssign,
-    ModPowerOfTwo, NegMod, NegModAssign, NotAssign, One, OrdAbs, OverflowingAdd,
+    DivAssignMod, DivAssignRem, DivExact, DivExactAssign, DivMod, DivRem, DivRound, DivRoundAssign,
+    DivisibleBy, DivisibleByPowerOfTwo, Endian, EqModPowerOfTwo, HammingDistance, LeadingZeros,
+    Mod, ModAssign, ModPowerOfTwo, NegMod, NegModAssign, NotAssign, One, OrdAbs, OverflowingAdd,
     OverflowingAddAssign, OverflowingDiv, OverflowingDivAssign, OverflowingMul,
     OverflowingMulAssign, OverflowingNeg, OverflowingNegAssign, OverflowingRem,
     OverflowingRemAssign, OverflowingShl, OverflowingShr, OverflowingSub, OverflowingSubAssign,
@@ -1125,6 +1125,22 @@ macro_rules! uint {
             fn set_bits(&mut self, src: $u, high: u32, low: u32) {
                 self.0.set_bits(src.0, high, low);
                 self.0 &= $u::MASK;
+            }
+        }
+
+        impl DivRound for $u {
+            type Output = $u;
+
+            #[inline]
+            fn div_round(self, _other: $u, _rm: RoundingMode) -> $u {
+                unimplemented!();
+            }
+        }
+
+        impl DivRoundAssign for $u {
+            #[inline]
+            fn div_round_assign(&mut self, _other: $u, _rm: RoundingMode) {
+                unimplemented!();
             }
         }
 
