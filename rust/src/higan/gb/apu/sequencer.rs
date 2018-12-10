@@ -1,5 +1,3 @@
-//TODO test
-
 use higan::emulator::types::{Bits, U3};
 use higan::gb::apu::noise::Noise;
 use higan::gb::apu::square_1::Square1;
@@ -192,6 +190,14 @@ impl Sequencer {
     }
 
     pub fn power(&mut self) {
+        let old_square_1 = self.square_1.clone();
+        let old_square_2 = self.square_2.clone();
+        let old_wave = self.wave.clone();
+        let old_noise = self.noise.clone();
         *self = Sequencer::default();
+        self.square_1 = old_square_1;
+        self.square_2 = old_square_2;
+        self.wave = old_wave;
+        self.noise = old_noise;
     }
 }

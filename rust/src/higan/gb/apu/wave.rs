@@ -176,9 +176,14 @@ impl Wave {
     }
 
     pub fn power(&mut self, initialize_length: bool) {
+        let old_length = self.length;
+        let old_pattern = self.pattern.clone();
         *self = Wave::default();
         if initialize_length {
             self.length = 256;
+        } else {
+            self.length = old_length;
         }
+        self.pattern = old_pattern;
     }
 }

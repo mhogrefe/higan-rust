@@ -5,11 +5,18 @@ use higan_rust::higan::gb::system::system::{Model, System};
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{One, Zero};
 
+fn power_and_zero_pattern(wave: &mut Wave) {
+    wave.power(true);
+    for p in wave.pattern.iter_mut() {
+        *p = 0;
+    }
+}
+
 #[test]
 fn test_get_pattern() {
     let mut wave = Wave::default();
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.pattern[0] = 0x12;
     wave.pattern[1] = 0xab;
     assert_eq!(
@@ -44,7 +51,7 @@ fn run_helper(wave: &mut Wave, cycles: u32, expected_output: &[i16]) {
 fn test_run() {
     let mut wave = Wave::default();
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.pattern_hold = 5;
     wave.period = 1;
     wave.frequency = U11::wrapping_from(2_047);
@@ -55,7 +62,7 @@ fn test_run() {
     assert_eq!(wave.output, 0);
     assert_eq!(wave.pattern_hold, 1);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.pattern_hold = 5;
     wave.period = 5;
     wave.frequency = U11::wrapping_from(2_047);
@@ -66,7 +73,7 @@ fn test_run() {
     assert_eq!(wave.output, 0);
     assert_eq!(wave.pattern_hold, 4);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.pattern_hold = 0;
     wave.period = 5;
     wave.frequency = U11::wrapping_from(2_047);
@@ -77,7 +84,7 @@ fn test_run() {
     assert_eq!(wave.output, 0);
     assert_eq!(wave.pattern_hold, 0);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.period = 1;
     wave.frequency = U11::wrapping_from(2_047);
     wave.pattern[0] = 0x12;
@@ -87,7 +94,7 @@ fn test_run() {
     wave.run();
     assert_eq!(wave.output, 0);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.period = 1;
     wave.frequency = U11::wrapping_from(2_047);
     wave.pattern[0] = 0x12;
@@ -104,7 +111,7 @@ fn test_run() {
         ],
     );
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.period = 1;
     wave.frequency = U11::wrapping_from(2_047);
     wave.pattern[0] = 0x12;
@@ -121,7 +128,7 @@ fn test_run() {
         ],
     );
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.period = 1;
     wave.frequency = U11::wrapping_from(2_046);
     wave.pattern[0] = 0x12;
@@ -144,7 +151,7 @@ fn test_clock_length() {
     let mut wave = Wave::default();
 
     // counter is false
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.counter = false;
     wave.enable = true;
     wave.length = 5;
@@ -152,7 +159,7 @@ fn test_clock_length() {
     assert_eq!(wave.length, 5);
     assert!(wave.enable);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.counter = true;
     wave.enable = true;
     wave.length = 5;
@@ -161,7 +168,7 @@ fn test_clock_length() {
     assert!(wave.enable);
 
     // length is initially 0
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.counter = true;
     wave.enable = true;
     wave.length = 0;
@@ -170,7 +177,7 @@ fn test_clock_length() {
     assert!(wave.enable);
 
     // length is initially 1
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.counter = true;
     wave.enable = true;
     wave.length = 1;
@@ -184,29 +191,29 @@ fn test_read() {
     let mut wave = Wave::default();
     let mut system = System::default();
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     assert_eq!(wave.read(&system, 0), 0xff);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.dac_enable = false;
     assert_eq!(wave.read(&system, 0xff1a), 0b01111111);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     assert_eq!(wave.read(&system, 0xff1b), 0b11111111);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.volume = U2::wrapping_from(0b10);
     assert_eq!(wave.read(&system, 0xff1c), 0b11011111);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     assert_eq!(wave.read(&system, 0xff1d), 0b11111111);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.counter = false;
     assert_eq!(wave.read(&system, 0xff1e), 0b10111111);
 
     // Model::GameBoyColor() is false, pattern_hold is zero
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.enable = true;
     wave.pattern_hold = 0;
     wave.pattern_offset = U5::wrapping_from(3);
@@ -214,7 +221,7 @@ fn test_read() {
     assert_eq!(wave.read(&system, 0xff3a), 0xff);
 
     // Model::GameBoyColor() is false, pattern_hold is nonzero
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.enable = true;
     wave.pattern_hold = 5;
     wave.pattern_offset = U5::wrapping_from(3);
@@ -222,7 +229,7 @@ fn test_read() {
     assert_eq!(wave.read(&system, 0xff3a), 0xab);
 
     // Model::GameBoyColor() is true, pattern_hold is zero
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     let old_system = system.clone();
     system.model = Model::GameBoyColor;
     wave.enable = true;
@@ -233,7 +240,7 @@ fn test_read() {
     system = old_system;
 
     // enable is false
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.enable = false;
     wave.pattern_hold = 0;
     wave.pattern_offset = U5::wrapping_from(3);
@@ -247,32 +254,32 @@ fn test_write() {
     let mut bus = Bus::default();
     let mut system = System::default();
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.dac_enable = false;
     wave.write(&system, bus.apu.phase, 0xff1a, 0b10000000);
     assert!(wave.dac_enable);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.dac_enable = true;
     wave.enable = true;
     wave.write(&system, bus.apu.phase, 0xff1a, 0);
     assert!(!wave.dac_enable);
     assert!(!wave.enable);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.write(&system, bus.apu.phase, 0xff1b, 100);
     assert_eq!(wave.length, 156);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.write(&system, bus.apu.phase, 0xff1c, 0b01000000);
     assert_eq!(wave.volume, U2::wrapping_from(0b10));
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.write(&system, bus.apu.phase, 0xff1d, 0b10101010);
     assert_eq!(wave.frequency, U11::wrapping_from(0b00010101010));
 
     // apu.phase.bit(0) is false so enable stays true
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.enable = true;
     wave.length = 1;
     wave.write(&system, bus.apu.phase, 0xff1e, 0b01000101);
@@ -283,9 +290,9 @@ fn test_write() {
 
     // apu.phase.bit(0) is true so enable becomes false
     bus.power_apu();
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     bus.apu.phase = U3::ONE;
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.enable = true;
     wave.length = 1;
     wave.write(&system, bus.apu.phase, 0xff1e, 0b01000000);
@@ -295,7 +302,7 @@ fn test_write() {
     bus.power_apu();
 
     // pattern[0] corrupted
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     for i in 0..16 {
         wave.pattern[i] = i as u8;
     }
@@ -309,7 +316,7 @@ fn test_write() {
     assert_eq!(wave.pattern[4], 4);
 
     // pattern[0-3] corrupted
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     for i in 0..16 {
         wave.pattern[i] = i as u8;
     }
@@ -323,7 +330,7 @@ fn test_write() {
     assert_eq!(wave.pattern[4], 4);
 
     // no corruption when system is Game Boy Color
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     let old_system = system.clone();
     system.model = Model::GameBoyColor;
     for i in 0..16 {
@@ -340,7 +347,7 @@ fn test_write() {
     system = old_system;
 
     // no corruption when data.bit(7) is false
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     for i in 0..16 {
         wave.pattern[i] = i as u8;
     }
@@ -353,7 +360,7 @@ fn test_write() {
     assert_eq!(wave.pattern[3], 3);
     assert_eq!(wave.pattern[4], 4);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.pattern_offset = U5::wrapping_from(9);
     wave.frequency = U11::ONE;
     wave.pattern_sample = U4::ONE;
@@ -366,17 +373,17 @@ fn test_write() {
     assert_eq!(wave.pattern_sample, U4::ZERO);
     assert_eq!(wave.pattern_hold, 0);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
     assert_eq!(wave.length, 256);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.length = 100;
     wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
     assert_eq!(wave.length, 100);
 
     bus.power_apu();
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     bus.apu.phase = U3::ONE;
     wave.length = 100;
     wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
@@ -384,11 +391,11 @@ fn test_write() {
     // clear phase
     bus.power_apu();
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.write(&system, bus.apu.phase, 0xff3a, 123);
     assert_eq!(wave.pattern[0xa], 123);
 
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     wave.pattern_offset = U5::wrapping_from(5);
     wave.enable = true;
     wave.pattern_hold = 5;
@@ -396,7 +403,7 @@ fn test_write() {
     assert_eq!(wave.pattern[2], 123);
 
     bus.power_apu();
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     bus.apu.phase = U3::ONE;
     wave.pattern_offset = U5::wrapping_from(5);
     wave.enable = true;
@@ -410,7 +417,7 @@ fn test_write() {
 fn test_power() {
     let mut wave = Wave::default();
     wave.length = 0;
-    wave.power(true);
+    power_and_zero_pattern(&mut wave);
     assert_eq!(wave.length, 256);
 
     wave.length = 0;

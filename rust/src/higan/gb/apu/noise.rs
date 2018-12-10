@@ -156,9 +156,12 @@ impl Noise {
     }
 
     pub fn power(&mut self, initialize_length: bool) {
+        let old_length = self.length;
         *self = Noise::default();
         if initialize_length {
             self.length = 64;
+        } else {
+            self.length = old_length;
         }
     }
 }

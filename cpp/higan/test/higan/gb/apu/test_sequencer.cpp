@@ -109,8 +109,92 @@ void TestRead() {
   GameBoy::apu.noise.power(true);
 }
 
+void TestWrite() {
+  APU::Sequencer sequencer;
+
+  sequencer.power();
+  sequencer.write(0xff24, 0b10100101);
+  EXPECT_TRUE("Sequencer write", sequencer.leftEnable);
+  EXPECT_EQ("Sequencer write", sequencer.leftVolume, (uint3)0b010);
+  EXPECT_FALSE("Sequencer write", sequencer.rightEnable);
+  EXPECT_EQ("Sequencer write", sequencer.rightVolume, (uint3)0b101);
+
+  sequencer.power();
+  sequencer.write(0xff25, 0b10100101);
+  EXPECT_TRUE("Sequencer write", sequencer.noise.leftEnable);
+  EXPECT_FALSE("Sequencer write", sequencer.wave.leftEnable);
+  EXPECT_TRUE("Sequencer write", sequencer.square2.leftEnable);
+  EXPECT_FALSE("Sequencer write", sequencer.square1.leftEnable);
+  EXPECT_FALSE("Sequencer write", sequencer.noise.rightEnable);
+  EXPECT_TRUE("Sequencer write", sequencer.wave.rightEnable);
+  EXPECT_FALSE("Sequencer write", sequencer.square2.rightEnable);
+  EXPECT_TRUE("Sequencer write", sequencer.square1.rightEnable);
+
+  // enable and data.bit(7) both false, so nothing happens
+  sequencer.power();
+  GameBoy::apu.square1.power(true);
+  GameBoy::apu.square1.period = 5;
+  sequencer.write(0xff26, 0);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.square1.period, 5u);
+  GameBoy::apu.square1.power(true);
+
+  // enable and data.bit(7) both true, so nothing happens
+  sequencer.power();
+  GameBoy::apu.square1.power(true);
+  GameBoy::apu.square1.period = 5;
+  sequencer.enable = true;
+  sequencer.write(0xff26, 0b10000000);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.square1.period, 5u);
+  GameBoy::apu.square1.power(true);
+
+  // enable is false and data.bit(7) is true, so apu phase is set to 0
+  sequencer.power();
+  GameBoy::apu.power();
+  GameBoy::apu.phase = 5;
+  sequencer.write(0xff26, 0b10000000);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.phase, (uint3)0);
+  GameBoy::apu.power();
+
+  // enable is true, data.bit(7) is false, and model is not GBC, so APU
+  // components are powered without initializing length
+  sequencer.power();
+  GameBoy::apu.square1.power(true);
+  GameBoy::apu.square1.period = 5;
+  GameBoy::apu.square1.length = 5;
+  sequencer.enable = true;
+  sequencer.write(0xff26, 0);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.square1.period, 0u);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.square1.length, 5u);
+  GameBoy::apu.square1.power(true);
+
+  // enable is true, data.bit(7) is false, and model is GBC, so APU components
+  // are powered, initializing length
+  sequencer.power();
+  auto old_model = GameBoy::system._model;
+  GameBoy::system._model = GameBoy::System::Model::GameBoyColor;
+  GameBoy::apu.square1.power(true);
+  GameBoy::apu.square1.period = 5;
+  GameBoy::apu.square1.length = 5;
+  sequencer.enable = true;
+  sequencer.write(0xff26, 0);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.square1.period, 0u);
+  EXPECT_EQ("Sequencer write", GameBoy::apu.square1.length, 64u);
+  GameBoy::system._model = old_model;
+  GameBoy::apu.square1.power(true);
+}
+
+void TestPower() {
+  APU::Sequencer sequencer;
+
+  sequencer.leftVolume = 2;
+  sequencer.power();
+  EXPECT_EQ("Sequencer power", sequencer.leftVolume, (uint3)0);
+}
+
 void TestAll() {
   TestRun();
   TestRead();
+  TestWrite();
+  TestPower();
 }
 }

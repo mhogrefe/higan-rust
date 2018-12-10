@@ -346,6 +346,9 @@ void TestRead() {
   APU::Square1 square1;
 
   square1.power(true);
+  EXPECT_EQ("Square1 read", square1.read(0), (uint8)0xff);
+
+  square1.power(true);
   square1.sweepFrequency = (uint3)0b101;
   square1.sweepDirection = true;
   square1.sweepShift = (uint3)0b010;
@@ -371,9 +374,6 @@ void TestRead() {
 
 void TestWrite() {
   APU::Square1 square1;
-
-  square1.power(true);
-  EXPECT_EQ("Square1 read", square1.read(0), (uint8)0xff);
 
   square1.power(true);
   square1.enable = true;
