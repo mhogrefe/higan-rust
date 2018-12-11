@@ -11,4 +11,9 @@ pub mod higan {
             pub mod wave;
         }
     }
+    pub mod processor {
+        pub mod lr35902 {
+            pub mod registers;
+        }
+    }
 }

@@ -1,4 +1,5 @@
 #include "test_apu.hpp"
+
 #include "higan/gb/gb.hpp"
 #include "test/test-utils.hpp"
 #include <vector>

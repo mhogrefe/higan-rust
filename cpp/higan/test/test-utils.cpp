@@ -1,4 +1,4 @@
-#pragma once
+#include "test-utils.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -10,9 +10,17 @@ template <typename T> std::string ToString(T x) {
   return ss.str();
 }
 
-std::string ToString(uint8_t i);
+std::string ToString(uint8_t i) {
+  std::stringstream ss;
+  ss << unsigned(i);
+  return ss.str();
+}
 
-std::string ToString(int8_t i);
+std::string ToString(int8_t i) {
+  std::stringstream ss;
+  ss << signed(i);
+  return ss.str();
+}
 
 template <typename T> std::string ToString(const std::vector<T> &xs) {
   std::stringstream ss;

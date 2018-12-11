@@ -3,7 +3,7 @@ include ../nall/GNUmakefile
 
 binary := application
 target := tomoko
-objects := libco emulator audio video resource test test_higan test_higan_gb test_higan_gb_apu
+objects := libco emulator audio video resource test test_higan test_higan_gb test_higan_gb_apu test_higan_processor test_higan_processor_lr35902
 
 flags += -I. -I.. -Wno-shift-count-overflow
 
@@ -60,7 +60,9 @@ obj/resource.o: resource/resource.cpp $(call rwildcard,resource)
 obj/test.o: test/test_all.cpp $(call rwildcard,test)
 obj/test_higan.o: test/higan/test_higan.cpp $(call rwildcard,test/test_higan)
 obj/test_higan_gb.o: test/higan/gb/test_gb.cpp $(call rwildcard,test/higan/gb)
-obj/test_higan_gb_apu.o: test/higan/gb/apu/test_apu.cpp test/higan/gb/apu/test_square1.cpp $(call rwildcard,test/higan/gb/apu)
+obj/test_higan_gb_apu.o: test/higan/gb/apu/test_apu.cpp $(call rwildcard,test/higan/gb/apu)
+obj/test_higan_processor.o: test/higan/processor/test_processor.cpp $(call rwildcard,test/higan/processor)
+obj/test_higan_processor_lr35902.o: test/higan/processor/lr35902/test_lr35902.cpp $(call rwildcard,test/higan/processor/lr35902)
 
 ui := target-$(target)
 include $(ui)/GNUmakefile
