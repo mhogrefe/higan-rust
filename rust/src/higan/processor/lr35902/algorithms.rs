@@ -8,9 +8,9 @@ use malachite_base::num::{BitAccess, WrappingSubAssign};
 impl LR35902 {
     pub fn add(&mut self, target: u8, source: u8, carry: bool) -> u8 {
         let x: u16 = u16::from(target) + u16::from(source) + if carry { 1 } else { 0 };
-        let y: u16 = u16::from(
-            U4::wrapping_from(target).0 + U4::wrapping_from(source).0 + if carry { 1 } else { 0 },
-        );
+        let y: u16 = u16::from(U4::wrapping_from(target).0)
+            + u16::from(U4::wrapping_from(source).0)
+            + if carry { 1 } else { 0 };
         self.set_cf(x > 0xff);
         self.set_hf(y > 0x0f);
         self.set_nf(false);
