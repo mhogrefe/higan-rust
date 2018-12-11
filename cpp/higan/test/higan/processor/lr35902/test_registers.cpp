@@ -1,7 +1,5 @@
 namespace registers {
 
-#include "higan/processor/lr35902/registers.cpp"
-
 void TestAF() {
   {
     GameBoy::CPU processor;

@@ -8,6 +8,8 @@ namespace higan {
 namespace processor {
 namespace lr35902 {
 
+#include "higan/processor/lr35902/registers.cpp"
+
 void TestPair() {
   {
     Processor::LR35902::Registers::Pair pair;
@@ -32,10 +34,12 @@ void TestPair() {
   }
 }
 
+#include "test_algorithms.cpp"
 #include "test_registers.cpp"
 
 void TestLR35902() {
   TestPair();
+  algorithms::TestAll();
   registers::TestAll();
 }
 }

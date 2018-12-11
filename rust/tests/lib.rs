@@ -13,6 +13,7 @@ pub mod higan {
     }
     pub mod processor {
         pub mod lr35902 {
+            pub mod algorithms;
             pub mod lr35902;
             pub mod registers;
         }
