@@ -2,7 +2,7 @@
 
 use malachite_base::num::{JoinHalves, SplitInHalf};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Register(u16);
 
 impl Register {
@@ -31,7 +31,7 @@ impl Register {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Registers {
     pub af: Register,
     pub bc: Register,
@@ -46,7 +46,7 @@ pub struct Registers {
     pub ime: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct LR35902 {
     pub r: Registers,
 }

@@ -15,6 +15,11 @@ pub mod higan {
             pub mod square_2;
             pub mod wave;
         }
+        pub mod cpu {
+            pub mod cpu;
+            pub mod memory;
+            pub mod timing;
+        }
         pub mod memory {
             pub mod memory;
         }

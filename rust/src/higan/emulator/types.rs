@@ -1167,6 +1167,7 @@ uint!(U5, u8, 5);
 uint!(U11, u16, 11);
 uint!(U12, u16, 12);
 uint!(U15, u16, 15);
+uint!(U22, u32, 22);
 
 pub trait Bits {
     fn get_bits(self, high: u32, low: u32) -> Self;
