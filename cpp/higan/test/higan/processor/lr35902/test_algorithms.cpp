@@ -172,10 +172,52 @@ void ExhaustiveTestAND() {
   EXPECT_EQ("Algorithms AND", outcomes[0b1], 6561);
 }
 
+void TestBIT() {
+  // ZF false
+  {
+    GameBoy::CPU processor;
+    processor.BIT(1, 0b10100101);
+    EXPECT_TRUE("Algorithms BIT", processor.HF);
+    EXPECT_FALSE("Algorithms BIT", processor.NF);
+    EXPECT_TRUE("Algorithms BIT", processor.ZF);
+  }
+
+  // ZF true
+  {
+    GameBoy::CPU processor;
+    processor.BIT(2, 0b10100101);
+    EXPECT_TRUE("Algorithms BIT", processor.HF);
+    EXPECT_FALSE("Algorithms BIT", processor.NF);
+    EXPECT_FALSE("Algorithms BIT", processor.ZF);
+  }
+}
+
+void ExhaustiveTestBIT() {
+  int outcomes[2] = {0};
+  for (int index = 0; index <= 7; ++index) {
+    for (int x = 0; x <= 255; ++x) {
+      GameBoy::CPU processor;
+      processor.BIT(index, x);
+      int outcome_index = 0;
+      if (processor.ZF) {
+        outcome_index |= 1;
+      }
+      outcomes[outcome_index] += 1;
+    }
+  }
+  // ZF false
+  EXPECT_EQ("Algorithms BIT", outcomes[0b0], 1024);
+
+  // ZF true
+  EXPECT_EQ("Algorithms BIT", outcomes[0b1], 1024);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
   TestAND();
   ExhaustiveTestAND();
+  TestBIT();
+  ExhaustiveTestBIT();
 }
 }

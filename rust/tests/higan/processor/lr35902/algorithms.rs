@@ -1,4 +1,6 @@
+use higan_rust::higan::emulator::types::U3;
 use higan_rust::higan::processor::lr35902::lr35902::LR35902;
+use malachite_base::misc::WrappingFrom;
 use malachite_base::num::BitAccess;
 
 #[test]
@@ -147,4 +149,40 @@ fn exhaustive_test_and() {
 
     // ZF true
     assert_eq!(outcomes[0b1], 6_561);
+}
+
+#[test]
+fn test_bit() {
+    // ZF false
+    let mut processor = LR35902::default();
+    processor.bit(U3::wrapping_from(1), 0b10100101);
+    assert!(processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    // ZF true
+    let mut processor = LR35902::default();
+    processor.bit(U3::wrapping_from(2), 0b10100101);
+    assert!(processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+}
+
+#[test]
+fn exhaustive_test_bit() {
+    let mut outcomes = [0u32; 2];
+    for index in 0..=7 {
+        for x in 0..=255 {
+            let mut processor = LR35902::default();
+            processor.bit(U3::wrapping_from(index), x);
+            let mut outcome_index = 0u32;
+            outcome_index.assign_bit(0, processor.get_zf());
+            outcomes[outcome_index as usize] += 1;
+        }
+    }
+    // ZF false
+    assert_eq!(outcomes[0b0], 1_024);
+
+    // ZF true
+    assert_eq!(outcomes[0b1], 1_024);
 }
