@@ -212,6 +212,108 @@ void ExhaustiveTestBIT() {
   EXPECT_EQ("Algorithms BIT", outcomes[0b1], 1024);
 }
 
+void TestCP() {
+  // CF false, HF false, ZF false
+  {
+    GameBoy::CPU processor;
+    processor.CP(10, 5);
+    EXPECT_FALSE("Algorithms CP", processor.CF);
+    EXPECT_FALSE("Algorithms CP", processor.HF);
+    EXPECT_TRUE("Algorithms CP", processor.NF);
+    EXPECT_FALSE("Algorithms CP", processor.ZF);
+  }
+
+  // CF false, HF false, ZF true
+  {
+    GameBoy::CPU processor;
+    processor.CP(10, 10);
+    EXPECT_FALSE("Algorithms CP", processor.CF);
+    EXPECT_FALSE("Algorithms CP", processor.HF);
+    EXPECT_TRUE("Algorithms CP", processor.NF);
+    EXPECT_TRUE("Algorithms CP", processor.ZF);
+  }
+
+  // CF false, HF true, ZF false
+  {
+    GameBoy::CPU processor;
+    processor.CP(100, 10);
+    EXPECT_FALSE("Algorithms CP", processor.CF);
+    EXPECT_TRUE("Algorithms CP", processor.HF);
+    EXPECT_TRUE("Algorithms CP", processor.NF);
+    EXPECT_FALSE("Algorithms CP", processor.ZF);
+  }
+
+  // CF false, HF true, ZF true impossible
+
+  // CF true, HF false, ZF false
+  {
+    GameBoy::CPU processor;
+    processor.CP(2, 17);
+    EXPECT_TRUE("Algorithms CP", processor.CF);
+    EXPECT_FALSE("Algorithms CP", processor.HF);
+    EXPECT_TRUE("Algorithms CP", processor.NF);
+    EXPECT_FALSE("Algorithms CP", processor.ZF);
+  }
+
+  // CF true, HF false, ZF true impossible
+
+  // CF true, HF true, ZF false
+  {
+    GameBoy::CPU processor;
+    processor.CP(2, 19);
+    EXPECT_TRUE("Algorithms CP", processor.CF);
+    EXPECT_TRUE("Algorithms CP", processor.HF);
+    EXPECT_TRUE("Algorithms CP", processor.NF);
+    EXPECT_FALSE("Algorithms CP", processor.ZF);
+  }
+
+  // CF true, HF true, ZF true impossible
+}
+
+void ExhaustiveTestCP() {
+  int outcomes[8] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    for (int y = 0; y <= 255; ++y) {
+      GameBoy::CPU processor;
+      processor.CP(x, y);
+      int index = 0;
+      if (processor.CF) {
+        index |= 4;
+      }
+      if (processor.HF) {
+        index |= 2;
+      }
+      if (processor.ZF) {
+        index |= 1;
+      }
+      outcomes[index] += 1;
+    }
+  }
+  // CF false, HF false, ZF false
+  EXPECT_EQ("Algorithms CP", outcomes[0b000], 18240);
+
+  // CF false, HF false, ZF true
+  EXPECT_EQ("Algorithms CP", outcomes[0b001], 256);
+
+  // CF false, HF true, ZF false
+  EXPECT_EQ("Algorithms CP", outcomes[0b010], 14400);
+
+  // CF false, HF true, ZF true
+  EXPECT_EQ("Algorithms CP", outcomes[0b011], 0);
+
+  // CF true, HF false, ZF false
+  EXPECT_EQ("Algorithms CP", outcomes[0b100], 16320);
+
+  // CF true, HF false, ZF true
+  EXPECT_EQ("Algorithms CP", outcomes[0b101], 0);
+
+  // CF true, HF true, ZF false
+  EXPECT_EQ("Algorithms CP", outcomes[0b110], 16320);
+
+  // CF true, HF true, ZF true
+  EXPECT_EQ("Algorithms CP", outcomes[0b111], 0);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -219,5 +321,7 @@ void TestAll() {
   ExhaustiveTestAND();
   TestBIT();
   ExhaustiveTestBIT();
+  TestCP();
+  ExhaustiveTestCP();
 }
 }

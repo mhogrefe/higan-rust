@@ -186,3 +186,91 @@ fn exhaustive_test_bit() {
     // ZF true
     assert_eq!(outcomes[0b1], 1_024);
 }
+
+#[test]
+fn test_cp() {
+    // CF false, HF false, ZF false
+    let mut processor = LR35902::default();
+    processor.cp(10, 5);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF false, HF false, ZF true
+    let mut processor = LR35902::default();
+    processor.cp(10, 10);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(processor.get_zf());
+
+    // CF false, HF true, ZF false
+    let mut processor = LR35902::default();
+    processor.cp(100, 10);
+    assert!(!processor.get_cf());
+    assert!(processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF false, HF true, ZF true impossible
+
+    // CF true, HF false, ZF false
+    let mut processor = LR35902::default();
+    processor.cp(2, 17);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF true, HF false, ZF true impossible
+
+    // CF true, HF true, ZF false
+    let mut processor = LR35902::default();
+    processor.cp(2, 19);
+    assert!(processor.get_cf());
+    assert!(processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF true, HF true, ZF true impossible
+}
+
+#[test]
+fn exhaustive_test_cp() {
+    let mut outcomes = [0u32; 8];
+    for x in 0..=255 {
+        for y in 0..=255 {
+            let mut processor = LR35902::default();
+            processor.cp(x, y);
+            let mut index = 0u32;
+            index.assign_bit(2, processor.get_cf());
+            index.assign_bit(1, processor.get_hf());
+            index.assign_bit(0, processor.get_zf());
+            outcomes[index as usize] += 1;
+        }
+    }
+    // CF false, HF false, ZF false
+    assert_eq!(outcomes[0b000], 18_240);
+
+    // CF false, HF false, ZF true
+    assert_eq!(outcomes[0b001], 256);
+
+    // CF false, HF true, ZF false
+    assert_eq!(outcomes[0b010], 14_400);
+
+    // CF false, HF true, ZF true
+    assert_eq!(outcomes[0b011], 0);
+
+    // CF true, HF false, ZF false
+    assert_eq!(outcomes[0b100], 16_320);
+
+    // CF true, HF false, ZF true
+    assert_eq!(outcomes[0b101], 0);
+
+    // CF true, HF true, ZF false
+    assert_eq!(outcomes[0b110], 16_320);
+
+    // CF true, HF true, ZF true
+    assert_eq!(outcomes[0b111], 0);
+}
