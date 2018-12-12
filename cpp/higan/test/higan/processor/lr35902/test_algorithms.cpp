@@ -84,7 +84,7 @@ void TestADD() {
   }
 }
 
-void ExhaustiveTestAdd() {
+void ExhaustiveTestADD() {
   int outcomes[8] = {0};
   for (int x = 0; x <= 255; ++x) {
     for (int y = 0; y <= 255; ++y) {
@@ -130,8 +130,52 @@ void ExhaustiveTestAdd() {
   EXPECT_EQ("Algorithms ADD", outcomes[0b111], 496);
 }
 
+void TestAND() {
+  // ZF false
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms AND", processor.AND(6, 7), (uint8)6);
+    EXPECT_FALSE("Algorithms AND", processor.CF);
+    EXPECT_TRUE("Algorithms AND", processor.HF);
+    EXPECT_FALSE("Algorithms AND", processor.NF);
+    EXPECT_FALSE("Algorithms AND", processor.ZF);
+  }
+
+  // ZF true
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms AND", processor.AND(6, 8), (uint8)0);
+    EXPECT_FALSE("Algorithms AND", processor.CF);
+    EXPECT_TRUE("Algorithms AND", processor.HF);
+    EXPECT_FALSE("Algorithms AND", processor.NF);
+    EXPECT_TRUE("Algorithms AND", processor.ZF);
+  }
+}
+
+void ExhaustiveTestAND() {
+  int outcomes[2] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    for (int y = 0; y <= 255; ++y) {
+      GameBoy::CPU processor;
+      processor.AND(x, y);
+      int index = 0;
+      if (processor.ZF) {
+        index |= 1;
+      }
+      outcomes[index] += 1;
+    }
+  }
+  // ZF false
+  EXPECT_EQ("Algorithms AND", outcomes[0b0], 58975);
+
+  // ZF true
+  EXPECT_EQ("Algorithms AND", outcomes[0b1], 6561);
+}
+
 void TestAll() {
   TestADD();
-  ExhaustiveTestAdd();
+  ExhaustiveTestADD();
+  TestAND();
+  ExhaustiveTestAND();
 }
 }

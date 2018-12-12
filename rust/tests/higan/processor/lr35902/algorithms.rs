@@ -1,4 +1,5 @@
 use higan_rust::higan::processor::lr35902::lr35902::LR35902;
+use malachite_base::num::BitAccess;
 
 #[test]
 fn test_add() {
@@ -77,17 +78,11 @@ fn exhaustive_test_add() {
             for &carry in [true, false].iter() {
                 let mut processor = LR35902::default();
                 processor.add(x, y, carry);
-                let mut index = 0;
-                if processor.get_cf() {
-                    index |= 4;
-                }
-                if processor.get_hf() {
-                    index |= 2;
-                }
-                if processor.get_zf() {
-                    index |= 1;
-                }
-                outcomes[index] += 1;
+                let mut index = 0u32;
+                index.assign_bit(2, processor.get_cf());
+                index.assign_bit(1, processor.get_hf());
+                index.assign_bit(0, processor.get_zf());
+                outcomes[index as usize] += 1;
             }
         }
     }
@@ -114,4 +109,42 @@ fn exhaustive_test_add() {
 
     // CF true, HF true, ZF true
     assert_eq!(outcomes[0b111], 496);
+}
+
+#[test]
+fn test_and() {
+    // ZF false
+    let mut processor = LR35902::default();
+    assert_eq!(processor.and(6, 7), 6);
+    assert!(!processor.get_cf());
+    assert!(processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // ZF true
+    let mut processor = LR35902::default();
+    assert_eq!(processor.and(6, 8), 0);
+    assert!(!processor.get_cf());
+    assert!(processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+}
+
+#[test]
+fn exhaustive_test_and() {
+    let mut outcomes = [0u32; 2];
+    for x in 0..=255 {
+        for y in 0..=255 {
+            let mut processor = LR35902::default();
+            processor.and(x, y);
+            let mut index = 0u32;
+            index.assign_bit(0, processor.get_zf());
+            outcomes[index as usize] += 1;
+        }
+    }
+    // ZF false
+    assert_eq!(outcomes[0b0], 58_975);
+
+    // ZF true
+    assert_eq!(outcomes[0b1], 6_561);
 }
