@@ -3,7 +3,6 @@
 use higan::emulator::types::{U12, U3};
 use higan::gb::apu::sequencer::Sequencer;
 use higan::gb::memory::memory::{Bus, MMIOType, MMIO};
-use higan::gb::system::system::System;
 use malachite_base::num::{One, WrappingAddAssign, Zero};
 use nall::random::{LinearFeedbackShiftRegisterGenerator, RandomNumberGenerator};
 
@@ -12,6 +11,7 @@ use nall::random::{LinearFeedbackShiftRegisterGenerator, RandomNumberGenerator};
 
 #[derive(Clone, Debug, Default)]
 pub struct APU {
+    pub model_is_game_boy_color: bool,
     pub sequencer: Sequencer,
 
     pub phase: U3,  //high 3-bits of clock counter
@@ -19,14 +19,14 @@ pub struct APU {
 }
 
 impl APU {
-    pub fn main(&mut self, system: &System) {
+    pub fn main(&mut self) {
         self.sequencer.square_1.run();
         self.sequencer.square_2.run();
         self.sequencer.wave.run();
         self.sequencer.noise.run();
         self.sequencer.run();
 
-        if !system.model_is_game_boy_color() {
+        if !self.model_is_game_boy_color {
             //TODO stream->sample(sequencer.left / 32768.0, sequencer.right / 32768.0);
         } else {
             //TODO double samples[] = {sequencer.left / 32768.0, sequencer.right / 32768.0};
@@ -89,22 +89,22 @@ impl Bus {
 }
 
 impl MMIO for APU {
-    fn read_io(&self, system: &System, addr: u16) -> u8 {
+    fn read_io(&self, addr: u16) -> u8 {
         match addr {
             0xff10...0xff14 => self.sequencer.square_1.read(addr),
             0xff15...0xff19 => self.sequencer.square_2.read(addr),
-            0xff1a...0xff1e => self.sequencer.wave.read(system, addr),
+            0xff1a...0xff1e => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
             0xff1f...0xff23 => self.sequencer.noise.read(addr),
             0xff24...0xff26 => self.sequencer.read(addr),
-            0xff30...0xff3f => self.sequencer.wave.read(system, addr),
+            0xff30...0xff3f => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
             _ => 0xff,
         }
     }
 
-    fn write_io(&mut self, system: &System, addr: u16, mut data: u8) {
+    fn write_io(&mut self, addr: u16, mut data: u8) {
         if !self.sequencer.enable {
             let mut valid = addr == 0xff26; //NR52
-            if !system.model_is_game_boy_color() {
+            if !self.model_is_game_boy_color {
                 //NRx1 length is writable only on DMG,SGB; not on CGB
                 //NR11; duty is not writable (remains 0)
                 match addr {
@@ -133,10 +133,21 @@ impl MMIO for APU {
         match addr {
             0xff10...0xff14 => self.sequencer.square_1.write(self.phase, addr, data),
             0xff15...0xff19 => self.sequencer.square_2.write(self.phase, addr, data),
-            0xff1a...0xff1e => self.sequencer.wave.write(system, self.phase, addr, data),
+            0xff1a...0xff1e => {
+                self.sequencer
+                    .wave
+                    .write(self.model_is_game_boy_color, self.phase, addr, data)
+            }
             0xff1f...0xff23 => self.sequencer.noise.write(self.phase, addr, data),
-            0xff24...0xff26 => self.sequencer.write(system, &mut self.phase, addr, data),
-            0xff30...0xff3f => self.sequencer.wave.write(system, self.phase, addr, data),
+            0xff24...0xff26 => {
+                self.sequencer
+                    .write(self.model_is_game_boy_color, &mut self.phase, addr, data)
+            }
+            0xff30...0xff3f => {
+                self.sequencer
+                    .wave
+                    .write(self.model_is_game_boy_color, self.phase, addr, data)
+            }
             _ => {}
         }
     }

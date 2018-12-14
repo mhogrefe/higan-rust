@@ -1,5 +1,4 @@
 use higan::emulator::types::{Bits, U11, U2, U3, U4, U5};
-use higan::gb::system::system::System;
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{BitAccess, One, WrappingAddAssign, Zero};
 
@@ -62,7 +61,7 @@ impl Wave {
         }
     }
 
-    pub fn read(&self, system: &System, addr: u16) -> u8 {
+    pub fn read(&self, model_is_game_boy_color: bool, addr: u16) -> u8 {
         match addr {
             //NR30
             0xff1a => (if self.dac_enable { 1 } else { 0 }) << 7 | 0x7f,
@@ -76,7 +75,7 @@ impl Wave {
             0xff1e => 0x80 | (if self.counter { 1 } else { 0 }) << 6 | 0x3f,
             0xff30...0xff3f => {
                 if self.enable {
-                    if !system.model_is_game_boy_color() && self.pattern_hold == 0 {
+                    if !model_is_game_boy_color && self.pattern_hold == 0 {
                         0xff
                     } else {
                         self.pattern[(self.pattern_offset.0 >> 1) as usize]
@@ -90,7 +89,7 @@ impl Wave {
         }
     }
 
-    pub fn write(&mut self, system: &System, apu_phase: U3, addr: u16, data: u8) {
+    pub fn write(&mut self, model_is_game_boy_color: bool, apu_phase: U3, addr: u16, data: u8) {
         match addr {
             //NR30
             0xff1a => {
@@ -127,7 +126,7 @@ impl Wave {
                     .set_bits(U11::wrapping_from(data.get_bits(2, 0)), 10, 8);
 
                 if data.get_bit(7) {
-                    if !system.model_is_game_boy_color() && self.pattern_hold != 0 {
+                    if !model_is_game_boy_color && self.pattern_hold != 0 {
                         //DMG,SGB trigger while channel is being read corrupts wave RAM
                         if (self.pattern_offset.0 >> 1) <= 3 {
                             //if current pattern is with 0-3; only byte 0 is corrupted
@@ -163,7 +162,7 @@ impl Wave {
 
             0xff30...0xff3f => {
                 if self.enable {
-                    if !system.model_is_game_boy_color() && self.pattern_hold == 0 {
+                    if !model_is_game_boy_color && self.pattern_hold == 0 {
                         return;
                     }
                     self.pattern[(self.pattern_offset.0 >> 1) as usize] = data;

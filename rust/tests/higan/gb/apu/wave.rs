@@ -192,25 +192,40 @@ fn test_read() {
     let mut system = System::default();
 
     power_and_zero_pattern(&mut wave);
-    assert_eq!(wave.read(&system, 0), 0xff);
+    assert_eq!(wave.read(system.model_is_game_boy_color(), 0), 0xff);
 
     power_and_zero_pattern(&mut wave);
     wave.dac_enable = false;
-    assert_eq!(wave.read(&system, 0xff1a), 0b01111111);
+    assert_eq!(
+        wave.read(system.model_is_game_boy_color(), 0xff1a),
+        0b01111111
+    );
 
     power_and_zero_pattern(&mut wave);
-    assert_eq!(wave.read(&system, 0xff1b), 0b11111111);
+    assert_eq!(
+        wave.read(system.model_is_game_boy_color(), 0xff1b),
+        0b11111111
+    );
 
     power_and_zero_pattern(&mut wave);
     wave.volume = U2::wrapping_from(0b10);
-    assert_eq!(wave.read(&system, 0xff1c), 0b11011111);
+    assert_eq!(
+        wave.read(system.model_is_game_boy_color(), 0xff1c),
+        0b11011111
+    );
 
     power_and_zero_pattern(&mut wave);
-    assert_eq!(wave.read(&system, 0xff1d), 0b11111111);
+    assert_eq!(
+        wave.read(system.model_is_game_boy_color(), 0xff1d),
+        0b11111111
+    );
 
     power_and_zero_pattern(&mut wave);
     wave.counter = false;
-    assert_eq!(wave.read(&system, 0xff1e), 0b10111111);
+    assert_eq!(
+        wave.read(system.model_is_game_boy_color(), 0xff1e),
+        0b10111111
+    );
 
     // Model::GameBoyColor() is false, pattern_hold is zero
     power_and_zero_pattern(&mut wave);
@@ -218,7 +233,7 @@ fn test_read() {
     wave.pattern_hold = 0;
     wave.pattern_offset = U5::wrapping_from(3);
     wave.pattern[1] = 0xab;
-    assert_eq!(wave.read(&system, 0xff3a), 0xff);
+    assert_eq!(wave.read(system.model_is_game_boy_color(), 0xff3a), 0xff);
 
     // Model::GameBoyColor() is false, pattern_hold is nonzero
     power_and_zero_pattern(&mut wave);
@@ -226,7 +241,7 @@ fn test_read() {
     wave.pattern_hold = 5;
     wave.pattern_offset = U5::wrapping_from(3);
     wave.pattern[1] = 0xab;
-    assert_eq!(wave.read(&system, 0xff3a), 0xab);
+    assert_eq!(wave.read(system.model_is_game_boy_color(), 0xff3a), 0xab);
 
     // Model::GameBoyColor() is true, pattern_hold is zero
     power_and_zero_pattern(&mut wave);
@@ -236,7 +251,7 @@ fn test_read() {
     wave.pattern_hold = 0;
     wave.pattern_offset = U5::wrapping_from(3);
     wave.pattern[1] = 0xab;
-    assert_eq!(wave.read(&system, 0xff3a), 0xab);
+    assert_eq!(wave.read(system.model_is_game_boy_color(), 0xff3a), 0xab);
     system = old_system;
 
     // enable is false
@@ -245,7 +260,7 @@ fn test_read() {
     wave.pattern_hold = 0;
     wave.pattern_offset = U5::wrapping_from(3);
     wave.pattern[5] = 0xab;
-    assert_eq!(wave.read(&system, 0xff35), 0xab);
+    assert_eq!(wave.read(system.model_is_game_boy_color(), 0xff35), 0xab);
 }
 
 #[test]
@@ -256,33 +271,53 @@ fn test_write() {
 
     power_and_zero_pattern(&mut wave);
     wave.dac_enable = false;
-    wave.write(&system, bus.apu.phase, 0xff1a, 0b10000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1a,
+        0b10000000,
+    );
     assert!(wave.dac_enable);
 
     power_and_zero_pattern(&mut wave);
     wave.dac_enable = true;
     wave.enable = true;
-    wave.write(&system, bus.apu.phase, 0xff1a, 0);
+    wave.write(system.model_is_game_boy_color(), bus.apu.phase, 0xff1a, 0);
     assert!(!wave.dac_enable);
     assert!(!wave.enable);
 
     power_and_zero_pattern(&mut wave);
-    wave.write(&system, bus.apu.phase, 0xff1b, 100);
+    wave.write(system.model_is_game_boy_color(), bus.apu.phase, 0xff1b, 100);
     assert_eq!(wave.length, 156);
 
     power_and_zero_pattern(&mut wave);
-    wave.write(&system, bus.apu.phase, 0xff1c, 0b01000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1c,
+        0b01000000,
+    );
     assert_eq!(wave.volume, U2::wrapping_from(0b10));
 
     power_and_zero_pattern(&mut wave);
-    wave.write(&system, bus.apu.phase, 0xff1d, 0b10101010);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1d,
+        0b10101010,
+    );
     assert_eq!(wave.frequency, U11::wrapping_from(0b00010101010));
 
     // apu.phase.bit(0) is false so enable stays true
     power_and_zero_pattern(&mut wave);
     wave.enable = true;
     wave.length = 1;
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b01000101);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b01000101,
+    );
     assert!(wave.enable);
     assert_eq!(wave.length, 1);
     assert!(wave.counter);
@@ -295,7 +330,12 @@ fn test_write() {
     power_and_zero_pattern(&mut wave);
     wave.enable = true;
     wave.length = 1;
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b01000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b01000000,
+    );
     assert!(!wave.enable);
     assert_eq!(wave.length, 0);
     // clear phase
@@ -308,7 +348,12 @@ fn test_write() {
     }
     wave.pattern_hold = 5;
     wave.pattern_offset = U5::wrapping_from(2);
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000101);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000101,
+    );
     assert_eq!(wave.pattern[0], 1);
     assert_eq!(wave.pattern[1], 1);
     assert_eq!(wave.pattern[2], 2);
@@ -322,7 +367,12 @@ fn test_write() {
     }
     wave.pattern_hold = 5;
     wave.pattern_offset = U5::wrapping_from(9);
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000101);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000101,
+    );
     assert_eq!(wave.pattern[0], 4);
     assert_eq!(wave.pattern[1], 5);
     assert_eq!(wave.pattern[2], 6);
@@ -338,7 +388,12 @@ fn test_write() {
     }
     wave.pattern_hold = 5;
     wave.pattern_offset = U5::wrapping_from(9);
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000101);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000101,
+    );
     assert_eq!(wave.pattern[0], 0);
     assert_eq!(wave.pattern[1], 1);
     assert_eq!(wave.pattern[2], 2);
@@ -353,7 +408,12 @@ fn test_write() {
     }
     wave.pattern_hold = 5;
     wave.pattern_offset = U5::wrapping_from(9);
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b01000101);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b01000101,
+    );
     assert_eq!(wave.pattern[0], 0);
     assert_eq!(wave.pattern[1], 1);
     assert_eq!(wave.pattern[2], 2);
@@ -366,7 +426,12 @@ fn test_write() {
     wave.pattern_sample = U4::ONE;
     wave.pattern_hold = 5;
     wave.dac_enable = true;
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000000,
+    );
     assert!(wave.enable);
     assert_eq!(wave.period, 2047);
     assert_eq!(wave.pattern_offset, U5::ZERO);
@@ -374,32 +439,47 @@ fn test_write() {
     assert_eq!(wave.pattern_hold, 0);
 
     power_and_zero_pattern(&mut wave);
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000000,
+    );
     assert_eq!(wave.length, 256);
 
     power_and_zero_pattern(&mut wave);
     wave.length = 100;
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000000,
+    );
     assert_eq!(wave.length, 100);
 
     bus.power_apu();
     power_and_zero_pattern(&mut wave);
     bus.apu.phase = U3::ONE;
     wave.length = 100;
-    wave.write(&system, bus.apu.phase, 0xff1e, 0b11000000);
+    wave.write(
+        system.model_is_game_boy_color(),
+        bus.apu.phase,
+        0xff1e,
+        0b11000000,
+    );
     assert_eq!(wave.length, 99);
     // clear phase
     bus.power_apu();
 
     power_and_zero_pattern(&mut wave);
-    wave.write(&system, bus.apu.phase, 0xff3a, 123);
+    wave.write(system.model_is_game_boy_color(), bus.apu.phase, 0xff3a, 123);
     assert_eq!(wave.pattern[0xa], 123);
 
     power_and_zero_pattern(&mut wave);
     wave.pattern_offset = U5::wrapping_from(5);
     wave.enable = true;
     wave.pattern_hold = 5;
-    wave.write(&system, bus.apu.phase, 0xff3a, 123);
+    wave.write(system.model_is_game_boy_color(), bus.apu.phase, 0xff3a, 123);
     assert_eq!(wave.pattern[2], 123);
 
     bus.power_apu();
@@ -407,7 +487,7 @@ fn test_write() {
     bus.apu.phase = U3::ONE;
     wave.pattern_offset = U5::wrapping_from(5);
     wave.enable = true;
-    wave.write(&system, bus.apu.phase, 0xff3a, 123);
+    wave.write(system.model_is_game_boy_color(), bus.apu.phase, 0xff3a, 123);
     assert_eq!(wave.pattern[2], 0);
     // clear phase
     bus.power_apu();

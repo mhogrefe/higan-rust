@@ -113,14 +113,24 @@ fn test_write() {
     let mut system = System::default();
 
     sequencer.power();
-    sequencer.write(&system, &mut bus.apu.phase, 0xff24, 0b10100101);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff24,
+        0b10100101,
+    );
     assert!(sequencer.left_enable);
     assert_eq!(sequencer.left_volume, U3::wrapping_from(0b010));
     assert!(!sequencer.right_enable);
     assert_eq!(sequencer.right_volume, U3::wrapping_from(0b101));
 
     sequencer.power();
-    sequencer.write(&system, &mut bus.apu.phase, 0xff25, 0b10100101);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff25,
+        0b10100101,
+    );
     assert!(sequencer.noise_channel.left_enable);
     assert!(!sequencer.wave_channel.left_enable);
     assert!(sequencer.square_2_channel.left_enable);
@@ -134,7 +144,12 @@ fn test_write() {
     sequencer.power();
     sequencer.square_1.power(true);
     sequencer.square_1.period = 5;
-    sequencer.write(&system, &mut bus.apu.phase, 0xff26, 0);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff26,
+        0,
+    );
     assert_eq!(sequencer.square_1.period, 5);
     sequencer.square_1.power(true);
 
@@ -143,7 +158,12 @@ fn test_write() {
     sequencer.square_1.power(true);
     sequencer.square_1.period = 5;
     sequencer.enable = true;
-    sequencer.write(&system, &mut bus.apu.phase, 0xff26, 0b10000000);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff26,
+        0b10000000,
+    );
     assert_eq!(sequencer.square_1.period, 5);
     sequencer.square_1.power(true);
 
@@ -151,7 +171,12 @@ fn test_write() {
     bus.power_apu();
     sequencer.power();
     bus.apu.phase = U3::wrapping_from(5);
-    sequencer.write(&system, &mut bus.apu.phase, 0xff26, 0b10000000);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff26,
+        0b10000000,
+    );
     assert_eq!(bus.apu.phase, U3::ZERO);
     // clear phase
     bus.power_apu();
@@ -163,7 +188,12 @@ fn test_write() {
     sequencer.square_1.period = 5;
     sequencer.square_1.length = 5;
     sequencer.enable = true;
-    sequencer.write(&system, &mut bus.apu.phase, 0xff26, 0);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff26,
+        0,
+    );
     assert_eq!(sequencer.square_1.period, 0);
     assert_eq!(sequencer.square_1.length, 5);
     sequencer.square_1.power(true);
@@ -176,7 +206,12 @@ fn test_write() {
     sequencer.square_1.period = 5;
     sequencer.square_1.length = 5;
     sequencer.enable = true;
-    sequencer.write(&system, &mut bus.apu.phase, 0xff26, 0);
+    sequencer.write(
+        system.model_is_game_boy_color(),
+        &mut bus.apu.phase,
+        0xff26,
+        0,
+    );
     assert_eq!(sequencer.square_1.period, 0);
     assert_eq!(sequencer.square_1.length, 64);
     sequencer.square_1.power(true);

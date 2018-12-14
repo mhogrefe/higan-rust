@@ -3,7 +3,6 @@ use higan::gb::apu::noise::Noise;
 use higan::gb::apu::square_1::Square1;
 use higan::gb::apu::square_2::Square2;
 use higan::gb::apu::wave::Wave;
-use higan::gb::system::system::System;
 use malachite_base::misc::WrappingFrom;
 use malachite_base::num::{BitAccess, One, WrappingAdd, WrappingAddAssign, Zero};
 
@@ -148,7 +147,13 @@ impl Sequencer {
         }
     }
 
-    pub fn write(&mut self, system: &System, apu_phase: &mut U3, addr: u16, data: u8) {
+    pub fn write(
+        &mut self,
+        model_is_game_boy_color: bool,
+        apu_phase: &mut U3,
+        addr: u16,
+        data: u8,
+    ) {
         match addr {
             //NR50
             0xff24 => {
@@ -175,10 +180,10 @@ impl Sequencer {
 
                     if !self.enable {
                         //power(bool) resets length counters when true (eg for CGB only)
-                        self.square_1.power(system.model_is_game_boy_color());
-                        self.square_2.power(system.model_is_game_boy_color());
-                        self.wave.power(system.model_is_game_boy_color());
-                        self.noise.power(system.model_is_game_boy_color());
+                        self.square_1.power(model_is_game_boy_color);
+                        self.square_2.power(model_is_game_boy_color);
+                        self.wave.power(model_is_game_boy_color);
+                        self.noise.power(model_is_game_boy_color);
                         self.power();
                     } else {
                         *apu_phase = U3::ZERO;
