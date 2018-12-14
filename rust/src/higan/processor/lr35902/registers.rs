@@ -153,4 +153,22 @@ impl LR35902 {
         f.assign_bit(7, cf);
         self.set_f(f);
     }
+
+    pub fn post_increment_pc(&mut self) -> u16 {
+        let pc = self.get_pc();
+        self.set_pc(pc.wrapping_add(1));
+        pc
+    }
+
+    pub fn post_increment_sp(&mut self) -> u16 {
+        let sp = self.get_sp();
+        self.set_sp(sp.wrapping_add(1));
+        sp
+    }
+
+    pub fn pre_decrement_sp(&mut self) -> u16 {
+        let sp = self.get_sp().wrapping_sub(1);
+        self.set_sp(sp);
+        sp
+    }
 }

@@ -52,6 +52,6 @@ impl CPU {
     }
 
     pub fn read_debugger(&self, system: &System, addr: u16) -> u8 {
-        return self.bus.read(system, addr);
+        self.bus.read(system, addr)
     }
 }

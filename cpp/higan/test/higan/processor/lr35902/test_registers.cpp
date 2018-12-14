@@ -100,12 +100,32 @@ void TestSP() {
   GameBoy::CPU processor;
   processor.SP = 123;
   EXPECT_EQ("Registers SP", processor.SP, (uint16)123);
+
+  EXPECT_EQ("Registers SP", (int)processor.SP++, 123);
+  EXPECT_EQ("Registers SP", processor.SP, (uint16)124);
+
+  processor.SP = 65535;
+  EXPECT_EQ("Registers SP", (int)processor.SP++, 65535);
+  EXPECT_EQ("Registers SP", processor.SP, (uint16)0);
+
+  processor.SP = 123;
+  EXPECT_EQ("Registers SP", (int)--processor.SP, 122);
+
+  processor.SP = 0;
+  EXPECT_EQ("Registers SP", (int)--processor.SP, 65535);
 }
 
 void TestPC() {
   GameBoy::CPU processor;
   processor.PC = 123;
   EXPECT_EQ("Registers PC", processor.PC, (uint16)123);
+
+  EXPECT_EQ("Registers PC", (int)processor.PC++, 123);
+  EXPECT_EQ("Registers PC", processor.PC, (uint16)124);
+
+  processor.PC = 65535;
+  EXPECT_EQ("Registers PC", (int)processor.PC++, 65535);
+  EXPECT_EQ("Registers PC", processor.PC, (uint16)0);
 }
 
 void TestCF() {

@@ -93,6 +93,19 @@ fn test_sp() {
     let mut processor = LR35902::default();
     processor.set_sp(123);
     assert_eq!(processor.get_sp(), 123);
+
+    assert_eq!(processor.post_increment_sp(), 123);
+    assert_eq!(processor.get_sp(), 124);
+
+    processor.set_sp(65_535);
+    assert_eq!(processor.post_increment_sp(), 65_535);
+    assert_eq!(processor.get_sp(), 0);
+
+    processor.set_sp(123);
+    assert_eq!(processor.pre_decrement_sp(), 122);
+
+    processor.set_sp(0);
+    assert_eq!(processor.pre_decrement_sp(), 65_535);
 }
 
 #[test]
@@ -100,6 +113,13 @@ fn test_pc() {
     let mut processor = LR35902::default();
     processor.set_pc(123);
     assert_eq!(processor.get_pc(), 123);
+
+    assert_eq!(processor.post_increment_pc(), 123);
+    assert_eq!(processor.get_pc(), 124);
+
+    processor.set_pc(65_535);
+    assert_eq!(processor.post_increment_pc(), 65_535);
+    assert_eq!(processor.get_pc(), 0);
 }
 
 #[test]
