@@ -86,6 +86,16 @@ pub struct Status {
     pub interrupt_enable_vblank: bool,
 }
 
+pub const CPU_WRAM_SIZE: usize = 32_768; //GB=8192, GBC=32768
+pub const CPU_HRAM_SIZE: usize = 128;
+
+#[derive(Clone)]
+pub struct CPUIO {
+    pub status: Status,
+    pub wram: [u8; CPU_WRAM_SIZE],
+    pub hram: [u8; CPU_HRAM_SIZE],
+}
+
 #[derive(Clone, Default)]
 pub struct CPU {
     pub processor: LR35902,

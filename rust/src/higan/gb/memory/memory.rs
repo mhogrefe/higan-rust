@@ -1,7 +1,7 @@
 //TODO test
 
 use higan::gb::apu::apu::APU;
-use higan::gb::cpu::cpu::Status;
+use higan::gb::cpu::cpu::{Status, CPUIO, CPU_HRAM_SIZE, CPU_WRAM_SIZE};
 
 pub trait MMIO {
     fn read_io(&self, addr: u16) -> u8;
@@ -32,17 +32,6 @@ impl Default for MMIOType {
     }
 }
 
-const MMIO_SIZE: usize = 65_536;
-const CPU_WRAM_SIZE: usize = 32_768; //GB=8192, GBC=32768
-const CPU_HRAM_SIZE: usize = 128;
-
-#[derive(Clone)]
-pub struct CPUIO {
-    pub status: Status,
-    pub wram: [u8; CPU_WRAM_SIZE],
-    pub hram: [u8; CPU_HRAM_SIZE],
-}
-
 impl Default for CPUIO {
     fn default() -> CPUIO {
         CPUIO {
@@ -52,6 +41,8 @@ impl Default for CPUIO {
         }
     }
 }
+
+const MMIO_SIZE: usize = 65_536;
 
 #[derive(Clone)]
 pub struct Bus {
