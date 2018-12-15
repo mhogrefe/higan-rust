@@ -1,5 +1,3 @@
-//TODO test
-
 use higan::emulator::types::{U3, U4};
 use higan::processor::lr35902::lr35902::LR35902;
 use malachite_base::misc::WrappingFrom;
@@ -54,6 +52,15 @@ impl LR35902 {
     pub fn inc(&mut self, mut target: u8) -> u8 {
         target.wrapping_add_assign(1);
         self.set_hf(U4::wrapping_from(target).0 == 0x00);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        target
+    }
+
+    pub fn or(&mut self, mut target: u8, source: u8) -> u8 {
+        target |= source;
+        self.set_cf(false);
+        self.set_hf(false);
         self.set_nf(false);
         self.set_zf(target == 0);
         target

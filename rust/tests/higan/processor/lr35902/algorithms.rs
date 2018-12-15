@@ -374,3 +374,41 @@ fn exhaustive_test_inc() {
     // HF true, ZF true
     assert_eq!(outcomes[0b11], 1);
 }
+
+#[test]
+fn test_or() {
+    // ZF false
+    let mut processor = LR35902::default();
+    assert_eq!(processor.or(6, 9), 15);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // ZF true
+    let mut processor = LR35902::default();
+    assert_eq!(processor.or(0, 0), 0);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+}
+
+#[test]
+fn exhaustive_test_or() {
+    let mut outcomes = [0u32; 2];
+    for x in 0..=255 {
+        for y in 0..=255 {
+            let mut processor = LR35902::default();
+            processor.or(x, y);
+            let mut index = 0u32;
+            index.assign_bit(0, processor.get_zf());
+            outcomes[index as usize] += 1;
+        }
+    }
+    // ZF false
+    assert_eq!(outcomes[0b0], 65_535);
+
+    // ZF true
+    assert_eq!(outcomes[0b1], 1);
+}

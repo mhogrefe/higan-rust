@@ -430,6 +430,48 @@ void ExhaustiveTestINC() {
   EXPECT_EQ("Algorithms INC", outcomes[0b11], 1);
 }
 
+void TestOR() {
+  // ZF false
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms OR", processor.OR(6, 9), (uint8)15);
+    EXPECT_FALSE("Algorithms OR", processor.CF);
+    EXPECT_FALSE("Algorithms OR", processor.HF);
+    EXPECT_FALSE("Algorithms OR", processor.NF);
+    EXPECT_FALSE("Algorithms OR", processor.ZF);
+  }
+
+  // ZF true
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms OR", processor.OR(0, 0), (uint8)0);
+    EXPECT_FALSE("Algorithms OR", processor.CF);
+    EXPECT_FALSE("Algorithms OR", processor.HF);
+    EXPECT_FALSE("Algorithms OR", processor.NF);
+    EXPECT_TRUE("Algorithms OR", processor.ZF);
+  }
+}
+
+void ExhaustiveTestOR() {
+  int outcomes[2] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    for (int y = 0; y <= 255; ++y) {
+      GameBoy::CPU processor;
+      processor.OR(x, y);
+      int index = 0;
+      if (processor.ZF) {
+        index |= 1;
+      }
+      outcomes[index] += 1;
+    }
+  }
+  // ZF false
+  EXPECT_EQ("Algorithms OR", outcomes[0b0], 65535);
+
+  // ZF true
+  EXPECT_EQ("Algorithms OR", outcomes[0b1], 1);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -443,5 +485,7 @@ void TestAll() {
   ExhaustiveTestDEC();
   TestINC();
   ExhaustiveTestINC();
+  TestOR();
+  ExhaustiveTestOR();
 }
 }
