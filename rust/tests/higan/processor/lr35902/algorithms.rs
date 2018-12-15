@@ -279,26 +279,32 @@ fn exhaustive_test_cp() {
 fn test_dec() {
     // HF false, ZF false
     let mut processor = LR35902::default();
-    processor.dec(10);
+    assert_eq!(processor.dec(10), 9);
     assert!(!processor.get_hf());
     assert!(processor.get_nf());
     assert!(!processor.get_zf());
 
     // HF false, ZF true
     let mut processor = LR35902::default();
-    processor.dec(1);
+    assert_eq!(processor.dec(1), 0);
     assert!(!processor.get_hf());
     assert!(processor.get_nf());
     assert!(processor.get_zf());
 
     // HF true, ZF false
     let mut processor = LR35902::default();
-    processor.dec(32);
+    assert_eq!(processor.dec(32), 31);
     assert!(processor.get_hf());
     assert!(processor.get_nf());
     assert!(!processor.get_zf());
 
     // HF true, ZF true impossible
+
+    let mut processor = LR35902::default();
+    assert_eq!(processor.dec(0), 255);
+    assert!(processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
 }
 
 #[test]
@@ -329,7 +335,7 @@ fn exhaustive_test_dec() {
 fn test_inc() {
     // HF false, ZF false
     let mut processor = LR35902::default();
-    processor.inc(10);
+    assert_eq!(processor.inc(10), 11);
     assert!(!processor.get_hf());
     assert!(!processor.get_nf());
     assert!(!processor.get_zf());
@@ -338,14 +344,14 @@ fn test_inc() {
 
     // HF true, ZF false
     let mut processor = LR35902::default();
-    processor.inc(31);
+    assert_eq!(processor.inc(31), 32);
     assert!(processor.get_hf());
     assert!(!processor.get_nf());
     assert!(!processor.get_zf());
 
     // HF true, ZF true
     let mut processor = LR35902::default();
-    processor.inc(255);
+    assert_eq!(processor.inc(255), 0);
     assert!(processor.get_hf());
     assert!(!processor.get_nf());
     assert!(processor.get_zf());
@@ -411,4 +417,79 @@ fn exhaustive_test_or() {
 
     // ZF true
     assert_eq!(outcomes[0b1], 1);
+}
+
+#[test]
+fn test_rl() {
+    // CF false, ZF false
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rl(10), 20);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF false, ZF true
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rl(0), 0);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    // CF true, ZF false
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rl(130), 4);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF true, ZF true
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rl(0b10000000), 0);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    let mut processor = LR35902::default();
+    processor.set_cf(true);
+    assert_eq!(processor.rl(0), 1);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    let mut processor = LR35902::default();
+    processor.set_cf(true);
+    assert_eq!(processor.rl(0b10000000), 1);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+}
+
+#[test]
+fn exhaustive_test_rl() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut processor = LR35902::default();
+        processor.rl(x);
+        let mut index = 0u32;
+        index.assign_bit(1, processor.get_cf());
+        index.assign_bit(0, processor.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 127);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 1);
 }

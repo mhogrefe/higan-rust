@@ -65,4 +65,14 @@ impl LR35902 {
         self.set_zf(target == 0);
         target
     }
+
+    pub fn rl(&mut self, mut target: u8) -> u8 {
+        let carry = target.get_bit(7);
+        target = target << 1 | if self.get_cf() { 1 } else { 0 };
+        self.set_cf(carry);
+        self.set_hf(false);
+        self.set_hf(false);
+        self.set_zf(target == 0);
+        target
+    }
 }
