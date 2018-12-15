@@ -86,13 +86,10 @@ pub struct Status {
     pub interrupt_enable_vblank: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CPU {
     pub processor: LR35902,
     pub bus: Bus,
-    pub status: Status,
-    pub wram: [u8; 32_768], //GB=8192, GBC=32768
-    pub hram: [u8; 128],
 }
 
 impl CPU {
@@ -116,32 +113,32 @@ impl CPU {
     pub fn raise(&mut self, id: Interrupt) {
         match id {
             Interrupt::Vblank => {
-                self.status.interrupt_request_vblank = true;
-                if self.status.interrupt_enable_vblank {
+                self.bus.cpu_io.status.interrupt_request_vblank = true;
+                if self.bus.cpu_io.status.interrupt_enable_vblank {
                     self.processor.r.halt = false;
                 }
             }
             Interrupt::Stat => {
-                self.status.interrupt_request_stat = true;
-                if self.status.interrupt_enable_stat {
+                self.bus.cpu_io.status.interrupt_request_stat = true;
+                if self.bus.cpu_io.status.interrupt_enable_stat {
                     self.processor.r.halt = false;
                 }
             }
             Interrupt::Timer => {
-                self.status.interrupt_request_timer = true;
-                if self.status.interrupt_enable_timer {
+                self.bus.cpu_io.status.interrupt_request_timer = true;
+                if self.bus.cpu_io.status.interrupt_enable_timer {
                     self.processor.r.halt = false;
                 }
             }
             Interrupt::Serial => {
-                self.status.interrupt_request_serial = true;
-                if self.status.interrupt_enable_serial {
+                self.bus.cpu_io.status.interrupt_request_serial = true;
+                if self.bus.cpu_io.status.interrupt_enable_serial {
                     self.processor.r.halt = false;
                 }
             }
             Interrupt::Joypad => {
-                self.status.interrupt_request_joypad = true;
-                if self.status.interrupt_enable_joypad {
+                self.bus.cpu_io.status.interrupt_request_joypad = true;
+                if self.bus.cpu_io.status.interrupt_enable_joypad {
                     self.processor.r.halt = false;
                     self.processor.r.stop = false;
                 }
@@ -151,32 +148,42 @@ impl CPU {
 
     pub fn interrupt_test(&mut self) {
         if !self.processor.r.ime {
-        } else if self.status.interrupt_request_vblank && self.status.interrupt_enable_vblank {
-            self.status.interrupt_request_vblank = false;
+        } else if self.bus.cpu_io.status.interrupt_request_vblank
+            && self.bus.cpu_io.status.interrupt_enable_vblank
+        {
+            self.bus.cpu_io.status.interrupt_request_vblank = false;
             self.interrupt(0x0040);
-        } else if self.status.interrupt_request_stat && self.status.interrupt_enable_stat {
-            self.status.interrupt_request_stat = false;
+        } else if self.bus.cpu_io.status.interrupt_request_stat
+            && self.bus.cpu_io.status.interrupt_enable_stat
+        {
+            self.bus.cpu_io.status.interrupt_request_stat = false;
             self.interrupt(0x0048);
-        } else if self.status.interrupt_request_timer && self.status.interrupt_enable_timer {
-            self.status.interrupt_request_timer = false;
+        } else if self.bus.cpu_io.status.interrupt_request_timer
+            && self.bus.cpu_io.status.interrupt_enable_timer
+        {
+            self.bus.cpu_io.status.interrupt_request_timer = false;
             self.interrupt(0x0050);
-        } else if self.status.interrupt_request_serial && self.status.interrupt_enable_serial {
-            self.status.interrupt_request_serial = false;
+        } else if self.bus.cpu_io.status.interrupt_request_serial
+            && self.bus.cpu_io.status.interrupt_enable_serial
+        {
+            self.bus.cpu_io.status.interrupt_request_serial = false;
             self.interrupt(0x0058);
-        } else if self.status.interrupt_request_joypad && self.status.interrupt_enable_joypad {
-            self.status.interrupt_request_joypad = false;
+        } else if self.bus.cpu_io.status.interrupt_request_joypad
+            && self.bus.cpu_io.status.interrupt_enable_joypad
+        {
+            self.bus.cpu_io.status.interrupt_request_joypad = false;
             self.interrupt(0x0060);
         }
     }
 
     pub fn stop(&mut self) -> bool {
-        if self.status.speed_switch {
-            self.status.speed_switch = false;
-            self.status.speed_double ^= true;
-            if !self.status.speed_double {
+        if self.bus.cpu_io.status.speed_switch {
+            self.bus.cpu_io.status.speed_switch = false;
+            self.bus.cpu_io.status.speed_double ^= true;
+            if !self.bus.cpu_io.status.speed_double {
                 self.set_frequency(4 * 1024 * 1024);
             }
-            if self.status.speed_double {
+            if self.bus.cpu_io.status.speed_double {
                 self.set_frequency(8 * 1024 * 1024);
             }
             true
