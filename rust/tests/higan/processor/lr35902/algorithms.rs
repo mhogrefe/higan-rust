@@ -274,3 +274,53 @@ fn exhaustive_test_cp() {
     // CF true, HF true, ZF true
     assert_eq!(outcomes[0b111], 0);
 }
+
+#[test]
+fn test_dec() {
+    // HF false, ZF false
+    let mut processor = LR35902::default();
+    processor.dec(10);
+    assert!(!processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // HF false, ZF true
+    let mut processor = LR35902::default();
+    processor.dec(1);
+    assert!(!processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(processor.get_zf());
+
+    // HF true, ZF false
+    let mut processor = LR35902::default();
+    processor.dec(32);
+    assert!(processor.get_hf());
+    assert!(processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // HF true, ZF true impossible
+}
+
+#[test]
+fn exhaustive_test_dec() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut processor = LR35902::default();
+        processor.dec(x);
+        let mut index = 0u32;
+        index.assign_bit(1, processor.get_hf());
+        index.assign_bit(0, processor.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // HF false, ZF false
+    assert_eq!(outcomes[0b00], 239);
+
+    // HF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // HF true, ZF false
+    assert_eq!(outcomes[0b10], 16);
+
+    // HF true, ZF true
+    assert_eq!(outcomes[0b11], 0);
+}
