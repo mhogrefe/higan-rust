@@ -372,6 +372,64 @@ void ExhaustiveTestDEC() {
   EXPECT_EQ("Algorithms DEC", outcomes[0b11], 0);
 }
 
+void TestINC() {
+  // HF false, ZF false
+  {
+    GameBoy::CPU processor;
+    processor.INC(10);
+    EXPECT_FALSE("Algorithms INC", processor.HF);
+    EXPECT_FALSE("Algorithms INC", processor.NF);
+    EXPECT_FALSE("Algorithms INC", processor.ZF);
+  }
+
+  // HF false, ZF true impossible
+
+  // HF true, ZF false
+  {
+    GameBoy::CPU processor;
+    processor.INC(31);
+    EXPECT_TRUE("Algorithms INC", processor.HF);
+    EXPECT_FALSE("Algorithms INC", processor.NF);
+    EXPECT_FALSE("Algorithms INC", processor.ZF);
+  }
+
+  // HF true, ZF true
+  {
+    GameBoy::CPU processor;
+    processor.INC(255);
+    EXPECT_TRUE("Algorithms INC", processor.HF);
+    EXPECT_FALSE("Algorithms INC", processor.NF);
+    EXPECT_TRUE("Algorithms INC", processor.ZF);
+  }
+}
+
+void ExhaustiveTestINC() {
+  int outcomes[4] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    GameBoy::CPU processor;
+    processor.INC(x);
+    int index = 0;
+    if (processor.HF) {
+      index |= 2;
+    }
+    if (processor.ZF) {
+      index |= 1;
+    }
+    outcomes[index] += 1;
+  }
+  // HF false, ZF false
+  EXPECT_EQ("Algorithms INC", outcomes[0b00], 240);
+
+  // HF false, ZF true
+  EXPECT_EQ("Algorithms INC", outcomes[0b01], 0);
+
+  // HF true, ZF false
+  EXPECT_EQ("Algorithms INC", outcomes[0b10], 15);
+
+  // HF true, ZF true
+  EXPECT_EQ("Algorithms INC", outcomes[0b11], 1);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -383,5 +441,7 @@ void TestAll() {
   ExhaustiveTestCP();
   TestDEC();
   ExhaustiveTestDEC();
+  TestINC();
+  ExhaustiveTestINC();
 }
 }

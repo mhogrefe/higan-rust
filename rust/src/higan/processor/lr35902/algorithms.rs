@@ -3,7 +3,7 @@
 use higan::emulator::types::{U3, U4};
 use higan::processor::lr35902::lr35902::LR35902;
 use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, WrappingSubAssign};
+use malachite_base::num::{BitAccess, WrappingAddAssign, WrappingSubAssign};
 
 impl LR35902 {
     pub fn add(&mut self, target: u8, source: u8, carry: bool) -> u8 {
@@ -47,6 +47,14 @@ impl LR35902 {
         target.wrapping_sub_assign(1);
         self.set_hf(U4::wrapping_from(target).0 == 0x0f);
         self.set_nf(true);
+        self.set_zf(target == 0);
+        target
+    }
+
+    pub fn inc(&mut self, mut target: u8) -> u8 {
+        target.wrapping_add_assign(1);
+        self.set_hf(U4::wrapping_from(target).0 == 0x00);
+        self.set_nf(false);
         self.set_zf(target == 0);
         target
     }
