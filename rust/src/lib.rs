@@ -17,6 +17,7 @@ pub mod higan {
         }
         pub mod cpu {
             pub mod cpu;
+            pub mod io;
             pub mod memory;
             pub mod timing;
         }

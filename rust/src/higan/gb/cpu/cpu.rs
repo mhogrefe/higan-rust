@@ -1,8 +1,9 @@
 //TODO test
 
 use higan::emulator::types::{U22, U3};
-use higan::gb::memory::memory::Bus;
+use higan::gb::memory::memory::{Bus, MMIOType};
 use higan::processor::lr35902::lr35902::LR35902;
+use malachite_base::num::One;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Interrupt {
@@ -86,18 +87,31 @@ pub struct Status {
     pub interrupt_enable_vblank: bool,
 }
 
-pub const CPU_WRAM_SIZE: usize = 32_768; //GB=8192, GBC=32768
-pub const CPU_HRAM_SIZE: usize = 128;
+const CPU_WRAM_SIZE: usize = 32_768; //GB=8192, GBC=32768
+const CPU_HRAM_SIZE: usize = 128;
 
 #[derive(Clone)]
 pub struct CPUIO {
+    pub model_is_super_game_boy: bool,
     pub status: Status,
     pub wram: [u8; CPU_WRAM_SIZE],
     pub hram: [u8; CPU_HRAM_SIZE],
 }
 
+impl Default for CPUIO {
+    fn default() -> CPUIO {
+        CPUIO {
+            model_is_super_game_boy: false,
+            status: Status::default(),
+            wram: [0; CPU_WRAM_SIZE],
+            hram: [0; CPU_HRAM_SIZE],
+        }
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct CPU {
+    pub model_is_game_boy_color: bool,
     pub processor: LR35902,
     pub bus: Bus,
 }
@@ -202,5 +216,57 @@ impl CPU {
         }
     }
 
-    //TODO CPU power
+    pub fn power(&mut self) {
+        //TODO create(Enter, 4 * 1024 * 1024);
+        //TODO LR35902::power();
+
+        for n in 0xc000..=0xdfff {
+            self.bus.mmio[n] = MMIOType::CPU; //WRAM
+        }
+        for n in 0xe000..=0xfdff {
+            self.bus.mmio[n] = MMIOType::CPU; //WRAM (mirror)
+        }
+        for n in 0xff80..=0xfffe {
+            self.bus.mmio[n] = MMIOType::CPU; //HRAM
+        }
+
+        self.bus.mmio[0xff00] = MMIOType::CPU; //JOYP
+        self.bus.mmio[0xff01] = MMIOType::CPU; //SB
+        self.bus.mmio[0xff02] = MMIOType::CPU; //SC
+        self.bus.mmio[0xff04] = MMIOType::CPU; //DIV
+        self.bus.mmio[0xff05] = MMIOType::CPU; //TIMA
+        self.bus.mmio[0xff06] = MMIOType::CPU; //TMA
+        self.bus.mmio[0xff07] = MMIOType::CPU; //TAC
+        self.bus.mmio[0xff0f] = MMIOType::CPU; //IF
+        self.bus.mmio[0xffff] = MMIOType::CPU; //IE
+
+        if self.model_is_game_boy_color {
+            self.bus.mmio[0xff4d] = MMIOType::CPU; //KEY1
+            self.bus.mmio[0xff51] = MMIOType::CPU; //HDMA1
+            self.bus.mmio[0xff52] = MMIOType::CPU; //HDMA2
+            self.bus.mmio[0xff53] = MMIOType::CPU; //HDMA3
+            self.bus.mmio[0xff54] = MMIOType::CPU; //HDMA4
+            self.bus.mmio[0xff55] = MMIOType::CPU; //HDMA5
+            self.bus.mmio[0xff56] = MMIOType::CPU; //RP
+            self.bus.mmio[0xff6c] = MMIOType::CPU; //???
+            self.bus.mmio[0xff70] = MMIOType::CPU; //SVBK
+            self.bus.mmio[0xff72] = MMIOType::CPU; //???
+            self.bus.mmio[0xff73] = MMIOType::CPU; //???
+            self.bus.mmio[0xff74] = MMIOType::CPU; //???
+            self.bus.mmio[0xff75] = MMIOType::CPU; //???
+            self.bus.mmio[0xff76] = MMIOType::CPU; //???
+            self.bus.mmio[0xff77] = MMIOType::CPU; //???
+        }
+
+        for n in self.bus.cpu_io.wram.iter_mut() {
+            *n = 0x00;
+        }
+        for n in self.bus.cpu_io.hram.iter_mut() {
+            *n = 0x00;
+        }
+
+        //TODO memory::fill(&status, sizeof(Status));
+        self.bus.cpu_io.status.dma_completed = true;
+        self.bus.cpu_io.status.wram_bank = U3::ONE;
+    }
 }

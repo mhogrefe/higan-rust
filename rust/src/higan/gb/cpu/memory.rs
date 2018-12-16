@@ -1,6 +1,7 @@
 //TODO test
 
 use higan::gb::cpu::cpu::CPU;
+use higan::gb::memory::memory::Bus;
 
 impl CPU {
     pub fn idle(&mut self) {
@@ -27,30 +28,33 @@ impl CPU {
         }
     }
 
-    //VRAM DMA source can only be ROM or RAM
+    pub fn read_debugger(&self, addr: u16) -> u8 {
+        self.bus.read(addr)
+    }
+}
+
+impl Bus {
+    // VRAM DMA source can only be ROM or RAM
     pub fn read_dma(&self, addr: u16) -> u8 {
         if addr < 0x8000 {
             //0000-7fff
-            self.bus.read(addr)
+            self.read(addr)
         } else if addr < 0xa000 {
             //8000-9fff
             0xff
         } else if addr < 0xe000 {
             //a000-dfff
-            self.bus.read(addr)
+            self.read(addr)
         } else {
             //e000-ffff
             0xff
         }
     }
 
-    //VRAM DMA target is always VRAM
-    pub fn write_dma(&mut self, mut addr: u16, data: u8) {
+    // VRAM DMA target is always VRAM
+    // returns whether to do DMA stuff
+    pub fn write_dma(&mut self, mut addr: u16, data: u8) -> bool {
         addr = 0x8000 | (addr & 0x1fff); //8000-9fff
-        self.bus.write(addr, data)
-    }
-
-    pub fn read_debugger(&self, addr: u16) -> u8 {
-        self.bus.read(addr)
+        self.write(addr, data)
     }
 }

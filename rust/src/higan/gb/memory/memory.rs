@@ -1,7 +1,7 @@
 //TODO test
 
 use higan::gb::apu::apu::APU;
-use higan::gb::cpu::cpu::{Status, CPUIO, CPU_HRAM_SIZE, CPU_WRAM_SIZE};
+use higan::gb::cpu::cpu::CPUIO;
 
 pub trait MMIO {
     fn read_io(&self, addr: u16) -> u8;
@@ -24,21 +24,12 @@ impl MMIO for Unmapped {
 pub enum MMIOType {
     Unmapped,
     APU,
+    CPU,
 }
 
 impl Default for MMIOType {
     fn default() -> MMIOType {
         MMIOType::Unmapped
-    }
-}
-
-impl Default for CPUIO {
-    fn default() -> CPUIO {
-        CPUIO {
-            status: Status::default(),
-            wram: [0; CPU_WRAM_SIZE],
-            hram: [0; CPU_HRAM_SIZE],
-        }
     }
 }
 
@@ -68,6 +59,7 @@ impl Bus {
         let data = match &self.mmio[addr as usize] {
             MMIOType::Unmapped => self.unmapped.read_io(addr),
             MMIOType::APU => self.apu.read_io(addr),
+            MMIOType::CPU => self.cpu_io.read_io(addr),
         };
 
         //TODO if(cheat) {
@@ -77,11 +69,14 @@ impl Bus {
         data
     }
 
-    pub fn write(&mut self, addr: u16, data: u8) {
+    // returns whether to do DMA stuff
+    pub fn write(&mut self, addr: u16, data: u8) -> bool {
         match self.mmio[addr as usize] {
             MMIOType::Unmapped => self.unmapped.write_io(addr, data),
             MMIOType::APU => self.apu.write_io(addr, data),
+            MMIOType::CPU => return self.cpu_io.write_io(addr, data),
         }
+        false
     }
 
     pub fn power(&mut self) {
