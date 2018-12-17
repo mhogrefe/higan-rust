@@ -100,7 +100,12 @@ impl CPU {
         /* TODO && ppu.status.ly < 144*/
         {
             for n in 0..16 {
-                //TODO self.write_dma(status.dmaTarget++, readDMA(status.dmaSource++ ));
+                let dma_target = self.bus.cpu_io.status.dma_target;
+                let dma_source = self.bus.cpu_io.status.dma_source;
+                let read_result = self.bus.read_dma(dma_source);
+                self.bus_write_dma(dma_target, read_result);
+                self.bus.cpu_io.status.dma_target.wrapping_add_assign(1);
+                self.bus.cpu_io.status.dma_source.wrapping_add_assign(1);
                 self.bus.cpu_io.status.dma_length.wrapping_sub_assign(1);
                 if (n & 1) != 0 {
                     let clocks = 1

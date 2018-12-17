@@ -120,6 +120,7 @@ impl CPU {
     //TODO this is probably a Thread thing
     pub fn interrupt(&self, _: u32) {}
 
+    //TODO
     pub fn set_frequency(&self, _: u32) {}
 
     pub fn enter(&mut self) {
