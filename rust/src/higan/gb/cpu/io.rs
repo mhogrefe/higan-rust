@@ -1,7 +1,6 @@
 use higan::emulator::types::U3;
-use higan::gb::cpu::cpu::{CPU, CPUIO};
+use higan::gb::cpu::cpu::CPUIO;
 use malachite_base::misc::WrappingFrom;
-use malachite_base::num::WrappingAddAssign;
 
 impl CPUIO {
     pub fn wram_address(&self, addr: u16) -> u32 {
@@ -272,26 +271,5 @@ impl CPUIO {
             _ => {}
         }
         false
-    }
-}
-
-impl CPU {
-    pub fn do_dma_stuff(&mut self) {
-        loop {
-            for _ in 0..16 {
-                let dma_target = self.bus.cpu_io.status.dma_target;
-                let dma_source = self.bus.cpu_io.status.dma_source;
-                let read_result = self.bus.read_dma(dma_source);
-                self.bus.write_dma(dma_target, read_result);
-                self.bus.cpu_io.status.dma_target.wrapping_add_assign(1);
-                self.bus.cpu_io.status.dma_source.wrapping_add_assign(1);
-            }
-            let speed_double = self.bus.cpu_io.status.speed_double;
-            self.step(8 << if speed_double { 1 } else { 0 });
-            self.bus.cpu_io.status.dma_length -= 16;
-            if self.bus.cpu_io.status.dma_length == 0 {
-                break;
-            }
-        }
     }
 }

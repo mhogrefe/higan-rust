@@ -18,7 +18,7 @@ impl CPU {
     pub fn write(&mut self, addr: u16, data: u8) {
         self.cycle_edge();
         self.step(4);
-        self.bus.write(addr, data);
+        self.bus_write(addr, data);
     }
 
     pub fn cycle_edge(&mut self) {
@@ -50,11 +50,12 @@ impl Bus {
             0xff
         }
     }
+}
 
+impl CPU {
     // VRAM DMA target is always VRAM
-    // returns whether to do DMA stuff
-    pub fn write_dma(&mut self, mut addr: u16, data: u8) -> bool {
+    pub fn bus_write_dma(&mut self, mut addr: u16, data: u8) {
         addr = 0x8000 | (addr & 0x1fff); //8000-9fff
-        self.write(addr, data)
+        self.bus_write(addr, data);
     }
 }

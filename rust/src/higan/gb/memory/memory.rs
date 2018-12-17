@@ -1,7 +1,8 @@
 //TODO test
 
 use higan::gb::apu::apu::APU;
-use higan::gb::cpu::cpu::CPUIO;
+use higan::gb::cpu::cpu::{CPU, CPUIO};
+use malachite_base::num::WrappingAddAssign;
 
 pub trait MMIO {
     fn read_io(&self, addr: u16) -> u8;
@@ -70,7 +71,7 @@ impl Bus {
     }
 
     // returns whether to do DMA stuff
-    pub fn write(&mut self, addr: u16, data: u8) -> bool {
+    fn write(&mut self, addr: u16, data: u8) -> bool {
         match self.mmio[addr as usize] {
             MMIOType::Unmapped => self.unmapped.write_io(addr, data),
             MMIOType::APU => self.apu.write_io(addr, data),
@@ -82,6 +83,29 @@ impl Bus {
     pub fn power(&mut self) {
         for mmio in self.mmio.iter_mut() {
             *mmio = MMIOType::Unmapped;
+        }
+    }
+}
+
+impl CPU {
+    pub fn bus_write(&mut self, addr: u16, data: u8) {
+        if self.bus.write(addr, data) {
+            loop {
+                for _ in 0..16 {
+                    let dma_target = self.bus.cpu_io.status.dma_target;
+                    let dma_source = self.bus.cpu_io.status.dma_source;
+                    let read_result = self.bus.read_dma(dma_source);
+                    self.bus_write_dma(dma_target, read_result);
+                    self.bus.cpu_io.status.dma_target.wrapping_add_assign(1);
+                    self.bus.cpu_io.status.dma_source.wrapping_add_assign(1);
+                }
+                let speed_double = self.bus.cpu_io.status.speed_double;
+                self.step(8 << if speed_double { 1 } else { 0 });
+                self.bus.cpu_io.status.dma_length -= 16;
+                if self.bus.cpu_io.status.dma_length == 0 {
+                    break;
+                }
+            }
         }
     }
 }
