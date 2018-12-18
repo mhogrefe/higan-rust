@@ -569,6 +569,67 @@ void ExhaustiveTestRL() {
   EXPECT_EQ("Algorithms RL", outcomes[0b11], 1);
 }
 
+void TestRLC() {
+  // CF false, ZF false
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RLC", processor.RL(10), (uint8)20);
+    EXPECT_FALSE("Algorithms RLC", processor.CF);
+    EXPECT_FALSE("Algorithms RLC", processor.HF);
+    EXPECT_FALSE("Algorithms RLC", processor.NF);
+    EXPECT_FALSE("Algorithms RLC", processor.ZF);
+  }
+
+  // CF false, ZF true
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RLC", processor.RL(0), (uint8)0);
+    EXPECT_FALSE("Algorithms RLC", processor.CF);
+    EXPECT_FALSE("Algorithms RLC", processor.HF);
+    EXPECT_FALSE("Algorithms RLC", processor.NF);
+    EXPECT_TRUE("Algorithms RLC", processor.ZF);
+  }
+
+  // CF true, ZF false
+  {
+    GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RLC", processor.RLC(130), (uint8)5);
+    EXPECT_TRUE("Algorithms RLC", processor.CF);
+    EXPECT_FALSE("Algorithms RLC", processor.HF);
+    EXPECT_FALSE("Algorithms RLC", processor.NF);
+    EXPECT_FALSE("Algorithms RLC", processor.ZF);
+  }
+
+  // CF true, ZF true impossible
+}
+
+void ExhaustiveTestRLC() {
+  int outcomes[4] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    GameBoy::CPU processor;
+    processor.RLC(x);
+    int index = 0;
+    if (processor.CF) {
+      index |= 2;
+    }
+    if (processor.ZF) {
+      index |= 1;
+    }
+    outcomes[index] += 1;
+  }
+  // CF false, ZF false
+  EXPECT_EQ("Algorithms RLC", outcomes[0b00], 127);
+
+  // CF false, ZF true
+  EXPECT_EQ("Algorithms RLC", outcomes[0b01], 1);
+
+  // CF true, ZF false
+  EXPECT_EQ("Algorithms RLC", outcomes[0b10], 128);
+
+  // CF true, ZF true
+  EXPECT_EQ("Algorithms RLC", outcomes[0b11], 0);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -586,5 +647,7 @@ void TestAll() {
   ExhaustiveTestOR();
   TestRL();
   ExhaustiveTestRL();
+  TestRLC();
+  ExhaustiveTestRLC();
 }
 }

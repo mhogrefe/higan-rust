@@ -493,3 +493,56 @@ fn exhaustive_test_rl() {
     // CF true, ZF true
     assert_eq!(outcomes[0b11], 1);
 }
+
+#[test]
+fn test_rlc() {
+    // CF false, ZF false
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rlc(10), 20);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF false, ZF true
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rlc(0), 0);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    // CF true, ZF false
+    let mut processor = LR35902::default();
+    assert_eq!(processor.rlc(130), 5);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF true, ZF true impossible
+}
+
+#[test]
+fn exhaustive_test_rlc() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut processor = LR35902::default();
+        processor.rlc(x);
+        let mut index = 0u32;
+        index.assign_bit(1, processor.get_cf());
+        index.assign_bit(0, processor.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 128);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 0);
+}

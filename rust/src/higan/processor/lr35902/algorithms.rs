@@ -71,8 +71,17 @@ impl LR35902 {
         target = target << 1 | if self.get_cf() { 1 } else { 0 };
         self.set_cf(carry);
         self.set_hf(false);
-        self.set_hf(false);
+        self.set_nf(false);
         self.set_zf(target == 0);
         target
+    }
+
+    pub fn rlc(&mut self, mut target: u8) -> u8 {
+        target = target << 1 | target >> 7;
+        self.set_cf(target.get_bit(0));
+        self.set_hf(false);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        return target;
     }
 }

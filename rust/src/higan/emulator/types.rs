@@ -7,9 +7,9 @@ use malachite_base::num::{
     BitAccess, BitScan, CeilingDivAssignNegMod, CeilingDivNegMod, CheckedAdd, CheckedDiv,
     CheckedMul, CheckedNeg, CheckedRem, CheckedShl, CheckedShr, CheckedSub, CountOnes, CountZeros,
     DivAssignMod, DivAssignRem, DivExact, DivExactAssign, DivMod, DivRem, DivRound, DivRoundAssign,
-    DivisibleBy, DivisibleByPowerOfTwo, Endian, EqModPowerOfTwo, HammingDistance, LeadingZeros,
-    Mod, ModAssign, ModPowerOfTwo, NegMod, NegModAssign, NotAssign, One, OrdAbs, OverflowingAdd,
-    OverflowingAddAssign, OverflowingDiv, OverflowingDivAssign, OverflowingMul,
+    DivisibleBy, DivisibleByPowerOfTwo, Endian, EqMod, EqModPowerOfTwo, HammingDistance,
+    LeadingZeros, Mod, ModAssign, ModPowerOfTwo, NegMod, NegModAssign, NotAssign, One, OrdAbs,
+    OverflowingAdd, OverflowingAddAssign, OverflowingDiv, OverflowingDivAssign, OverflowingMul,
     OverflowingMulAssign, OverflowingNeg, OverflowingNegAssign, OverflowingRem,
     OverflowingRemAssign, OverflowingShl, OverflowingShr, OverflowingSub, OverflowingSubAssign,
     Parity, PartialOrdAbs, Pow, PrimitiveInteger, RotateLeft, RotateRight, SaturatingAdd,
@@ -1140,6 +1140,13 @@ macro_rules! uint {
         impl DivRoundAssign for $u {
             #[inline]
             fn div_round_assign(&mut self, _other: $u, _rm: RoundingMode) {
+                unimplemented!();
+            }
+        }
+
+        impl EqMod<$u, $u> for $u {
+            #[inline]
+            fn eq_mod(self, _other: $u, _modulus: $u) -> bool {
                 unimplemented!();
             }
         }
