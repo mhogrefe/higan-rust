@@ -1,6 +1,4 @@
-use higan::emulator::types::{Bits, U11, U2, U3, U4};
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, One, WrappingAddAssign, WrappingSubAssign, Zero};
+use higan::emulator::types::{U11, U2, U3, U4};
 
 #[derive(Clone, Debug, Default)]
 pub struct Square2 {
@@ -32,7 +30,7 @@ impl Square2 {
             self.period -= 1;
             if self.period == 0 {
                 self.period = 2 * (2_048 - u32::from(self.frequency.0));
-                self.phase.wrapping_add_assign(U3(1));
+                self.phase.wrapping_add_assign(U3::new(1));
                 self.duty_output = match self.duty.0 {
                     0 => self.phase.0 == 6, //______-_
                     1 => self.phase.0 >= 6, //______--

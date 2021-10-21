@@ -1,6 +1,4 @@
-use higan::emulator::types::{Bits, U11, U2, U3, U4};
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, One, WrappingAddAssign, WrappingSubAssign, Zero};
+use higan::emulator::types::{U11, U2, U3, U4};
 
 #[derive(Clone, Debug, Default)]
 pub struct Square1 {

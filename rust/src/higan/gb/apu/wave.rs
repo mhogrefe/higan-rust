@@ -1,6 +1,4 @@
-use higan::emulator::types::{Bits, U11, U2, U3, U4, U5};
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, One, WrappingAddAssign, Zero};
+use higan::emulator::types::{U11, U2, U3, U4, U5};
 
 #[derive(Clone, Debug, Default)]
 pub struct Wave {
@@ -73,7 +71,7 @@ impl Wave {
             0xff1d => 0xff,
             //NR34
             0xff1e => 0x80 | (if self.counter { 1 } else { 0 }) << 6 | 0x3f,
-            0xff30...0xff3f => {
+            0xff30..=0xff3f => {
                 if self.enable {
                     if !model_is_game_boy_color && self.pattern_hold == 0 {
                         0xff
@@ -160,7 +158,7 @@ impl Wave {
                 }
             }
 
-            0xff30...0xff3f => {
+            0xff30..=0xff3f => {
                 if self.enable {
                     if !model_is_game_boy_color && self.pattern_hold == 0 {
                         return;

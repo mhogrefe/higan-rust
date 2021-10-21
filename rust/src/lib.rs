@@ -1,4 +1,4 @@
-#[macro_use]
+extern crate fixed_width;
 extern crate malachite_base;
 extern crate rand;
 

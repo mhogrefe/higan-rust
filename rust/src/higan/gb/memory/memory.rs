@@ -2,7 +2,6 @@
 
 use higan::gb::apu::apu::APU;
 use higan::gb::cpu::cpu::{CPU, CPUIO};
-use malachite_base::num::WrappingAddAssign;
 
 pub trait MMIO {
     fn read_io(&self, addr: u16) -> u8;

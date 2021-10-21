@@ -1,6 +1,6 @@
-use higan::emulator::types::{Bits, U15, U3, U4};
-use malachite_base::misc::{Max, WrappingFrom};
-use malachite_base::num::{BitAccess, One, WrappingSubAssign, Zero};
+use higan::emulator::types::{U15, U3, U4};
+use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::logic::traits::BitAccess;
 
 #[derive(Clone, Debug, Default)]
 pub struct Noise {
@@ -24,12 +24,12 @@ pub struct Noise {
 
 impl Noise {
     pub fn dac_enable(&self) -> bool {
-        self.envelope_volume.0 != 0 || self.envelope_direction
+        self.envelope_volume.x() != 0 || self.envelope_direction
     }
 
     pub fn get_period(&self) -> u32 {
         const TABLE: [u32; 8] = [4, 8, 16, 24, 32, 40, 48, 56];
-        TABLE[self.divisor.0 as usize] << self.frequency.0
+        TABLE[self.divisor.x() as usize] << self.frequency.x()
     }
 
     pub fn run(&mut self) {
@@ -37,7 +37,7 @@ impl Noise {
             self.period -= 1;
             if self.period == 0 {
                 self.period = self.get_period();
-                if self.frequency.0 < 14 {
+                if self.frequency.x() < 14 {
                     let bit = (self.lfsr ^ (self.lfsr >> 1)) & U15::ONE;
                     self.lfsr = (self.lfsr >> 1) ^ (bit << (if self.narrow { 6 } else { 14 }));
                 }

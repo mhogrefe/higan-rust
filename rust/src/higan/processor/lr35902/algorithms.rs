@@ -1,7 +1,5 @@
 use higan::emulator::types::{U3, U4};
 use higan::processor::lr35902::lr35902::LR35902;
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, WrappingAddAssign, WrappingSubAssign};
 
 impl LR35902 {
     pub fn add(&mut self, target: u8, source: u8, carry: bool) -> u8 {

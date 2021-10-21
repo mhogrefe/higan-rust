@@ -12,6 +12,7 @@ name = "higan-rust_main"
 path = "src/bin.rs"
 
 [dependencies]
+fixed-width = { path = "../../fixed-width" }
 malachite-base = { path = "../../malachite/malachite-base" }
 rand = "0.3.0"
 

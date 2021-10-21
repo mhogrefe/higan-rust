@@ -3,7 +3,8 @@
 use higan::emulator::types::{U12, U3};
 use higan::gb::apu::sequencer::Sequencer;
 use higan::gb::memory::memory::{Bus, MMIOType, MMIO};
-use malachite_base::num::{One, WrappingAddAssign, Zero};
+use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::arithmetic::traits::WrappingAddAssign;
 use nall::random::{LinearFeedbackShiftRegisterGenerator, RandomNumberGenerator};
 
 //TODO impl Thread
@@ -33,20 +34,20 @@ impl APU {
             //TODO superGameBoy->audioSample(samples, 2);
         }
 
-        if self.cycle.0 == 0 {
+        if self.cycle.x() == 0 {
             //512hz
-            if self.phase.0 == 0 || self.phase.0 == 2 || self.phase.0 == 4 || self.phase.0 == 6 {
+            if self.phase.x() == 0 || self.phase.x() == 2 || self.phase.x() == 4 || self.phase.x() == 6 {
                 //256hz
                 self.sequencer.square_1.clock_length();
                 self.sequencer.square_2.clock_length();
                 self.sequencer.wave.clock_length();
                 self.sequencer.noise.clock_length();
             }
-            if self.phase.0 == 2 || self.phase.0 == 6 {
+            if self.phase.x() == 2 || self.phase.x() == 6 {
                 //128hz
                 self.sequencer.square_1.clock_sweep();
             }
-            if self.phase.0 == 7 {
+            if self.phase.x() == 7 {
                 //64hz
                 self.sequencer.square_1.clock_envelope();
                 self.sequencer.square_2.clock_envelope();
@@ -91,12 +92,12 @@ impl Bus {
 impl MMIO for APU {
     fn read_io(&self, addr: u16) -> u8 {
         match addr {
-            0xff10...0xff14 => self.sequencer.square_1.read(addr),
-            0xff15...0xff19 => self.sequencer.square_2.read(addr),
-            0xff1a...0xff1e => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
-            0xff1f...0xff23 => self.sequencer.noise.read(addr),
-            0xff24...0xff26 => self.sequencer.read(addr),
-            0xff30...0xff3f => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
+            0xff10..=0xff14 => self.sequencer.square_1.read(addr),
+            0xff15..=0xff19 => self.sequencer.square_2.read(addr),
+            0xff1a..=0xff1e => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
+            0xff1f..=0xff23 => self.sequencer.noise.read(addr),
+            0xff24..=0xff26 => self.sequencer.read(addr),
+            0xff30..=0xff3f => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
             _ => 0xff,
         }
     }
@@ -131,19 +132,19 @@ impl MMIO for APU {
             }
         }
         match addr {
-            0xff10...0xff14 => self.sequencer.square_1.write(self.phase, addr, data),
-            0xff15...0xff19 => self.sequencer.square_2.write(self.phase, addr, data),
-            0xff1a...0xff1e => {
+            0xff10..=0xff14 => self.sequencer.square_1.write(self.phase, addr, data),
+            0xff15..=0xff19 => self.sequencer.square_2.write(self.phase, addr, data),
+            0xff1a..=0xff1e => {
                 self.sequencer
                     .wave
                     .write(self.model_is_game_boy_color, self.phase, addr, data)
             }
-            0xff1f...0xff23 => self.sequencer.noise.write(self.phase, addr, data),
-            0xff24...0xff26 => {
+            0xff1f..=0xff23 => self.sequencer.noise.write(self.phase, addr, data),
+            0xff24..=0xff26 => {
                 self.sequencer
                     .write(self.model_is_game_boy_color, &mut self.phase, addr, data)
             }
-            0xff30...0xff3f => {
+            0xff30..=0xff3f => {
                 self.sequencer
                     .wave
                     .write(self.model_is_game_boy_color, self.phase, addr, data)

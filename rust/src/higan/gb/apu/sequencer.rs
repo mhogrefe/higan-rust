@@ -1,10 +1,8 @@
-use higan::emulator::types::{Bits, U3};
+use higan::emulator::types::U3;
 use higan::gb::apu::noise::Noise;
 use higan::gb::apu::square_1::Square1;
 use higan::gb::apu::square_2::Square2;
 use higan::gb::apu::wave::Wave;
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::{BitAccess, One, WrappingAdd, WrappingAddAssign, Zero};
 
 #[derive(Clone, Debug, Default)]
 pub struct Channel {

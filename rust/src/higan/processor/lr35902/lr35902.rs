@@ -1,7 +1,5 @@
 //TODO test
 
-use malachite_base::num::{JoinHalves, SplitInHalf};
-
 #[derive(Clone, Debug, Default)]
 pub struct Register(u16);
 

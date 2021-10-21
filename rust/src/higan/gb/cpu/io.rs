@@ -1,6 +1,5 @@
 use higan::emulator::types::U3;
 use higan::gb::cpu::cpu::CPUIO;
-use malachite_base::misc::WrappingFrom;
 
 impl CPUIO {
     pub fn wram_address(&self, addr: u16) -> u32 {

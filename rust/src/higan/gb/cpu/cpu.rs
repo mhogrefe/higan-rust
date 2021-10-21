@@ -3,7 +3,6 @@
 use higan::emulator::types::{U22, U3};
 use higan::gb::memory::memory::{Bus, MMIOType};
 use higan::processor::lr35902::lr35902::LR35902;
-use malachite_base::num::One;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Interrupt {

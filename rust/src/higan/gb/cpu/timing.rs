@@ -2,7 +2,6 @@
 
 use higan::emulator::types::U22;
 use higan::gb::cpu::cpu::{Interrupt, CPU};
-use malachite_base::num::{One, WrappingAddAssign, WrappingSubAssign};
 
 //70224 clocks/frame
 //  456 clocks/scanline

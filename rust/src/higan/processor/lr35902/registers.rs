@@ -1,5 +1,4 @@
 use higan::processor::lr35902::lr35902::LR35902;
-use malachite_base::num::BitAccess;
 
 impl LR35902 {
     pub fn get_af(&self) -> u16 {
