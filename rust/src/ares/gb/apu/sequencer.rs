@@ -1,5 +1,6 @@
 use ares::emulator::types::U3;
 
+/// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
 pub struct Channel {
     pub left_enable: bool,

@@ -1,7 +1,5 @@
-use higan_rust::ares::emulator::types::{U11, U2, U3, U4, U5};
+use higan_rust::ares::emulator::types::{U11, U2, U4, U5};
 use higan_rust::ares::gb::apu::wave::Wave;
-use higan_rust::ares::gb::memory::memory::Bus;
-use higan_rust::ares::gb::system::system::{Model, System};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 
@@ -186,6 +184,7 @@ fn test_clock_length() {
     assert!(!wave.enable);
 }
 
+/*
 #[test]
 fn test_read() {
     let mut wave = Wave::default();
@@ -491,7 +490,7 @@ fn test_write() {
     assert_eq!(wave.pattern[2], 0);
     // clear phase
     bus.power_apu();
-}
+}*/
 
 #[test]
 fn test_power() {

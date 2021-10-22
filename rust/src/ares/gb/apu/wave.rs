@@ -2,8 +2,9 @@ use ares::emulator::types::{U11, U2, U3, U4, U5};
 use malachite_base::num::arithmetic::traits::WrappingAddAssign;
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
-use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
+use malachite_base::num::logic::traits::BitAccess;
 
+/// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
 pub struct Wave {
     pub enable: bool,
@@ -23,12 +24,14 @@ pub struct Wave {
 }
 
 impl Wave {
+    /// See cpp/ares/gb/apu/wave.cpp
     pub fn get_pattern(&self, offset: U5) -> U4 {
         U4::wrapping_from(
             self.pattern[(offset.x() >> 1) as usize] >> (if offset.get_bit(0) { 0 } else { 4 }),
         )
     }
 
+    /// See cpp/ares/gb/apu/wave.cpp
     pub fn run(&mut self) {
         if self.pattern_hold != 0 {
             self.pattern_hold -= 1;
@@ -52,6 +55,7 @@ impl Wave {
         self.output = i16::from(sample.x());
     }
 
+    /// See cpp/ares/gb/apu/wave.cpp
     pub fn clock_length(&mut self) {
         if self.counter {
             if self.length != 0 {
@@ -63,6 +67,39 @@ impl Wave {
         }
     }
 
+    /// See cpp/ares/gb/apu/wave.cpp
+    pub fn trigger(&mut self, model_is_game_boy_color: bool, apu_phase: U3) {
+        if !model_is_game_boy_color && self.pattern_hold != 0 {
+            //DMG,SGB trigger while channel is being read corrupts wave RAM
+            if (self.pattern_offset >> 1u32).x() <= 3 {
+                //if current pattern is with 0-3; only byte 0 is corrupted
+                let index = usize::from(u16::from(self.pattern_offset >> 1u32));
+                self.pattern[0] = self.pattern[index];
+            } else {
+                //if current pattern is within 4-15; pattern&~3 is copied to pattern[0-3]
+                let index = usize::from((self.pattern_offset >> 1u32).x() & !3);
+                self.pattern[0] = self.pattern[index + 0];
+                self.pattern[1] = self.pattern[index + 1];
+                self.pattern[2] = self.pattern[index + 2];
+                self.pattern[3] = self.pattern[index + 3];
+            }
+        }
+
+        self.enable = self.dac_enable;
+        self.period = 2048 - u32::from(self.frequency) + 2;
+        self.pattern_offset = U5::ZERO;
+        self.pattern_sample = U4::ZERO;
+        self.pattern_hold = 0;
+
+        if self.length != 0 {
+            self.length = 256;
+            if apu_phase.get_bit(0) && self.counter {
+                self.length -= 1;
+            };
+        }
+    }
+
+    /*
     pub fn read(&self, model_is_game_boy_color: bool, addr: u16) -> u8 {
         match addr {
             //NR30
@@ -174,8 +211,9 @@ impl Wave {
             }
             _ => {}
         }
-    }
+    }*/
 
+    /// See cpp/ares/gb/apu/wave.cpp
     pub fn power(&mut self, initialize_length: bool) {
         let old_length = self.length;
         let old_pattern = self.pattern.clone();
