@@ -96,6 +96,7 @@ impl CPU {
         }
     }
 
+    /*
     pub fn hblank(&mut self) {
         if self.bus.cpu_io.status.dma_mode && self.bus.cpu_io.status.dma_length != 0
         /* TODO && ppu.status.ly < 144*/
@@ -119,5 +120,5 @@ impl CPU {
                 }
             }
         }
-    }
+    }*/
 }

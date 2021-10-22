@@ -2,7 +2,6 @@
 
 use ares::gb::apu::apu::APU;
 use ares::gb::cpu::cpu::{CPU, CPUIO};
-use malachite_base::num::arithmetic::traits::WrappingAddAssign;
 
 pub trait MMIO {
     fn read_io(&self, addr: u16) -> u8;
@@ -56,6 +55,7 @@ impl Default for Bus {
 }
 
 impl Bus {
+    /*
     pub fn read(&self, addr: u16) -> u8 {
         let data = match &self.mmio[addr as usize] {
             MMIOType::Unmapped => self.unmapped.read_io(addr),
@@ -78,7 +78,7 @@ impl Bus {
             MMIOType::CPU => return self.cpu_io.write_io(addr, data),
         }
         false
-    }
+    }*/
 
     pub fn power(&mut self) {
         for mmio in self.mmio.iter_mut() {
@@ -88,6 +88,7 @@ impl Bus {
 }
 
 impl CPU {
+    /*
     pub fn bus_write(&mut self, addr: u16, data: u8) {
         if self.bus.write(addr, data) {
             loop {
@@ -107,5 +108,5 @@ impl CPU {
                 }
             }
         }
-    }
+    }*/
 }

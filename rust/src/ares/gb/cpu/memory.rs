@@ -1,7 +1,6 @@
 //TODO test
 
 use ares::gb::cpu::cpu::CPU;
-use ares::gb::memory::memory::Bus;
 
 impl CPU {
     pub fn idle(&mut self) {
@@ -9,17 +8,19 @@ impl CPU {
         self.step(4);
     }
 
+    /*
     pub fn read(&mut self, addr: u16) -> u8 {
         self.cycle_edge();
         self.step(4);
         self.bus.read(addr)
-    }
+    }*/
 
+    /*
     pub fn write(&mut self, addr: u16, data: u8) {
         self.cycle_edge();
         self.step(4);
         self.bus_write(addr, data);
-    }
+    }*/
 
     pub fn cycle_edge(&mut self) {
         if self.processor.r.ei {
@@ -28,11 +29,13 @@ impl CPU {
         }
     }
 
+    /*
     pub fn read_debugger(&self, addr: u16) -> u8 {
         self.bus.read(addr)
-    }
+    }*/
 }
 
+/*
 impl Bus {
     // VRAM DMA source can only be ROM or RAM
     pub fn read_dma(&self, addr: u16) -> u8 {
@@ -58,4 +61,4 @@ impl CPU {
         addr = 0x8000 | (addr & 0x1fff); //8000-9fff
         self.bus_write(addr, data);
     }
-}
+}*/

@@ -4,6 +4,7 @@ use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
 
+/// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
 pub struct Square1 {
     pub enable: bool,
