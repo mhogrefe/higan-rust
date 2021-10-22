@@ -5,6 +5,6 @@ namespace lr35902 {
 
 void TestLR35902();
 }
-}
-}
-}
+} // namespace processor
+} // namespace higan
+} // namespace test

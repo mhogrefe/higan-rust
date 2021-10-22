@@ -4,5 +4,5 @@ namespace processor {
 
 void TestProcessor();
 }
-}
-}
+} // namespace higan
+} // namespace test

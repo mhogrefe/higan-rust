@@ -650,4 +650,4 @@ void TestAll() {
   TestRLC();
   ExhaustiveTestRLC();
 }
-}
+} // namespace algorithms

@@ -6,6 +6,6 @@ namespace higan {
 namespace processor {
 
 void TestProcessor() { lr35902::TestLR35902(); }
-}
-}
-}
+} // namespace processor
+} // namespace higan
+} // namespace test

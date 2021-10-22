@@ -3,8 +3,8 @@
 use higan::emulator::types::{U12, U3};
 use higan::gb::apu::sequencer::Sequencer;
 use higan::gb::memory::memory::{Bus, MMIOType, MMIO};
-use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::arithmetic::traits::WrappingAddAssign;
+use malachite_base::num::basic::traits::{One, Zero};
 use nall::random::{LinearFeedbackShiftRegisterGenerator, RandomNumberGenerator};
 
 //TODO impl Thread
@@ -36,7 +36,11 @@ impl APU {
 
         if self.cycle.x() == 0 {
             //512hz
-            if self.phase.x() == 0 || self.phase.x() == 2 || self.phase.x() == 4 || self.phase.x() == 6 {
+            if self.phase.x() == 0
+                || self.phase.x() == 2
+                || self.phase.x() == 4
+                || self.phase.x() == 6
+            {
                 //256hz
                 self.sequencer.square_1.clock_length();
                 self.sequencer.square_2.clock_length();

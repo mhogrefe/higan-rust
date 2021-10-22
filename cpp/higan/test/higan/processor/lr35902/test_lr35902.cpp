@@ -42,7 +42,7 @@ void TestLR35902() {
   algorithms::TestAll();
   registers::TestAll();
 }
-}
-}
-}
-}
+} // namespace lr35902
+} // namespace processor
+} // namespace higan
+} // namespace test

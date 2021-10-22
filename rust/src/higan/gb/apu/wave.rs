@@ -1,4 +1,8 @@
 use higan::emulator::types::{U11, U2, U3, U4, U5};
+use malachite_base::num::arithmetic::traits::WrappingAddAssign;
+use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::conversion::traits::WrappingFrom;
+use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
 
 #[derive(Clone, Debug, Default)]
 pub struct Wave {
@@ -21,7 +25,7 @@ pub struct Wave {
 impl Wave {
     pub fn get_pattern(&self, offset: U5) -> U4 {
         U4::wrapping_from(
-            self.pattern[(offset.0 >> 1) as usize] >> (if offset.get_bit(0) { 0 } else { 4 }),
+            self.pattern[(offset.x() >> 1) as usize] >> (if offset.get_bit(0) { 0 } else { 4 }),
         )
     }
 
@@ -33,19 +37,19 @@ impl Wave {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = u32::from(2_048 - self.frequency.0);
+                self.period = u32::from(2_048 - self.frequency.x());
                 self.pattern_offset.wrapping_add_assign(U5::ONE);
                 self.pattern_sample = self.get_pattern(self.pattern_offset);
                 self.pattern_hold = 1;
             }
         }
 
-        const SHIFT: [u32; 4] = [4, 0, 1, 2]; //0%, 100%, 50%, 25%
-        let mut sample: U4 = self.pattern_sample >> SHIFT[self.volume.0 as usize];
+        const SHIFT: [u32; 4] = [4, 0, 1, 2]; // 0%, 100%, 50%, 25%
+        let mut sample: U4 = self.pattern_sample >> SHIFT[self.volume.x() as usize];
         if !self.enable {
             sample = U4::ZERO;
         }
-        self.output = i16::from(sample.0);
+        self.output = i16::from(sample.x());
     }
 
     pub fn clock_length(&mut self) {
@@ -66,7 +70,7 @@ impl Wave {
             //NR31
             0xff1b => 0xff,
             //NR32
-            0xff1c => 0x80 | self.volume.0 << 5 | 0x1f,
+            0xff1c => 0x80 | self.volume.x() << 5 | 0x1f,
             //NR33
             0xff1d => 0xff,
             //NR34
@@ -76,7 +80,7 @@ impl Wave {
                     if !model_is_game_boy_color && self.pattern_hold == 0 {
                         0xff
                     } else {
-                        self.pattern[(self.pattern_offset.0 >> 1) as usize]
+                        self.pattern[(self.pattern_offset.x() >> 1) as usize]
                     }
                 } else {
                     self.pattern[(addr & 15) as usize]
@@ -102,11 +106,11 @@ impl Wave {
             }
             //NR32
             0xff1c => {
-                self.volume = U2::wrapping_from(data.get_bits(6, 5));
+                self.volume = U2::wrapping_from(data.get_bits(5, 7));
             }
             //NR33
             0xff1d => {
-                self.frequency.set_bits(U11::wrapping_from(data), 7, 0);
+                self.frequency.assign_bits(0, 8, &U11::wrapping_from(data));
             }
             //NR34
             0xff1e => {
@@ -121,30 +125,30 @@ impl Wave {
 
                 self.counter = data.get_bit(6);
                 self.frequency
-                    .set_bits(U11::wrapping_from(data.get_bits(2, 0)), 10, 8);
+                    .assign_bits(8, 11, &U11::wrapping_from(data.get_bits(0, 3)));
 
                 if data.get_bit(7) {
                     if !model_is_game_boy_color && self.pattern_hold != 0 {
                         //DMG,SGB trigger while channel is being read corrupts wave RAM
-                        if (self.pattern_offset.0 >> 1) <= 3 {
+                        if (self.pattern_offset.x() >> 1) <= 3 {
                             //if current pattern is with 0-3; only byte 0 is corrupted
-                            self.pattern[0] = self.pattern[(self.pattern_offset.0 >> 1) as usize];
+                            self.pattern[0] = self.pattern[(self.pattern_offset.x() >> 1) as usize];
                         } else {
                             //if current pattern is within 4-15; pattern&~3 is copied to
                             // pattern[0-3]
                             self.pattern[0] =
-                                self.pattern[((self.pattern_offset.0 >> 1) & !3) as usize + 0];
+                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 0];
                             self.pattern[1] =
-                                self.pattern[((self.pattern_offset.0 >> 1) & !3) as usize + 1];
+                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 1];
                             self.pattern[2] =
-                                self.pattern[((self.pattern_offset.0 >> 1) & !3) as usize + 2];
+                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 2];
                             self.pattern[3] =
-                                self.pattern[((self.pattern_offset.0 >> 1) & !3) as usize + 3];
+                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 3];
                         }
                     }
 
                     self.enable = self.dac_enable;
-                    self.period = u32::from(1 * (2_048 - self.frequency.0));
+                    self.period = u32::from(1 * (2_048 - self.frequency.x()));
                     self.pattern_offset = U5::ZERO;
                     self.pattern_sample = U4::ZERO;
                     self.pattern_hold = 0;
@@ -163,7 +167,7 @@ impl Wave {
                     if !model_is_game_boy_color && self.pattern_hold == 0 {
                         return;
                     }
-                    self.pattern[(self.pattern_offset.0 >> 1) as usize] = data;
+                    self.pattern[(self.pattern_offset.x() >> 1) as usize] = data;
                 } else {
                     self.pattern[(addr & 15) as usize] = data;
                 }

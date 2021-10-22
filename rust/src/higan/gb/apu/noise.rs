@@ -1,6 +1,9 @@
 use higan::emulator::types::{U15, U3, U4};
+use malachite_base::comparison::traits::Max;
+use malachite_base::num::arithmetic::traits::WrappingSubAssign;
 use malachite_base::num::basic::traits::{One, Zero};
-use malachite_base::num::logic::traits::BitAccess;
+use malachite_base::num::conversion::traits::WrappingFrom;
+use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
 
 #[derive(Clone, Debug, Default)]
 pub struct Noise {
@@ -52,7 +55,7 @@ impl Noise {
         if !self.enable {
             sample = U4::ZERO;
         }
-        self.output = i16::from(sample.0);
+        self.output = i16::from(sample.x());
     }
 
     pub fn clock_length(&mut self) {
@@ -67,14 +70,14 @@ impl Noise {
     }
 
     pub fn clock_envelope(&mut self) {
-        if self.enable && self.envelope_frequency.0 != 0 {
+        if self.enable && self.envelope_frequency.x() != 0 {
             self.envelope_period.wrapping_sub_assign(U3::ONE);
-            if self.envelope_period.0 == 0 {
+            if self.envelope_period.x() == 0 {
                 self.envelope_period = self.envelope_frequency;
-                if !self.envelope_direction && self.volume.0 > 0 {
+                if !self.envelope_direction && self.volume.x() > 0 {
                     self.volume -= U4::ONE;
                 }
-                if self.envelope_direction && self.volume.0 < 15 {
+                if self.envelope_direction && self.volume.x() < 15 {
                     self.volume += U4::ONE;
                 }
             }
@@ -90,12 +93,14 @@ impl Noise {
             0xff20 => 0xff,
             //NR42
             0xff21 => {
-                self.envelope_volume.0 << 4
+                self.envelope_volume.x() << 4
                     | if self.envelope_direction { 1 } else { 0 } << 3
-                    | self.envelope_frequency.0
+                    | self.envelope_frequency.x()
             }
             //NR43
-            0xff22 => self.frequency.0 << 4 | if self.narrow { 1 } else { 0 } << 3 | self.divisor.0,
+            0xff22 => {
+                self.frequency.x() << 4 | if self.narrow { 1 } else { 0 } << 3 | self.divisor.x()
+            }
             //NR44
             0xff23 => 0x80 | if self.counter { 1 } else { 0 } << 6 | 0x3f,
             _ => 0xff,
@@ -110,18 +115,18 @@ impl Noise {
             }
             //NR42
             0xff21 => {
-                self.envelope_volume = U4::wrapping_from(data.get_bits(7, 4));
+                self.envelope_volume = U4::wrapping_from(data.get_bits(4, 8));
                 self.envelope_direction = data.get_bit(3);
-                self.envelope_frequency = U3::wrapping_from(data.get_bits(2, 0));
+                self.envelope_frequency = U3::wrapping_from(data.get_bits(0, 3));
                 if !self.dac_enable() {
                     self.enable = false;
                 }
             }
             //NR43
             0xff22 => {
-                self.frequency = U4::wrapping_from(data.get_bits(7, 4));
+                self.frequency = U4::wrapping_from(data.get_bits(4, 8));
                 self.narrow = data.get_bit(3);
-                self.divisor = U3::wrapping_from(data.get_bits(2, 0));
+                self.divisor = U3::wrapping_from(data.get_bits(0, 3));
                 self.period = self.get_period();
             }
             //NR44

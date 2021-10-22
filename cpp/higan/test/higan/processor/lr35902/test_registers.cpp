@@ -170,4 +170,4 @@ void TestAll() {
   TestCF();
   TestHF();
 }
-}
+} // namespace registers

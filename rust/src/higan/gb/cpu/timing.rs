@@ -2,6 +2,8 @@
 
 use higan::emulator::types::U22;
 use higan::gb::cpu::cpu::{Interrupt, CPU};
+use malachite_base::num::arithmetic::traits::{WrappingAddAssign, WrappingSubAssign};
+use malachite_base::num::basic::traits::One;
 
 //70224 clocks/frame
 //  456 clocks/scanline
@@ -11,7 +13,7 @@ impl CPU {
     pub fn step(&mut self, clocks: u32) {
         for _ in 0..clocks {
             self.bus.cpu_io.status.clock.wrapping_add_assign(U22::ONE);
-            if self.bus.cpu_io.status.clock.0 == 0 {
+            if self.bus.cpu_io.status.clock.x() == 0 {
                 //TODO cartridge.second();
             }
 

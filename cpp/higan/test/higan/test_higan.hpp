@@ -5,4 +5,4 @@ namespace higan {
 
 void TestHigan();
 }
-}
+} // namespace test

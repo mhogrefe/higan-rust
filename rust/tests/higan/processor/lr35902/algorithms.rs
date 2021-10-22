@@ -1,7 +1,7 @@
 use higan_rust::higan::emulator::types::U3;
 use higan_rust::higan::processor::lr35902::lr35902::LR35902;
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::BitAccess;
+use malachite_base::num::conversion::traits::WrappingFrom;
+use malachite_base::num::logic::traits::BitAccess;
 
 #[test]
 fn test_add() {

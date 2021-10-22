@@ -3,6 +3,10 @@ use higan::gb::apu::noise::Noise;
 use higan::gb::apu::square_1::Square1;
 use higan::gb::apu::square_2::Square2;
 use higan::gb::apu::wave::Wave;
+use malachite_base::num::arithmetic::traits::{WrappingAdd, WrappingAddAssign};
+use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::conversion::traits::WrappingFrom;
+use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
 
 #[derive(Clone, Debug, Default)]
 pub struct Channel {
@@ -66,7 +70,7 @@ impl Sequencer {
             sample.wrapping_add_assign(i32::from(self.noise.output));
         }
         sample = sample.wrapping_mul(512).wrapping_sub(16_384);
-        sample = sample.wrapping_mul(i32::from(self.left_volume.wrapping_add(U3::ONE).0)) / 8;
+        sample = sample.wrapping_mul(i32::from(self.left_volume.wrapping_add(U3::ONE).x())) / 8;
         self.left = i16::wrapping_from(sample);
 
         sample = 0;
@@ -83,7 +87,7 @@ impl Sequencer {
             sample.wrapping_add_assign(i32::from(self.noise.output));
         }
         sample = sample.wrapping_mul(512).wrapping_sub(16_384);
-        sample = sample.wrapping_mul(i32::from(self.right_volume.wrapping_add(U3::ONE).0)) / 8;
+        sample = sample.wrapping_mul(i32::from(self.right_volume.wrapping_add(U3::ONE).x())) / 8;
         self.right = i16::wrapping_from(sample);
 
         //reduce audio volume
@@ -97,9 +101,9 @@ impl Sequencer {
             //NR50
             0xff24 => {
                 (if self.left_enable { 1 } else { 0 }) << 7
-                    | self.left_volume.0 << 4
+                    | self.left_volume.x() << 4
                     | (if self.right_enable { 1 } else { 0 }) << 3
-                    | self.right_volume.0
+                    | self.right_volume.x()
             }
             //NR51
             0xff25 => {
@@ -156,9 +160,9 @@ impl Sequencer {
             //NR50
             0xff24 => {
                 self.left_enable = data.get_bit(7);
-                self.left_volume = U3::wrapping_from(data.get_bits(6, 4));
+                self.left_volume = U3::wrapping_from(data.get_bits(4, 7));
                 self.right_enable = data.get_bit(3);
-                self.right_volume = U3::wrapping_from(data.get_bits(2, 0));
+                self.right_volume = U3::wrapping_from(data.get_bits(0, 3));
             }
             //NR51
             0xff25 => {

@@ -6,6 +6,6 @@ namespace higan {
 namespace gb {
 
 void TestGB() { apu::TestAPU(); }
-}
-}
-}
+} // namespace gb
+} // namespace higan
+} // namespace test

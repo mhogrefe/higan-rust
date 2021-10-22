@@ -197,4 +197,4 @@ void TestAll() {
   TestWrite();
   TestPower();
 }
-}
+} // namespace sequencer

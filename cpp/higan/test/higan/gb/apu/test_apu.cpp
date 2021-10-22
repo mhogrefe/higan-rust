@@ -24,7 +24,7 @@ void TestAPU() {
   square2::TestAll();
   wave::TestAll();
 }
-}
-}
-}
-}
+} // namespace apu
+} // namespace gb
+} // namespace higan
+} // namespace test

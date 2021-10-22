@@ -90,8 +90,9 @@ void TestRun() {
   square2.enable = true;
   square2.volume = 10;
   square2.period = 1;
-  RunHelper(&square2, 32, "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 0, 0, 0, 0, "
-                          "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 0, 0, 0, 0]");
+  RunHelper(&square2, 32,
+            "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 0, 0, 0, 0, "
+            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 0, 0, 0, 0]");
 
   square2.power(true);
   square2.frequency = 2047;
@@ -99,9 +100,10 @@ void TestRun() {
   square2.enable = true;
   square2.volume = 10;
   square2.period = 1;
-  RunHelper(&square2, 32, "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, "
-                          "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, "
-                          "0]");
+  RunHelper(&square2, 32,
+            "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, "
+            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, "
+            "0]");
 
   square2.power(true);
   square2.frequency = 2047;
@@ -109,9 +111,10 @@ void TestRun() {
   square2.enable = true;
   square2.volume = 10;
   square2.period = 1;
-  RunHelper(&square2, 32, "[0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, "
-                          "0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, "
-                          "10, 0, 0]");
+  RunHelper(&square2, 32,
+            "[0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, "
+            "0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, "
+            "10, 0, 0]");
 
   square2.power(true);
   square2.frequency = 2047;
@@ -119,9 +122,10 @@ void TestRun() {
   square2.enable = true;
   square2.volume = 10;
   square2.period = 1;
-  RunHelper(&square2, 32, "[10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, "
-                          "0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, "
-                          "0, 0, 0, 0, 10, 10]");
+  RunHelper(&square2, 32,
+            "[10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, "
+            "0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, "
+            "0, 0, 0, 0, 10, 10]");
 
   square2.power(true);
   square2.frequency = 2046;
@@ -129,8 +133,9 @@ void TestRun() {
   square2.enable = true;
   square2.volume = 13;
   square2.period = 1;
-  RunHelper(&square2, 32, "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "
-                          "0, 0, 0, 13, 13, 13, 13, 0, 0, 0, 0, 0, 0, 0, 0]");
+  RunHelper(&square2, 32,
+            "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "
+            "0, 0, 0, 13, 13, 13, 13, 0, 0, 0, 0, 0, 0, 0, 0]");
 }
 
 void TestClockLength() {
@@ -417,4 +422,4 @@ void TestAll() {
   TestWrite();
   TestPower();
 }
-}
+} // namespace square2

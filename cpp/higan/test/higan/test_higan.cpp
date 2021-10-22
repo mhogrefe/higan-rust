@@ -15,5 +15,5 @@ void TestHigan() {
   gb::TestGB();
   processor::TestProcessor();
 }
-}
-}
+} // namespace higan
+} // namespace test

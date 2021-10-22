@@ -2,8 +2,8 @@ use higan_rust::higan::emulator::types::U3;
 use higan_rust::higan::gb::apu::sequencer::Sequencer;
 use higan_rust::higan::gb::memory::memory::Bus;
 use higan_rust::higan::gb::system::system::{Model, System};
-use malachite_base::misc::WrappingFrom;
-use malachite_base::num::Zero;
+use malachite_base::num::basic::traits::Zero;
+use malachite_base::num::conversion::traits::WrappingFrom;
 
 #[test]
 fn test_run() {

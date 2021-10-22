@@ -4,4 +4,4 @@
 namespace test {
 
 void TestAll() { higan::TestHigan(); }
-}
+} // namespace test

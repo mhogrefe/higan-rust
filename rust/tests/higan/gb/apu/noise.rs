@@ -1,8 +1,9 @@
 use higan_rust::higan::emulator::types::{U15, U3, U4};
 use higan_rust::higan::gb::apu::noise::Noise;
 use higan_rust::higan::gb::memory::memory::Bus;
-use malachite_base::misc::{Max, WrappingFrom};
-use malachite_base::num::{One, Zero};
+use malachite_base::comparison::traits::Max;
+use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::conversion::traits::WrappingFrom;
 
 #[test]
 fn test_dac_enable() {

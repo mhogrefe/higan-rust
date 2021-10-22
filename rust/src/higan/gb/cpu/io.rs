@@ -1,5 +1,6 @@
 use higan::emulator::types::U3;
 use higan::gb::cpu::cpu::CPUIO;
+use malachite_base::num::conversion::traits::WrappingFrom;
 
 impl CPUIO {
     pub fn wram_address(&self, addr: u16) -> u32 {
@@ -8,7 +9,7 @@ impl CPUIO {
             addr
         } else {
             let bank = u32::from(
-                self.status.wram_bank.0 + if self.status.wram_bank.0 == 0 { 1 } else { 0 },
+                self.status.wram_bank.x() + if self.status.wram_bank.x() == 0 { 1 } else { 0 },
             );
             (bank * 0x1000) + (addr & 0x0fff)
         }
@@ -98,7 +99,7 @@ impl CPUIO {
             0xff6c => 0xfe | self.status.ff6c,
 
             //SVBK
-            0xff70 => self.status.wram_bank.0,
+            0xff70 => self.status.wram_bank.x(),
 
             //???
             0xff72 => self.status.ff72,

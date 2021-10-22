@@ -72,9 +72,10 @@ void TestRun() {
   noise.divisor = 0;
   noise.frequency = 0;
   noise.narrow = false;
-  RunHelper(&noise, 32, "[0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, "
-                        "0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, 0, 0, "
-                        "0]");
+  RunHelper(&noise, 32,
+            "[0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, "
+            "0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, 0, 0, "
+            "0]");
 
   noise.power(true);
   noise.period = 1;
@@ -84,9 +85,10 @@ void TestRun() {
   noise.divisor = 0;
   noise.frequency = 0;
   noise.narrow = true;
-  RunHelper(&noise, 32, "[0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, "
-                        "0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, "
-                        "10, 10]");
+  RunHelper(&noise, 32,
+            "[0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, "
+            "0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, "
+            "10, 10]");
 
   noise.power(true);
   noise.period = 1;
@@ -96,9 +98,10 @@ void TestRun() {
   noise.divisor = 1;
   noise.frequency = 0;
   noise.narrow = true;
-  RunHelper(&noise, 32, "[0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, "
-                        "10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0, "
-                        "0, 0]");
+  RunHelper(&noise, 32,
+            "[0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10, 10, "
+            "10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0, "
+            "0, 0]");
 }
 
 void TestClockLength() {
@@ -383,4 +386,4 @@ void TestAll() {
   TestWrite();
   TestPower();
 }
-}
+} // namespace noise
