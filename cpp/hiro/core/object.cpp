@@ -26,7 +26,7 @@ auto mObject::destruct() -> void {
 
 //
 
-//used to test if returned items "exist" from eg Window::layout(), ListView::selected(), etc.
+//used to test if returned items "exist" from eg Window::sizable(), ListView::selected(), etc.
 mObject::operator bool() const {
   return parent() || !abstract();
 }
@@ -56,7 +56,7 @@ auto mObject::abstract() const -> bool {
   return true;
 }
 
-auto mObject::adjustOffset(signed displacement) -> type& {
+auto mObject::adjustOffset(s32 displacement) -> type& {
   state.offset += displacement;
   return *this;
 }
@@ -68,8 +68,7 @@ auto mObject::enabled(bool recursive) const -> bool {
 }
 
 auto mObject::focused() const -> bool {
-  if(signal(focused)) return true;
-  return false;
+  return signal(focused);
 }
 
 auto mObject::font(bool recursive) const -> Font {
@@ -82,7 +81,7 @@ auto mObject::group() const -> Group {
   return {};
 }
 
-auto mObject::offset() const -> signed {
+auto mObject::offset() const -> s32 {
   return state.offset;
 }
 
@@ -125,16 +124,6 @@ auto mObject::parentIconView(bool recursive) const -> mIconView* {
   if(auto iconView = dynamic_cast<mIconView*>(parent())) return iconView;
   if(recursive) {
     if(auto object = parent()) return object->parentIconView(true);
-  }
-  return nullptr;
-}
-#endif
-
-#if defined(Hiro_Layout)
-auto mObject::parentLayout(bool recursive) const -> mLayout* {
-  if(auto layout = dynamic_cast<mLayout*>(parent())) return layout;
-  if(recursive) {
-    if(auto object = parent()) return object->parentLayout(true);
   }
   return nullptr;
 }
@@ -211,16 +200,6 @@ auto mObject::parentTableView(bool recursive) const -> mTableView* {
 #endif
 
 #if defined(Hiro_TableView)
-auto mObject::parentTableViewHeader(bool recursive) const -> mTableViewHeader* {
-  if(auto tableViewHeader = dynamic_cast<mTableViewHeader*>(parent())) return tableViewHeader;
-  if(recursive) {
-    if(auto object = parent()) return object->parentTableViewHeader(true);
-  }
-  return nullptr;
-}
-#endif
-
-#if defined(Hiro_TableView)
 auto mObject::parentTableViewItem(bool recursive) const -> mTableViewItem* {
   if(auto tableViewItem = dynamic_cast<mTableViewItem*>(parent())) return tableViewItem;
   if(recursive) {
@@ -270,13 +249,6 @@ auto mObject::parentWindow(bool recursive) const -> mWindow* {
 }
 #endif
 
-auto mObject::property(const string& name) const -> string {
-  if(auto property = state.properties.find({name})) {
-    return property->value();
-  }
-  return {};
-}
-
 auto mObject::remove() -> type& {
   signal(remove);
   return *this;
@@ -308,21 +280,11 @@ auto mObject::setGroup(sGroup group) -> type& {
   return *this;
 }
 
-auto mObject::setParent(mObject* parent, signed offset) -> type& {
+auto mObject::setParent(mObject* parent, s32 offset) -> type& {
   destruct();
   state.parent = parent;
   state.offset = offset;
   if(!abstract()) construct();
-  return *this;
-}
-
-auto mObject::setProperty(const string& name, const string& value) -> type& {
-  if(auto property = state.properties.find(name)) {
-    if(value) property->setValue(value);
-    else state.properties.remove(*property);
-  } else {
-    if(value) state.properties.insert({name, value});
-  }
   return *this;
 }
 

@@ -6,67 +6,59 @@
   #include <AL/alc.h>
 #endif
 
-struct AudioOpenAL : Audio {
-  AudioOpenAL() { initialize(); }
+struct AudioOpenAL : AudioDriver {
+  AudioOpenAL& self = *this;
+  AudioOpenAL(Audio& super) : AudioDriver(super) {}
   ~AudioOpenAL() { terminate(); }
 
-  auto availableDevices() -> string_vector {
-    string_vector devices;
-    for(auto& device : queryDevices()) devices.append(device);
+  auto create() -> bool override {
+    super.setDevice(hasDevices().first());
+    super.setChannels(2);
+    super.setFrequency(48000);
+    super.setLatency(20);
+    return initialize();
+  }
+
+  auto driver() -> string override { return "OpenAL"; }
+  auto ready() -> bool override { return _ready; }
+
+  auto hasBlocking() -> bool override { return true; }
+
+  auto hasDevices() -> vector<string> override {
+    vector<string> devices;
+    if(const char* list = alcGetString(nullptr, ALC_DEVICE_SPECIFIER)) {
+      while(list && *list) {
+        devices.append(list);
+        list += strlen(list) + 1;
+      }
+    }
     return devices;
   }
 
-  auto availableFrequencies() -> vector<double> {
-    return {44100.0, 48000.0, 96000.0};
-  }
-
-  auto availableLatencies() -> vector<uint> {
-    return {20, 40, 60, 80, 100};
-  }
-
-  auto availableChannels() -> vector<uint> {
+  auto hasChannels() -> vector<u32> override {
     return {2};
   }
 
-  auto ready() -> bool { return _ready; }
-  auto device() -> string { return _device; }
-  auto blocking() -> bool { return _blocking; }
-  auto channels() -> uint { return _channels; }
-  auto frequency() -> double { return (double)_frequency; }
-  auto latency() -> uint { return _latency; }
-
-  auto setDevice(string device) -> bool {
-    if(_device == device) return true;
-    _device = device;
-    return initialize();
+  auto hasFrequencies() -> vector<u32> override {
+    return {44100, 48000, 96000};
   }
 
-  auto setBlocking(bool blocking) -> bool {
-    if(_blocking == blocking) return true;
-    _blocking = blocking;
-    return true;
+  auto hasLatencies() -> vector<u32> override {
+    return {20, 40, 60, 80, 100};
   }
 
-  auto setFrequency(double frequency) -> bool {
-    if(_frequency == (uint)frequency) return true;
-    _frequency = (uint)frequency;
-    return initialize();
-  }
+  auto setDevice(string device) -> bool override { return initialize(); }
+  auto setBlocking(bool blocking) -> bool override { return true; }
+  auto setFrequency(uint frequency) -> bool override { return initialize(); }
+  auto setLatency(u32 latency) -> bool override { return updateLatency(); }
 
-  auto setLatency(uint latency) -> bool {
-    if(_latency == latency) return true;
-    _latency = latency;
-    if(_ready) updateLatency();
-    return true;
-  }
-
-  auto output(const double samples[]) -> void {
-    _buffer[_bufferLength]  = (uint16_t)sclamp<16>(samples[0] * 32767.0) <<  0;
-    _buffer[_bufferLength] |= (uint16_t)sclamp<16>(samples[1] * 32767.0) << 16;
+  auto output(const f64 samples[]) -> void override {
+    _buffer[_bufferLength]  = (u16)sclamp<16>(samples[0] * 32767.0) <<  0;
+    _buffer[_bufferLength] |= (u16)sclamp<16>(samples[1] * 32767.0) << 16;
     if(++_bufferLength < _bufferSize) return;
 
     ALuint alBuffer = 0;
-    int processed = 0;
+    s32 processed = 0;
     while(true) {
       alGetSourcei(_source, AL_BUFFERS_PROCESSED, &processed);
       while(processed--) {
@@ -75,12 +67,12 @@ struct AudioOpenAL : Audio {
         _queueLength--;
       }
       //wait for buffer playback to catch up to sample generation if not synchronizing
-      if(!_blocking || _queueLength < 3) break;
+      if(!self.blocking || _queueLength < 3) break;
     }
 
     if(_queueLength < 3) {
       alGenBuffers(1, &alBuffer);
-      alBufferData(alBuffer, _format, _buffer, _bufferSize * 4, _frequency);
+      alBufferData(alBuffer, _format, _buffer, _bufferSize * 4, self.frequency);
       alSourceQueueBuffers(_source, 1, &alBuffer);
       _queueLength++;
     }
@@ -95,12 +87,12 @@ private:
   auto initialize() -> bool {
     terminate();
 
-    if(!queryDevices().find(_device)) _device = "";
+    if(!hasDevices().find(self.device)) self.device = hasDevices().first();
     _queueLength = 0;
     updateLatency();
 
     bool success = false;
-    if(_openAL = alcOpenDevice(_device)) {
+    if(_openAL = alcOpenDevice(self.device)) {
       if(_context = alcCreateContext(_openAL, nullptr)) {
         alcMakeContextCurrent(_context);
         alGenSources(1, &_source);
@@ -130,11 +122,11 @@ private:
     _ready = false;
 
     if(alIsSource(_source) == AL_TRUE) {
-      int playing = 0;
+      s32 playing = 0;
       alGetSourcei(_source, AL_SOURCE_STATE, &playing);
       if(playing == AL_PLAYING) {
         alSourceStop(_source);
-        int queued = 0;
+        s32 queued = 0;
         alGetSourcei(_source, AL_BUFFERS_QUEUED, &queued);
         while(queued--) {
           ALuint alBuffer = 0;
@@ -163,40 +155,22 @@ private:
     _buffer = nullptr;
   }
 
-  auto queryDevices() -> string_vector {
-    string_vector result;
-
-    const char* list = alcGetString(nullptr, ALC_DEVICE_SPECIFIER);
-    if(!list) return result;
-
-    while(list && *list) {
-      result.append(list);
-      list += strlen(list) + 1;
-    }
-
-    return result;
-  }
-
-  auto updateLatency() -> void {
+  auto updateLatency() -> bool {
     delete[] _buffer;
-    _bufferSize = _frequency * _latency / 1000.0 + 0.5;
+    _bufferSize = self.frequency * self.latency / 1000.0 + 0.5;
     _buffer = new uint32_t[_bufferSize]();
+    return true;
   }
 
   bool _ready = false;
-  string _device;
-  bool _blocking = true;
-  uint _channels = 2;
-  uint _frequency = 48000;
-  uint _latency = 20;
 
   ALCdevice* _openAL = nullptr;
   ALCcontext* _context = nullptr;
   ALuint _source = 0;
   ALenum _format = AL_FORMAT_STEREO16;
-  uint _queueLength = 0;
+  u32 _queueLength = 0;
 
-  uint32_t* _buffer = nullptr;
-  uint _bufferLength = 0;
-  uint _bufferSize = 0;
+  u32* _buffer = nullptr;
+  u32 _bufferLength = 0;
+  u32 _bufferSize = 0;
 };

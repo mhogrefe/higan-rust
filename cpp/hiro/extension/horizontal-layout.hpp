@@ -1,37 +1,81 @@
 #if defined(Hiro_HorizontalLayout)
 
-struct mHorizontalLayout : mLayout {
+struct HorizontalLayout;
+struct HorizontalLayoutCell;
+
+struct mHorizontalLayout;
+struct mHorizontalLayoutCell;
+
+using sHorizontalLayout = shared_pointer<mHorizontalLayout>;
+using sHorizontalLayoutCell = shared_pointer<mHorizontalLayoutCell>;
+
+struct mHorizontalLayout : mSizable {
   using type = mHorizontalLayout;
-  using mLayout::append;
-  using mLayout::remove;
+  using mSizable::remove;
 
-  auto append(sSizable sizable, Size size, float spacing = 5) -> type&;
+  auto alignment() const -> maybe<f32>;
+  auto append(sSizable sizable, Size size, f32 spacing = 5_sy) -> type&;
+  auto cell(u32 position) const -> HorizontalLayoutCell;
+  auto cell(sSizable sizable) const -> HorizontalLayoutCell;
+  auto cells() const -> vector<HorizontalLayoutCell>;
+  auto cellCount() const -> u32;
   auto minimumSize() const -> Size override;
-  auto modify(sSizable sizable, Size size, float spacing = 5) -> type&;
-  auto remove(sSizable sizable) -> type& override;
+  auto padding() const -> Geometry;
+  auto remove(sSizable sizable) -> type&;
+  auto remove(sHorizontalLayoutCell cell) -> type&;
   auto reset() -> type& override;
-  auto setAlignment(float alignment = 0.5) -> type&;
-  auto setEnabled(bool enabled = true) -> type& override;
-  auto setFont(const Font& font = {}) -> type& override;
+  auto resize() -> type&;
+  auto setAlignment(maybe<f32> alignment) -> type&;
+  auto setEnabled(bool enabled) -> type& override;
+  auto setFont(const Font& font) -> type& override;
   auto setGeometry(Geometry geometry) -> type& override;
-  auto setMargin(float margin = 0) -> type&;
-  auto setSpacing(float spacing = 5) -> type&;
-  auto setVisible(bool visible = true) -> type&;
+  auto setPadding(Geometry padding) -> type&;
+  auto setParent(mObject* parent = nullptr, s32 offset = -1) -> type& override;
+  auto setSpacing(f32 spacing) -> type&;
+  auto setVisible(bool visible) -> type& override;
+  auto spacing() const -> f32;
+  auto synchronize() -> type&;
 
-  struct Settings {
-    float alignment = 0.5;
-    float margin = 0;
-    float spacing = 5;
-  } settings;
+private:
+  auto destruct() -> void override;
 
-  struct Property : Size {
-    Property() = default;
-    Property(float width, float height, float spacing) : Size(width, height), _spacing(spacing) {}
-    auto setSpacing(float spacing) -> Property& { return _spacing = spacing, *this; }
-    auto spacing() const -> float { return _spacing; }
-    float _spacing = 0;
-  };
-  vector<Property> properties;
+  struct State {
+    maybe<f32> alignment;
+    vector<HorizontalLayoutCell> cells;
+    Geometry padding;
+    f32 spacing = 5_sx;
+  } state;
+};
+
+struct mHorizontalLayoutCell : mObject {
+  using type = mHorizontalLayoutCell;
+
+  auto alignment() const -> maybe<f32>;
+  auto collapsible() const -> bool;
+  auto setAlignment(maybe<f32> alignment) -> type&;
+  auto setEnabled(bool enabled) -> type& override;
+  auto setFont(const Font& font) -> type& override;
+  auto setParent(mObject* parent = nullptr, s32 offset = -1) -> type& override;
+  auto setSizable(sSizable sizable) -> type&;
+  auto setSize(Size size) -> type&;
+  auto setSpacing(f32 spacing) -> type&;
+  auto setVisible(bool visible) -> type& override;
+  auto sizable() const -> Sizable;
+  auto size() const -> Size;
+  auto spacing() const -> f32;
+  auto synchronize() -> type&;
+
+private:
+  auto destruct() -> void override;
+
+  struct State {
+    maybe<f32> alignment;
+    sSizable sizable;
+    Size size;
+    f32 spacing = 5_sx;
+  } state;
+
+  friend class mHorizontalLayout;
 };
 
 #endif

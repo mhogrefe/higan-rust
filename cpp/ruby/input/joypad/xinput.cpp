@@ -1,5 +1,4 @@
-#ifndef RUBY_INPUT_JOYPAD_XINPUT
-#define RUBY_INPUT_JOYPAD_XINPUT
+#pragma once
 
 //documented functionality
 #define oXInputGetState  "XInputGetState"
@@ -29,11 +28,11 @@ struct InputJoypadXInput {
 
   struct Joypad {
     shared_pointer<HID::Joypad> hid{new HID::Joypad};
-    unsigned id = 0;
+    u32 id = 0;
   };
   vector<Joypad> joypads;
 
-  auto assign(shared_pointer<HID::Joypad> hid, unsigned groupID, unsigned inputID, int16_t value) -> void {
+  auto assign(shared_pointer<HID::Joypad> hid, u32 groupID, u32 inputID, s16 value) -> void {
     auto& group = hid->group(groupID);
     if(group.input(inputID).value() == value) return;
     input.doChange(hid, groupID, inputID, group.input(inputID).value(), value);
@@ -46,15 +45,15 @@ struct InputJoypadXInput {
       if(XInputGetStateEx(jp.id, &state) != ERROR_SUCCESS) continue;
 
       //flip vertical axes so that -32768 = up, +32767 = down
-      uint16_t axisLY = 32768 + state.Gamepad.sThumbLY;
-      uint16_t axisRY = 32768 + state.Gamepad.sThumbRY;
-      assign(jp.hid, HID::Joypad::GroupID::Axis, 0, (int16_t)state.Gamepad.sThumbLX);
-      assign(jp.hid, HID::Joypad::GroupID::Axis, 1, (int16_t)(~axisLY - 32768));
-      assign(jp.hid, HID::Joypad::GroupID::Axis, 2, (int16_t)state.Gamepad.sThumbRX);
-      assign(jp.hid, HID::Joypad::GroupID::Axis, 3, (int16_t)(~axisRY - 32768));
+      u16 axisLY = 32768 + state.Gamepad.sThumbLY;
+      u16 axisRY = 32768 + state.Gamepad.sThumbRY;
+      assign(jp.hid, HID::Joypad::GroupID::Axis, 0, (s16)state.Gamepad.sThumbLX);
+      assign(jp.hid, HID::Joypad::GroupID::Axis, 1, (s16)(~axisLY - 32768));
+      assign(jp.hid, HID::Joypad::GroupID::Axis, 2, (s16)state.Gamepad.sThumbRX);
+      assign(jp.hid, HID::Joypad::GroupID::Axis, 3, (s16)(~axisRY - 32768));
 
-      int16_t hatX = 0;
-      int16_t hatY = 0;
+      s16 hatX = 0;
+      s16 hatY = 0;
       if(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP   ) hatY -= 32767;
       if(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN ) hatY += 32767;
       if(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT ) hatX -= 32767;
@@ -63,14 +62,14 @@ struct InputJoypadXInput {
       assign(jp.hid, HID::Joypad::GroupID::Hat, 0, hatX);
       assign(jp.hid, HID::Joypad::GroupID::Hat, 1, hatY);
 
-      //scale trigger ranges for up to down from (0 to 255) to (-32768 to +32767)
-      uint16_t triggerL = state.Gamepad.bLeftTrigger;
-      uint16_t triggerR = state.Gamepad.bRightTrigger;
-      triggerL = triggerL << 8 | triggerL << 0;
-      triggerR = triggerR << 8 | triggerR << 0;
+      //scale trigger ranges for (not-pressed to pressed) from (0 to 255) to (0 to +32767)
+      s16 triggerL = state.Gamepad.bLeftTrigger;
+      s16 triggerR = state.Gamepad.bRightTrigger;
+      triggerL = triggerL << 7 | triggerL >> 1;
+      triggerR = triggerR << 7 | triggerR >> 1;
 
-      assign(jp.hid, HID::Joypad::GroupID::Trigger, 0, (int16_t)(triggerL - 32768));
-      assign(jp.hid, HID::Joypad::GroupID::Trigger, 1, (int16_t)(triggerR - 32768));
+      assign(jp.hid, HID::Joypad::GroupID::Trigger, 0, triggerL);
+      assign(jp.hid, HID::Joypad::GroupID::Trigger, 1, triggerR);
 
       assign(jp.hid, HID::Joypad::GroupID::Button,  0, (bool)(state.Gamepad.wButtons & XINPUT_GAMEPAD_A));
       assign(jp.hid, HID::Joypad::GroupID::Button,  1, (bool)(state.Gamepad.wButtons & XINPUT_GAMEPAD_B));
@@ -88,7 +87,7 @@ struct InputJoypadXInput {
     }
   }
 
-  auto rumble(uint64_t id, bool enable) -> bool {
+  auto rumble(u64 id, bool enable) -> bool {
     for(auto& jp : joypads) {
       if(jp.hid->id() != id) continue;
 
@@ -105,6 +104,7 @@ struct InputJoypadXInput {
 
   auto initialize() -> bool {
     if(!libxinput) libxinput = LoadLibraryA("xinput1_3.dll");
+    if(!libxinput) libxinput = LoadLibraryA("xinput1_4.dll");
     if(!libxinput) return false;
 
     //XInputGetStateEx is an undocumented function; but is required to get the state of the guide button
@@ -116,10 +116,12 @@ struct InputJoypadXInput {
 
     //XInput supports a maximum of four controllers
     //add all four to devices list now. If they are not connected, they will not show up in poll() results
-    for(unsigned id = 0; id < 4; id++) {
+    for(u32 id : range(4)) {
       Joypad jp;
       jp.id = id;
-      jp.hid->setID((uint64_t)(1 + id) << 32 | 0x045e << 16 | 0x028e << 0);  //Xbox 360 Player# + VendorID + ProductID
+      jp.hid->setVendorID(0x045e);
+      jp.hid->setProductID(0x028e);
+      jp.hid->setPathID(id);
       jp.hid->setRumble(true);
 
       jp.hid->axes().append("LeftThumbX");
@@ -158,5 +160,3 @@ struct InputJoypadXInput {
     libxinput = nullptr;
   }
 };
-
-#endif

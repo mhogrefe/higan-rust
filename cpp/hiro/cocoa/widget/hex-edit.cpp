@@ -2,7 +2,7 @@
 
 @implementation CocoaHexEdit : NSScrollView
 
--(id) initWith:(phoenix::HexEdit&)hexEditReference {
+-(id) initWith:(hiro::mHexEdit&)hexEditReference {
   if(self = [super initWithFrame:NSMakeRect(0, 0, 0, 0)]) {
     hexEdit = &hexEditReference;
   }
@@ -13,38 +13,33 @@
 
 namespace hiro {
 
-void pHexEdit::setBackgroundColor(Color color) {
+auto pHexEdit::construct() -> void {
+  cocoaView = cocoaHexEdit = [[CocoaHexEdit alloc] initWith:self()];
 }
 
-void pHexEdit::setColumns(unsigned columns) {
+auto pHexEdit::destruct() -> void {
+  [cocoaView removeFromSuperview];
 }
 
-void pHexEdit::setForegroundColor(Color color) {
+auto pHexEdit::setAddress(u32 offset) -> void {
 }
 
-void pHexEdit::setLength(unsigned length) {
+auto pHexEdit::setBackgroundColor(Color color) -> void {
 }
 
-void pHexEdit::setOffset(unsigned offset) {
+auto pHexEdit::setColumns(u32 columns) -> void {
 }
 
-void pHexEdit::setRows(unsigned rows) {
+auto pHexEdit::setForegroundColor(Color color) -> void {
 }
 
-void pHexEdit::update() {
+auto pHexEdit::setLength(u32 length) -> void {
 }
 
-void pHexEdit::constructor() {
-  @autoreleasepool {
-    cocoaView = cocoaHexEdit = [[CocoaHexEdit alloc] initWith:hexEdit];
-  }
+auto pHexEdit::setRows(u32 rows) -> void {
 }
 
-void pHexEdit::destructor() {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+auto pHexEdit::update() -> void {
 }
 
 }

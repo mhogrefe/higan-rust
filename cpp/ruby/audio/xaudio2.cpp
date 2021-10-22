@@ -1,181 +1,213 @@
 #include "xaudio2.hpp"
-#include <windows.h>
+#undef interface
 
-struct AudioXAudio2 : Audio, public IXAudio2VoiceCallback {
-  AudioXAudio2() { initialize(); }
-  ~AudioXAudio2() { terminate(); }
+struct AudioXAudio2 : AudioDriver, public IXAudio2VoiceCallback {
+  enum : u32 { Buffers = 32 };
 
-  auto availableDevices() -> string_vector {
-    return {"Default"};
+  AudioXAudio2& self = *this;
+  AudioXAudio2(Audio& super) : AudioDriver(super) { construct(); }
+  ~AudioXAudio2() { destruct(); }
+
+  auto create() -> bool override {
+    super.setDevice(hasDevices().first());
+    super.setChannels(2);
+    super.setFrequency(48000);
+    super.setLatency(40);
+    return initialize();
   }
 
-  auto availableFrequencies() -> vector<double> {
-    return {44100.0, 48000.0, 96000.0};
+  auto driver() -> string override { return "XAudio 2.1"; }
+  auto ready() -> bool override { return self.isReady; }
+
+  auto hasBlocking() -> bool override { return true; }
+  auto hasDynamic() -> bool override { return true; }
+
+  auto hasDevices() -> vector<string> override {
+    vector<string> devices;
+    for(auto& device : self.devices) devices.append(device.name);
+    return devices;
   }
 
-  auto availableLatencies() -> vector<uint> {
+  auto hasFrequencies() -> vector<u32> override {
+    return {44100, 48000, 96000};
+  }
+
+  auto hasLatencies() -> vector<u32> override {
     return {20, 40, 60, 80, 100};
   }
 
-  auto availableChannels() -> vector<uint> {
-    return {2};
+  auto setDevice(string device) -> bool override { return initialize(); }
+  auto setBlocking(bool blocking) -> bool override { return true; }
+  auto setFrequency(u32 frequency) -> bool override { return initialize(); }
+  auto setLatency(u32 latency) -> bool override { return initialize(); }
+
+  auto clear() -> void override {
+    self.sourceVoice->Stop(0);
+    self.sourceVoice->FlushSourceBuffers();  //calls OnBufferEnd for all currently submitted buffers
+
+    self.index = 0;
+    self.queue = 0;
+    for(u32 n : range(Buffers)) self.buffers[n].fill();
+
+    self.sourceVoice->Start(0);
   }
 
-  auto ready() -> bool { return _ready; }
-  auto blocking() -> bool { return _blocking; }
-  auto channels() -> uint { return _channels; }
-  auto frequency() -> double { return _frequency; }
-  auto latency() -> uint { return _latency; }
-
-  auto setBlocking(bool blocking) -> bool {
-    if(_blocking == blocking) return true;
-    _blocking = blocking;
-    return true;
+  auto level() -> f64 override {
+    XAUDIO2_VOICE_STATE state{};
+    self.sourceVoice->GetState(&state);
+    u32 level = state.BuffersQueued * self.period + buffers[self.index].size() - state.SamplesPlayed % self.period;
+    u32 limit = Buffers * self.period;
+    return (f64)level / limit;
   }
 
-  auto setFrequency(double frequency) -> bool {
-    if(_frequency == frequency) return true;
-    _frequency = frequency;
-    return initialize();
-  }
+  auto output(const f64 samples[]) -> void override {
+    u32 frame = 0;
+    frame |= (u16)sclamp<16>(samples[0] * 32767.0) <<  0;
+    frame |= (u16)sclamp<16>(samples[1] * 32767.0) << 16;
 
-  auto setLatency(uint latency) -> bool {
-    if(_latency == latency) return true;
-    _latency = latency;
-    return initialize();
-  }
+    auto& buffer = self.buffers[self.index];
+    buffer.write(frame);
+    if(!buffer.full()) return;
 
-  auto clear() -> void {
-    if(!_sourceVoice) return;
-    _sourceVoice->Stop(0);
-    _sourceVoice->FlushSourceBuffers();  //calls OnBufferEnd for all currently submitted buffers
-
-    _bufferIndex = 0;
-
-    _bufferOffset = 0;
-    if(_buffer) memory::fill(_buffer, _period * _bufferCount * sizeof(uint32_t));
-
-    _sourceVoice->Start(0);
-  }
-
-  auto output(const double samples[]) -> void {
-    _buffer[_bufferIndex * _period + _bufferOffset]  = (uint16_t)sclamp<16>(samples[0] * 32767.0) <<  0;
-    _buffer[_bufferIndex * _period + _bufferOffset] |= (uint16_t)sclamp<16>(samples[1] * 32767.0) << 16;
-    if(++_bufferOffset < _period) return;
-    _bufferOffset = 0;
-
-    if(_bufferQueue == _bufferCount - 1) {
-      if(_blocking) {
+    buffer.flush();
+    if(self.queue == Buffers - 1) {
+      if(self.blocking) {
         //wait until there is at least one other free buffer for the next sample
-        while(_bufferQueue == _bufferCount - 1);
-      } else {  //we need one free buffer for the next sample, so ignore the current contents
+        while(self.queue == Buffers - 1);
+      } else {
+        //there is no free buffer for the next block, so ignore the current contents
         return;
       }
     }
 
-    pushBuffer(_period * 4, _buffer + _bufferIndex * _period);
-    _bufferIndex = (_bufferIndex + 1) % _bufferCount;
+    write(buffer.data(), buffer.capacity<u8>());
+    self.index = (self.index + 1) % Buffers;
   }
 
 private:
-  auto initialize() -> bool {
+  struct Device {
+    u32 id = 0;
+    u32 channels = 0;
+    u32 frequency = 0;
+    Format format = Format::none;
+    string name;
+  };
+  vector<Device> devices;
+
+  auto construct() -> void {
+    XAudio2Create(&self.interface, 0 , XAUDIO2_DEFAULT_PROCESSOR);
+
+    u32 deviceCount = 0;
+    self.interface->GetDeviceCount(&deviceCount);
+    for(u32 deviceIndex : range(deviceCount)) {
+      XAUDIO2_DEVICE_DETAILS deviceDetails{};
+      self.interface->GetDeviceDetails(deviceIndex, &deviceDetails);
+      auto format = deviceDetails.OutputFormat.Format.wFormatTag;
+      auto bits = deviceDetails.OutputFormat.Format.wBitsPerSample;
+
+      Device device;
+      device.id = deviceIndex;
+      device.name = (const char*)utf8_t(deviceDetails.DisplayName);
+      device.channels = deviceDetails.OutputFormat.Format.nChannels;
+      device.frequency = deviceDetails.OutputFormat.Format.nSamplesPerSec;
+      if(format == WAVE_FORMAT_PCM) {
+        if(bits == 16) device.format = Format::int16;
+        if(bits == 32) device.format = Format::int32;
+      } else if(format == WAVE_FORMAT_IEEE_FLOAT) {
+        if(bits == 32) device.format = Format::float32;
+      }
+
+      //ensure devices.first() is the default device
+      if(deviceDetails.Role & DefaultGameDevice) {
+        devices.prepend(device);
+      } else {
+        devices.append(device);
+      }
+    }
+  }
+
+  auto destruct() -> void {
     terminate();
 
-    _bufferCount = 8;
-    _period = _frequency * _latency / _bufferCount / 1000.0 + 0.5;
-    _buffer = new uint32_t[_period * _bufferCount];
-    _bufferOffset = 0;
-    _bufferIndex = 0;
-    _bufferQueue = 0;
-
-    if(FAILED(XAudio2Create(&_interface, 0 , XAUDIO2_DEFAULT_PROCESSOR))) return false;
-
-    uint deviceCount = 0;
-    _interface->GetDeviceCount(&deviceCount);
-    if(deviceCount == 0) return terminate(), false;
-
-    uint deviceID = 0;
-    for(uint deviceIndex : range(deviceCount)) {
-      XAUDIO2_DEVICE_DETAILS deviceDetails = {};
-      _interface->GetDeviceDetails(deviceIndex, &deviceDetails);
-      if(deviceDetails.Role & DefaultGameDevice) deviceID = deviceIndex;
+    if(self.interface) {
+      self.interface->Release();
+      self.interface = nullptr;
     }
+  }
 
-    if(FAILED(_interface->CreateMasteringVoice(&_masterVoice, _channels, (uint)_frequency, 0, deviceID, nullptr))) return terminate(), false;
+  auto initialize() -> bool {
+    terminate();
+    if(!self.interface) return false;
 
-    WAVEFORMATEX waveFormat;
+    self.period = self.frequency * self.latency / Buffers / 1000.0 + 0.5;
+    for(u32 n : range(Buffers)) buffers[n].resize(self.period);
+    self.index = 0;
+    self.queue = 0;
+
+    if(!hasDevices().find(self.device)) self.device = hasDevices().first();
+    u32 deviceID = devices[hasDevices().find(self.device)()].id;
+
+    if(FAILED(self.interface->CreateMasteringVoice(&self.masterVoice, self.channels, self.frequency, 0, deviceID, nullptr))) return terminate(), false;
+
+    WAVEFORMATEX waveFormat{};
     waveFormat.wFormatTag = WAVE_FORMAT_PCM;
-    waveFormat.nChannels = _channels;
-    waveFormat.nSamplesPerSec = (uint)_frequency;
+    waveFormat.nChannels = self.channels;
+    waveFormat.nSamplesPerSec = self.frequency;
     waveFormat.nBlockAlign = 4;
     waveFormat.wBitsPerSample = 16;
     waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
     waveFormat.cbSize = 0;
 
-    if(FAILED(_interface->CreateSourceVoice(&_sourceVoice, (WAVEFORMATEX*)&waveFormat, XAUDIO2_VOICE_NOSRC, XAUDIO2_DEFAULT_FREQ_RATIO, this, nullptr, nullptr))) return terminate(), false;
+    if(FAILED(self.interface->CreateSourceVoice(&self.sourceVoice, (WAVEFORMATEX*)&waveFormat, XAUDIO2_VOICE_NOSRC, XAUDIO2_DEFAULT_FREQ_RATIO, this, nullptr, nullptr))) return terminate(), false;
 
     clear();
-    return _ready = true;
+    return self.isReady = true;
   }
 
   auto terminate() -> void {
-    _ready = false;
+    self.isReady = false;
 
-    if(_sourceVoice) {
-      _sourceVoice->Stop(0);
-      _sourceVoice->DestroyVoice();
-      _sourceVoice = nullptr;
+    if(self.sourceVoice) {
+      self.sourceVoice->Stop(0);
+      self.sourceVoice->DestroyVoice();
+      self.sourceVoice = nullptr;
     }
 
-    if(_masterVoice) {
-      _masterVoice->DestroyVoice();
-      _masterVoice = nullptr;
+    if(self.masterVoice) {
+      self.masterVoice->DestroyVoice();
+      self.masterVoice = nullptr;
     }
-
-    if(_interface) {
-      _interface->Release();
-      _interface = nullptr;
-    }
-
-    delete[] _buffer;
-    _buffer = nullptr;
   }
 
-  auto pushBuffer(uint bytes, uint32_t* _audioData) -> void {
-    XAUDIO2_BUFFER buffer = {};
+  auto write(const u32* audioData, u32 bytes) -> void {
+    XAUDIO2_BUFFER buffer{};
     buffer.AudioBytes = bytes;
-    buffer.pAudioData = reinterpret_cast<BYTE*>(_audioData);
-    buffer.pContext = 0;
-    InterlockedIncrement(&_bufferQueue);
-    _sourceVoice->SubmitSourceBuffer(&buffer);
+    buffer.pAudioData = (const BYTE*)audioData;
+    buffer.pContext = nullptr;
+    InterlockedIncrement(&self.queue);
+    self.sourceVoice->SubmitSourceBuffer(&buffer);
   }
 
-  bool _ready = false;
-  bool _blocking = true;
-  uint _channels = 2;
-  double _frequency = 48000.0;
-  uint _latency = 80;
+  bool isReady = false;
 
-  uint32_t* _buffer = nullptr;
-  uint _period = 0;
-  uint _bufferCount = 0;
-  uint _bufferOffset = 0;
-  uint _bufferIndex = 0;
-  volatile long _bufferQueue = 0;  //how many buffers are queued and ready for playback
+  queue<u32> buffers[Buffers];
+  u32 period = 0;          //amount (in 32-bit frames) of samples per buffer
+  u32 index = 0;           //current buffer for writing samples to
+  volatile long queue = 0;  //how many buffers are queued and ready for playback
 
-  IXAudio2* _interface = nullptr;
-  IXAudio2MasteringVoice* _masterVoice = nullptr;
-  IXAudio2SourceVoice* _sourceVoice = nullptr;
+  IXAudio2* interface = nullptr;
+  IXAudio2MasteringVoice* masterVoice = nullptr;
+  IXAudio2SourceVoice* sourceVoice = nullptr;
 
   //inherited from IXAudio2VoiceCallback
-  STDMETHODIMP_(void) OnBufferStart(void* pBufferContext){}
-  STDMETHODIMP_(void) OnLoopEnd(void* pBufferContext){}
-  STDMETHODIMP_(void) OnStreamEnd() {}
-  STDMETHODIMP_(void) OnVoiceError(void* pBufferContext, HRESULT Error) {}
-  STDMETHODIMP_(void) OnVoiceProcessingPassEnd() {}
-  STDMETHODIMP_(void) OnVoiceProcessingPassStart(UINT32 BytesRequired) {}
+  STDMETHODIMP_(void) OnBufferStart(void* pBufferContext) noexcept override {}
+  STDMETHODIMP_(void) OnLoopEnd(void* pBufferContext) noexcept override {}
+  STDMETHODIMP_(void) OnStreamEnd() noexcept override {}
+  STDMETHODIMP_(void) OnVoiceError(void* pBufferContext, HRESULT Error) noexcept override {}
+  STDMETHODIMP_(void) OnVoiceProcessingPassEnd() noexcept override {}
+  STDMETHODIMP_(void) OnVoiceProcessingPassStart(UINT32 BytesRequired) noexcept override {}
 
-  STDMETHODIMP_(void) OnBufferEnd(void* pBufferContext) {
-    InterlockedDecrement(&_bufferQueue);
+  STDMETHODIMP_(void) OnBufferEnd(void* pBufferContext) noexcept override {
+    InterlockedDecrement(&self.queue);
   }
 };

@@ -5,16 +5,16 @@ namespace nall {
 //nall::format is a vector<string> of parameters that can be applied to a string
 //each {#} token will be replaced with its appropriate format parameter
 
-auto string::format(const nall::string_format& params) -> type& {
-  auto size = (int)this->size();
-  auto data = (char*)memory::allocate(size);
+inline auto string::format(const nall::string_format& params) -> type& {
+  auto size = (s32)this->size();
+  auto data = memory::allocate<char>(size);
   memory::copy(data, this->data(), size);
 
-  int x = 0;
+  s32 x = 0;
   while(x < size - 2) {  //2 = minimum tag length
     if(data[x] != '{') { x++; continue; }
 
-    int y = x + 1;
+    s32 y = x + 1;
     while(y < size - 1) {  //-1 avoids going out of bounds on test after this loop
       if(data[y] != '}') { y++; continue; }
       break;
@@ -32,19 +32,19 @@ auto string::format(const nall::string_format& params) -> type& {
     };
     if(!isNumeric(&data[x + 1], &data[y - 1])) { x++; continue; }
 
-    uint index = toNatural(&data[x + 1]);
+    u32 index = toNatural(&data[x + 1]);
     if(index >= params.size()) { x++; continue; }
 
-    uint sourceSize = y - x;
-    uint targetSize = params[index].size();
-    uint remaining = size - x;
+    u32 sourceSize = y - x;
+    u32 targetSize = params[index].size();
+    u32 remaining = size - x;
 
     if(sourceSize > targetSize) {
-      uint difference = sourceSize - targetSize;
-      memory::move(&data[x], &data[x + difference], remaining);
+      u32 difference = sourceSize - targetSize;
+      memory::move(&data[x], &data[x + difference], remaining - difference);
       size -= difference;
     } else if(targetSize > sourceSize) {
-      uint difference = targetSize - sourceSize;
+      u32 difference = targetSize - sourceSize;
       data = (char*)realloc(data, size + difference);
       size += difference;
       memory::move(&data[x + difference], &data[x], remaining);
@@ -59,41 +59,48 @@ auto string::format(const nall::string_format& params) -> type& {
   return *this;
 }
 
-template<typename T, typename... P> auto string_format::append(const T& value, P&&... p) -> string_format& {
+template<typename T, typename... P> inline auto string_format::append(const T& value, P&&... p) -> string_format& {
   vector<string>::append(value);
   return append(forward<P>(p)...);
 }
 
-auto string_format::append() -> string_format& {
+inline auto string_format::append() -> string_format& {
   return *this;
 }
 
-template<typename... P> auto print(P&&... p) -> void {
+template<typename... P> inline auto print(P&&... p) -> void {
   string s{forward<P>(p)...};
   fwrite(s.data(), 1, s.size(), stdout);
+  fflush(stdout);
 }
 
-template<typename... P> auto print(FILE* fp, P&&... p) -> void {
+template<typename... P> inline auto print(FILE* fp, P&&... p) -> void {
   string s{forward<P>(p)...};
   fwrite(s.data(), 1, s.size(), fp);
+  if(fp == stdout || fp == stderr) fflush(fp);
 }
 
-template<typename T> auto pad(const T& value, long precision, char padchar) -> string {
+template<typename T> inline auto pad(const T& value, long precision, char padchar) -> string {
   string buffer{value};
   if(precision) buffer.size(precision, padchar);
   return buffer;
 }
 
-auto hex(uintmax value, long precision, char padchar) -> string {
+template<typename T> inline auto hex(T value, long precision, char padchar) -> string {
   string buffer;
-  buffer.resize(sizeof(uintmax) * 2);
+  buffer.resize(sizeof(T) * 2);
   char* p = buffer.get();
 
-  uint size = 0;
+  //create a mask to clear the upper four bits after shifting right in case T is a signed type
+  T mask = 1;
+  mask <<= sizeof(T) * 8 - 4;
+  mask -= 1;
+
+  u32 size = 0;
   do {
-    uint n = value & 15;
+    u32 n = value & 15;
     p[size++] = n < 10 ? '0' + n : 'a' + n - 10;
-    value >>= 4;
+    value = value >> 4 & mask;
   } while(value);
   buffer.resize(size);
   buffer.reverse();
@@ -101,15 +108,20 @@ auto hex(uintmax value, long precision, char padchar) -> string {
   return buffer;
 }
 
-auto octal(uintmax value, long precision, char padchar) -> string {
+template<typename T> inline auto octal(T value, long precision, char padchar) -> string {
   string buffer;
-  buffer.resize(sizeof(uintmax) * 3);
+  buffer.resize(sizeof(T) * 3);
   char* p = buffer.get();
 
-  uint size = 0;
+  //create a mask to clear the upper three bits
+  T mask = 1;
+  mask <<= sizeof(T) * 8 - 3;
+  mask -= 1;
+
+  u32 size = 0;
   do {
     p[size++] = '0' + (value & 7);
-    value >>= 3;
+    value = value >> 3 & mask;
   } while(value);
   buffer.resize(size);
   buffer.reverse();
@@ -117,30 +129,25 @@ auto octal(uintmax value, long precision, char padchar) -> string {
   return buffer;
 }
 
-auto binary(uintmax value, long precision, char padchar) -> string {
+template<typename T> inline auto binary(T value, long precision, char padchar) -> string {
   string buffer;
-  buffer.resize(sizeof(uintmax) * 8);
+  buffer.resize(sizeof(T) * 8);
   char* p = buffer.get();
 
-  uint size = 0;
+  //create a mask to clear the upper one bit
+  T mask = 1;
+  mask <<= sizeof(T) * 8 - 1;
+  mask -= 1;
+
+  u32 size = 0;
   do {
     p[size++] = '0' + (value & 1);
-    value >>= 1;
+    value = value >> 1 & mask;
   } while(value);
   buffer.resize(size);
   buffer.reverse();
   if(precision) buffer.size(precision, padchar);
   return buffer;
-}
-
-auto pointer(uintptr value, long precision) -> string {
-  if(value == 0) return "(nullptr)";
-  return {"0x", hex(value, precision)};
-}
-
-template<typename T> auto pointer(const T* value, long precision) -> string {
-  if(value == nullptr) return "(nullptr)";
-  return {"0x", hex((uintptr)value, precision)};
 }
 
 }

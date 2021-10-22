@@ -12,7 +12,7 @@
 }
 
 -(void) tabView:(NSTabView*)tabView didSelectTabViewItem:(NSTabViewItem*)tabViewItem {
-  tabFrame->self()->_synchronizeLayout();
+  tabFrame->self()->_synchronizeSizable();
   tabFrame->doChange();
 }
 
@@ -30,11 +30,11 @@
 
 -(NSSize) sizeOfLabel:(BOOL)shouldTruncateLabel {
   NSSize sizeOfLabel = [super sizeOfLabel:shouldTruncateLabel];
-  int selection = [cocoaTabFrame indexOfTabViewItem:self];
+  s32 selection = [cocoaTabFrame indexOfTabViewItem:self];
   if(selection >= 0) {
     if(auto item = tabFrame->item(selection)) {
       if(item->state.icon) {
-        uint iconSize = hiro::pFont::size(tabFrame->font(true), " ").height();
+        u32 iconSize = hiro::pFont::size(tabFrame->font(true), " ").height();
         sizeOfLabel.width += iconSize + 2;
       }
     }
@@ -43,11 +43,11 @@
 }
 
 -(void) drawLabel:(BOOL)shouldTruncateLabel inRect:(NSRect)tabRect {
-  int selection = [cocoaTabFrame indexOfTabViewItem:self];
+  s32 selection = [cocoaTabFrame indexOfTabViewItem:self];
   if(selection >= 0) {
     if(auto item = tabFrame->item(selection)) {
       if(item->state.icon) {
-        uint iconSize = hiro::pFont::size(tabFrame->font(true), " ").height();
+        u32 iconSize = hiro::pFont::size(tabFrame->font(true), " ").height();
         NSImage* image = NSMakeImage(item->state.icon);
 
         [[NSGraphicsContext currentContext] saveGraphicsState];
@@ -68,44 +68,35 @@
 namespace hiro {
 
 auto pTabFrame::construct() -> void {
-  @autoreleasepool {
-    cocoaView = cocoaTabFrame = [[CocoaTabFrame alloc] initWith:self()];
-    pWidget::construct();
+  cocoaView = cocoaTabFrame = [[CocoaTabFrame alloc] initWith:self()];
+  pWidget::construct();
 
-    setNavigation(state().navigation);
-  }
+  setNavigation(state().navigation);
 }
 
 auto pTabFrame::destruct() -> void {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+  [cocoaView removeFromSuperview];
 }
 
 auto pTabFrame::append(sTabFrameItem item) -> void {
-  @autoreleasepool {
-    if(auto p = item->self()) {
-      p->cocoaTabFrameItem = [[CocoaTabFrameItem alloc] initWith:self()];
-      [p->cocoaTabFrameItem setLabel:[NSString stringWithUTF8String:item->state.text]];
-      [cocoaView addTabViewItem:p->cocoaTabFrameItem];
-    }
+  if(auto p = item->self()) {
+    p->cocoaTabFrameItem = [[CocoaTabFrameItem alloc] initWith:self()];
+    [p->cocoaTabFrameItem setLabel:[NSString stringWithUTF8String:item->state.text]];
+    [(CocoaTabFrame*)cocoaView addTabViewItem:p->cocoaTabFrameItem];
   }
 }
 
 auto pTabFrame::remove(sTabFrameItem item) -> void {
-  @autoreleasepool {
-    if(auto p = item->self()) {
-      [cocoaView removeTabViewItem:p->cocoaTabFrameItem];
-    }
+  if(auto p = item->self()) {
+    [(CocoaTabFrame*)cocoaView removeTabViewItem:p->cocoaTabFrameItem];
   }
 }
 
 auto pTabFrame::setEnabled(bool enabled) -> void {
   pWidget::setEnabled(enabled);
   for(auto& item : state().items) {
-    if(auto& layout = item->state.layout) {
-      if(auto self = layout->self()) self->setEnabled(layout->enabled(true));
+    if(auto& sizable = item->state.sizable) {
+      if(auto self = sizable->self()) self->setEnabled(sizable->enabled(true));
     }
   }
 }
@@ -113,8 +104,8 @@ auto pTabFrame::setEnabled(bool enabled) -> void {
 auto pTabFrame::setFont(const Font& font) -> void {
   pWidget::setFont(font);
   for(auto& item : state().items) {
-    if(auto& layout = item->state.layout) {
-      if(auto self = layout->self()) self->setFont(layout->font(true));
+    if(auto& sizable = item->state.sizable) {
+      if(auto self = sizable->self()) self->setFont(sizable->font(true));
     }
   }
 }
@@ -129,11 +120,11 @@ auto pTabFrame::setGeometry(Geometry geometry) -> void {
     geometry.width() - 2, geometry.height() - 32
   });
   for(auto& item : state().items) {
-    if(auto& layout = item->state.layout) {
-      layout->setGeometry(geometry);
+    if(auto& sizable = item->state.sizable) {
+      sizable->setGeometry(geometry);
     }
   }
-  _synchronizeLayout();
+  _synchronizeSizable();
 }
 
 auto pTabFrame::setNavigation(Navigation navigation) -> void {
@@ -142,22 +133,18 @@ auto pTabFrame::setNavigation(Navigation navigation) -> void {
 auto pTabFrame::setVisible(bool visible) -> void {
   pWidget::setVisible(visible);
   for(auto& item : state().items) {
-    if(auto& layout = item->state.layout) {
-      if(auto self = layout->self()) self->setVisible(layout->visible(true));
+    if(auto& sizable = item->state.sizable) {
+      if(auto self = sizable->self()) self->setVisible(sizable->visible(true));
     }
   }
 }
 
-auto pTabFrame::_synchronizeLayout() -> void {
-  @autoreleasepool {
-    NSTabViewItem* tabViewItem = [cocoaView selectedTabViewItem];
-    int selected = tabViewItem ? [cocoaView indexOfTabViewItem:tabViewItem] : -1;
-    for(auto& item : state().items) {
-      item->state.selected = item->offset() == selected;
-      if(auto& layout = item->state.layout) {
-        if(auto self = layout->self()) self->setVisible(layout->visible(true) && item->selected());
-      }
-    }
+auto pTabFrame::_synchronizeSizable() -> void {
+  NSTabViewItem* tabViewItem = [(CocoaTabFrame*)cocoaView selectedTabViewItem];
+  s32 selected = tabViewItem ? [(CocoaTabFrame*)cocoaView indexOfTabViewItem:tabViewItem] : -1;
+  for(auto& item : state().items) {
+    item->state.selected = item->offset() == selected;
+    if(auto& sizable = item->state.sizable) sizable->setVisible(item->selected());
   }
 }
 

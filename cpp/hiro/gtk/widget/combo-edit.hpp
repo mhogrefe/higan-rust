@@ -8,8 +8,9 @@ struct pComboEdit : pWidget {
   auto append(sComboEditItem item) -> void;
   auto minimumSize() const -> Size override;
   auto remove(sComboEditItem item) -> void;
-  auto reset() -> void;
+  auto reset() -> void override;
   auto setBackgroundColor(Color color) -> void;
+  auto setEditable(bool editable) -> void;
   auto setForegroundColor(Color color) -> void;
   auto setFont(const Font& font) -> void override;
   auto setText(const string& text) -> void;

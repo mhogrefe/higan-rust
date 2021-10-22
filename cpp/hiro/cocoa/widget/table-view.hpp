@@ -8,7 +8,7 @@
   CocoaTableViewContent* content;
   NSFont* font;
 }
--(id) initWith:(hiro::mTableView&)tableView;
+-(id) initWith:(hiro::mTableView&)tableViewReference;
 -(void) dealloc;
 -(CocoaTableViewContent*) content;
 -(NSFont*) font;
@@ -20,18 +20,22 @@
 -(NSString*) tableView:(NSTableView*)table toolTipForCell:(NSCell*)cell rect:(NSRectPointer)rect tableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row mouseLocation:(NSPoint)mouseLocation;
 -(void) tableView:(NSTableView*)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row;
 -(void) tableViewSelectionDidChange:(NSNotification*)notification;
--(IBAction) activate:(id)sender;
 -(IBAction) doubleAction:(id)sender;
 @end
 
 @interface CocoaTableViewContent : NSTableView {
+  hiro::mTableView* tableView;
 }
+-(id) initWith:(hiro::mTableView&)tableViewReference;
+-(void) reloadData;
 -(void) keyDown:(NSEvent*)event;
+-(NSMenu*) menuForEvent:(NSEvent*)event;
 @end
 
 @interface CocoaTableViewCell : NSCell {
   hiro::mTableView* tableView;
   NSButtonCell* buttonCell;
+  NSTextFieldCell* textCell;
 }
 -(id) initWith:(hiro::mTableView&)tableViewReference;
 -(NSString*) stringValue;
@@ -46,9 +50,9 @@ namespace hiro {
 struct pTableView : pWidget {
   Declare(TableView, Widget)
 
-  auto append(sTableViewHeader header) -> void;
+  auto append(sTableViewColumn column) -> void;
   auto append(sTableViewItem item) -> void;
-  auto remove(sTableViewHeader header) -> void;
+  auto remove(sTableViewColumn column) -> void;
   auto remove(sTableViewItem item) -> void;
   auto resizeColumns() -> void;
   auto setAlignment(Alignment alignment) -> void;
@@ -58,10 +62,13 @@ struct pTableView : pWidget {
   auto setEnabled(bool enabled) -> void override;
   auto setFont(const Font& font) -> void override;
   auto setForegroundColor(Color color) -> void;
+  auto setHeadered(bool headered) -> void;
+  auto setSortable(bool sortable) -> void;
+  auto setUsesSidebarStyle(bool usesSidebarStyle) -> void;
 
-  auto _cellWidth(uint row, uint column) -> uint;
-  auto _columnWidth(uint column) -> uint;
-  auto _width(uint column) -> uint;
+  auto _cellWidth(u32 row, u32 column) -> u32;
+  auto _columnWidth(u32 column) -> u32;
+  auto _width(u32 column) -> u32;
 
   CocoaTableView* cocoaTableView = nullptr;
 };

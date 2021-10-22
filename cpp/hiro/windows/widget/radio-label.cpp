@@ -8,7 +8,7 @@ auto pRadioLabel::construct() -> void {
     0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0
   );
   SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  pWidget::_setState();
+  pWidget::construct();
   setGroup(state().group);
   setText(state().text);
 }
@@ -19,7 +19,7 @@ auto pRadioLabel::destruct() -> void {
 
 auto pRadioLabel::minimumSize() const -> Size {
   auto size = pFont::size(self().font(true), state().text ? state().text : " ");
-  return {size.width() + 20, size.height() + 4};
+  return {size.width() + 20_sx, size.height() + 4_sy};
 }
 
 auto pRadioLabel::setChecked() -> void {

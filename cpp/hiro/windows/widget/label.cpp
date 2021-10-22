@@ -2,13 +2,10 @@
 
 namespace hiro {
 
+//warning: WS_CLIPSIBLINGS flag will prevent Label widgets from rendering inside of Frame widgets
 auto pLabel::construct() -> void {
-  hwnd = CreateWindow(L"hiroLabel", L"",
-    WS_CHILD,
-    0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0);
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  pWidget::_setState();
-  setAlignment(state().alignment);
+  hwnd = CreateWindow(L"hiroWidget", L"", WS_CHILD, 0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0);
+  pWidget::construct();
   setText(state().text);
 }
 
@@ -25,55 +22,79 @@ auto pLabel::setAlignment(Alignment alignment) -> void {
   InvalidateRect(hwnd, 0, false);
 }
 
-auto pLabel::setText(const string& text) -> void {
-  SetWindowText(hwnd, utf16_t(text));
+auto pLabel::setBackgroundColor(Color color) -> void {
   InvalidateRect(hwnd, 0, false);
 }
 
-static auto CALLBACK Label_windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
-  auto label = (mLabel*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-  if(!label) return DefWindowProc(hwnd, msg, wparam, lparam);
-  auto window = label->parentWindow(true);
-  if(!window) return DefWindowProc(hwnd, msg, wparam, lparam);
+auto pLabel::setForegroundColor(Color color) -> void {
+  InvalidateRect(hwnd, 0, false);
+}
 
-  switch(msg) {
-  case WM_GETDLGCODE: return DLGC_STATIC | DLGC_WANTCHARS;
-  case WM_ERASEBKGND: return true;
-  case WM_PAINT: {
+auto pLabel::setText(const string& text) -> void {
+  InvalidateRect(hwnd, 0, false);
+}
+
+auto pLabel::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  if(msg == WM_GETDLGCODE) {
+    return DLGC_STATIC | DLGC_WANTCHARS;
+  }
+
+  if(msg == WM_ERASEBKGND || msg == WM_PAINT) {
     PAINTSTRUCT ps;
     BeginPaint(hwnd, &ps);
     RECT rc;
     GetClientRect(hwnd, &rc);
-    //todo: use DrawThemeParentBackground if Label is inside TabFrame
-    if(auto brush = window->self()->hbrush) {
-      FillRect(ps.hdc, &rc, brush);
-    } else {
-      DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+
+    auto hdcMemory = CreateCompatibleDC(ps.hdc);
+    auto hbmMemory = CreateCompatibleBitmap(ps.hdc, rc.right - rc.left, rc.bottom - rc.top);
+    SelectObject(hdcMemory, hbmMemory);
+
+    if(auto color = state().backgroundColor) {
+      auto brush = CreateSolidBrush(CreateRGB(color));
+      FillRect(hdcMemory, &rc, brush);
+      DeleteObject(brush);
+    } else if(self().parentTabFrame(true)) {
+      DrawThemeParentBackground(hwnd, hdcMemory, &rc);
+    } else if(auto window = self().parentWindow(true)) {
+      if(auto color = window->backgroundColor()) {
+        auto brush = CreateSolidBrush(CreateRGB(color));
+        FillRect(hdcMemory, &rc, brush);
+        DeleteObject(brush);
+      } else {
+        DrawThemeParentBackground(hwnd, hdcMemory, &rc);
+      }
     }
-    SetBkMode(ps.hdc, TRANSPARENT);
-    SelectObject(ps.hdc, label->self()->hfont);
-    uint length = GetWindowTextLength(hwnd);
-    wchar_t text[length + 1];
-    GetWindowText(hwnd, text, length + 1);
-    text[length] = 0;
-    DrawText(ps.hdc, text, -1, &rc, DT_CALCRECT | DT_END_ELLIPSIS);
-    uint height = rc.bottom;
+
+    utf16_t text(state().text);
+    SetBkMode(hdcMemory, TRANSPARENT);
+    SelectObject(hdcMemory, hfont);
+    DrawText(hdcMemory, text, -1, &rc, DT_CALCRECT | DT_END_ELLIPSIS);
+    u32 height = rc.bottom;
+
     GetClientRect(hwnd, &rc);
     rc.top = (rc.bottom - height) / 2;
     rc.bottom = rc.top + height;
-    uint horizontalAlignment = DT_CENTER;
-    if(label->alignment().horizontal() < 0.333) horizontalAlignment = DT_LEFT;
-    if(label->alignment().horizontal() > 0.666) horizontalAlignment = DT_RIGHT;
-    uint verticalAlignment = DT_VCENTER;
-    if(label->alignment().vertical() < 0.333) verticalAlignment = DT_TOP;
-    if(label->alignment().vertical() > 0.666) verticalAlignment = DT_BOTTOM;
-    DrawText(ps.hdc, text, -1, &rc, DT_END_ELLIPSIS | horizontalAlignment | verticalAlignment);
+    u32 horizontalAlignment = DT_CENTER;
+    if(state().alignment.horizontal() < 0.333) horizontalAlignment = DT_LEFT;
+    if(state().alignment.horizontal() > 0.666) horizontalAlignment = DT_RIGHT;
+    u32 verticalAlignment = DT_VCENTER;
+    if(state().alignment.vertical() < 0.333) verticalAlignment = DT_TOP;
+    if(state().alignment.vertical() > 0.666) verticalAlignment = DT_BOTTOM;
+    if(auto color = state().foregroundColor) {
+      SetTextColor(hdcMemory, CreateRGB(color));
+    }
+    DrawText(hdcMemory, text, -1, &rc, DT_END_ELLIPSIS | horizontalAlignment | verticalAlignment);
+
+    GetClientRect(hwnd, &rc);
+    BitBlt(ps.hdc, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, hdcMemory, 0, 0, SRCCOPY);
+    DeleteObject(hbmMemory);
+    DeleteObject(hdcMemory);
     EndPaint(hwnd, &ps);
-    return false;
-  }
+
+    return msg == WM_ERASEBKGND;
   }
 
-  return DefWindowProc(hwnd, msg, wparam, lparam);
+  return pWidget::windowProc(hwnd, msg, wparam, lparam);
 }
 
 }

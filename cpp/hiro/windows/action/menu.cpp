@@ -19,7 +19,7 @@ auto pMenu::remove(sAction action) -> void {
   _synchronize();
 }
 
-auto pMenu::setIcon(const image& icon) -> void {
+auto pMenu::setIcon(const image& icon, bool force) -> void {
   _createBitmap();
   _synchronize();
 }
@@ -33,7 +33,7 @@ auto pMenu::_createBitmap() -> void {
 
   if(auto icon = state().icon) {
     icon.alphaBlend(GetSysColor(COLOR_MENU));  //Windows does not alpha blend menu icons properly (leaves black outline)
-    icon.scale(GetSystemMetrics(SM_CXMENUCHECK), GetSystemMetrics(SM_CYMENUCHECK), Interpolation::Linear);
+    icon.scale(GetSystemMetrics(SM_CXMENUCHECK), GetSystemMetrics(SM_CYMENUCHECK));
     hbitmap = CreateBitmap(icon);
   }
 }
@@ -49,12 +49,12 @@ auto pMenu::_update() -> void {
   mi.dwStyle = MNS_NOTIFYBYPOS;  //| MNS_MODELESS;
   SetMenuInfo(hmenu, &mi);
 
-  unsigned position = 0;
+  u32 position = 0;
 
   for(auto& action : state().actions) {
     if(!action->self()) continue;
     action->self()->position = position;
-    unsigned enabled = action->enabled() ? 0 : MF_GRAYED;
+    u32 enabled = action->enabled() ? 0 : MF_GRAYED;
 
     MENUITEMINFO mii{sizeof(MENUITEMINFO)};
     mii.fMask = MIIM_DATA;

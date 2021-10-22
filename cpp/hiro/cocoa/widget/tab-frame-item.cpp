@@ -8,10 +8,10 @@ auto pTabFrameItem::construct() -> void {
 auto pTabFrameItem::destruct() -> void {
 }
 
-auto pTabFrameItem::append(sLayout layout) -> void {
+auto pTabFrameItem::append(sSizable sizable) -> void {
 }
 
-auto pTabFrameItem::remove(sLayout layout) -> void {
+auto pTabFrameItem::remove(sSizable sizable) -> void {
 }
 
 auto pTabFrameItem::setClosable(bool closable) -> void {
@@ -24,17 +24,13 @@ auto pTabFrameItem::setMovable(bool movable) -> void {
 }
 
 auto pTabFrameItem::setSelected() -> void {
-  @autoreleasepool {
-    if(auto parent = _parent()) {
-      [parent->cocoaView selectTabViewItem:cocoaTabFrameItem];
-    }
+  if(auto parent = _parent()) {
+    [(CocoaTabFrame*)(parent->cocoaView) selectTabViewItem:cocoaTabFrameItem];
   }
 }
 
 auto pTabFrameItem::setText(const string& text) -> void {
-  @autoreleasepool {
-    [cocoaTabFrameItem setLabel:[NSString stringWithUTF8String:state().text]];
-  }
+  [cocoaTabFrameItem setLabel:[NSString stringWithUTF8String:state().text]];
 }
 
 auto pTabFrameItem::_parent() -> maybe<pTabFrame&> {

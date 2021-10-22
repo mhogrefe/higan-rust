@@ -1,4 +1,4 @@
-use higan_rust::higan::processor::lr35902::lr35902::Register;
+use higan_rust::ares::processor::lr35902::lr35902::Register;
 
 #[test]
 fn test_register() {

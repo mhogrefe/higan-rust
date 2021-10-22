@@ -19,8 +19,8 @@
 }
 
 -(void) update {
-  double d = 1.0 / verticalScrollBar->state.length;
-  double f = d * verticalScrollBar->state.position;
+  f64 d = 1.0 / verticalScrollBar->state.length;
+  f64 f = d * verticalScrollBar->state.position;
 
   [self setDoubleValue:f];
   [self setKnobProportion:d];
@@ -55,38 +55,27 @@
 namespace hiro {
 
 auto pVerticalScrollBar::construct() -> void {
-  @autoreleasepool {
-    cocoaView = cocoaVerticalScrollBar = [[CocoaVerticalScrollBar alloc] initWith:self()];
-    pWidget::construct();
+  cocoaView = cocoaVerticalScrollBar = [[CocoaVerticalScrollBar alloc] initWith:self()];
+  pWidget::construct();
 
-    setLength(state().length);
-    setPosition(state().position);
-  }
+  setLength(state().length);
+  setPosition(state().position);
 }
 
 auto pVerticalScrollBar::destruct() -> void {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+  [cocoaView removeFromSuperview];
 }
 
 auto pVerticalScrollBar::minimumSize() const -> Size {
-  @autoreleasepool {
-    return {(int)[NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy], 32};
-  }
+  return {(s32)[NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy], 32};
 }
 
-auto pVerticalScrollBar::setLength(uint length) -> void {
-  @autoreleasepool {
-    [cocoaView update];
-  }
+auto pVerticalScrollBar::setLength(u32 length) -> void {
+  [(CocoaVerticalScrollBar*)cocoaView update];
 }
 
-auto pVerticalScrollBar::setPosition(uint position) -> void {
-  @autoreleasepool {
-    [cocoaView update];
-  }
+auto pVerticalScrollBar::setPosition(u32 position) -> void {
+  [(CocoaVerticalScrollBar*)cocoaView update];
 }
 
 }

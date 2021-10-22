@@ -26,7 +26,6 @@
 #include "action/menu-radio-item.cpp"
 
 #include "sizable.cpp"
-#include "layout.cpp"
 
 #include "widget/widget.cpp"
 #include "widget/button.cpp"
@@ -53,7 +52,6 @@
 #include "widget/tab-frame.cpp"
 #include "widget/tab-frame-item.cpp"
 #include "widget/table-view.cpp"
-#include "widget/table-view-header.cpp"
 #include "widget/table-view-column.cpp"
 #include "widget/table-view-item.cpp"
 #include "widget/table-view-cell.cpp"

@@ -1,11 +1,3 @@
-namespace hiro {
-  struct pFont;
-  struct pWindow;
-  struct pMenu;
-  struct pLayout;
-  struct pWidget;
-}
-
 #define Declare(Name, Base) \
   p##Name(m##Name& reference) : p##Base(reference) {} \
   auto self() const -> m##Name& { return (m##Name&)reference; } \
@@ -30,6 +22,7 @@ namespace hiro {
 #include "menu-bar.hpp"
 #include "popup-menu.hpp"
 
+#include "action/menu-protocol.hpp"
 #include "action/action.hpp"
 #include "action/menu.hpp"
 #include "action/menu-separator.hpp"
@@ -38,7 +31,6 @@ namespace hiro {
 #include "action/menu-radio-item.hpp"
 
 #include "sizable.hpp"
-#include "layout.hpp"
 
 #include "widget/widget.hpp"
 #include "widget/button.hpp"
@@ -60,11 +52,12 @@ namespace hiro {
 #include "widget/tab-frame.hpp"
 #include "widget/tab-frame-item.hpp"
 #include "widget/table-view.hpp"
-#include "widget/table-view-header.hpp"
 #include "widget/table-view-column.hpp"
 #include "widget/table-view-item.hpp"
 #include "widget/table-view-cell.hpp"
 #include "widget/text-edit.hpp"
+#include "widget/tree-view.hpp"
+#include "widget/tree-view-item.hpp"
 #include "widget/vertical-scroll-bar.hpp"
 #include "widget/vertical-slider.hpp"
 #include "widget/viewport.hpp"

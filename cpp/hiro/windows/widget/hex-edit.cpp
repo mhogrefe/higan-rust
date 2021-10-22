@@ -2,77 +2,20 @@
 
 namespace hiro {
 
-static auto CALLBACK HexEdit_windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
-  auto object = (mObject*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-  if(!object) return DefWindowProc(hwnd, msg, wparam, lparam);
-  auto hexEdit = dynamic_cast<mHexEdit*>(object);
-  if(!hexEdit) return DefWindowProc(hwnd, msg, wparam, lparam);
-  auto self = hexEdit->self();
-  if(!self) return DefWindowProc(hwnd, msg, wparam, lparam);
-
-  switch(msg) {
-  case WM_KEYDOWN:
-    if(self->keyPress(wparam)) return 0;
-    break;
-
-  case WM_MOUSEWHEEL: {
-    signed offset = -((int16_t)HIWORD(wparam) / WHEEL_DELTA);
-    self->scrollTo(self->scrollPosition() + offset);
-    return true;
-  }
-
-  case WM_SIZE: {
-    RECT rc;
-    GetClientRect(self->hwnd, &rc);
-    SetWindowPos(self->scrollBar, HWND_TOP, rc.right - 18, 0, 18, rc.bottom, SWP_SHOWWINDOW);
-    break;
-  }
-
-  case WM_VSCROLL: {
-    SCROLLINFO info{sizeof(SCROLLINFO)};
-    info.fMask = SIF_ALL;
-    GetScrollInfo((HWND)lparam, SB_CTL, &info);
-    switch(LOWORD(wparam)) {
-    case SB_LEFT: info.nPos = info.nMin; break;
-    case SB_RIGHT: info.nPos = info.nMax; break;
-    case SB_LINELEFT: info.nPos--; break;
-    case SB_LINERIGHT: info.nPos++; break;
-    case SB_PAGELEFT: info.nPos -= info.nMax >> 3; break;
-    case SB_PAGERIGHT: info.nPos += info.nMax >> 3; break;
-    case SB_THUMBTRACK: info.nPos = info.nTrackPos; break;
-    }
-
-    info.fMask = SIF_POS;
-    SetScrollInfo((HWND)lparam, SB_CTL, &info, TRUE);
-    GetScrollInfo((HWND)lparam, SB_CTL, &info);  //get clamped position
-
-    self->scrollTo(info.nPos);
-    return true;
-  }
-  }
-
-  return self->windowProc(hwnd, msg, wparam, lparam);
-}
-
 auto pHexEdit::construct() -> void {
   hwnd = CreateWindowEx(
     WS_EX_CLIENTEDGE, L"EDIT", L"",
     WS_CHILD | WS_TABSTOP | ES_AUTOHSCROLL | ES_READONLY | ES_MULTILINE | ES_WANTRETURN,
     0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0
   );
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-
   scrollBar = CreateWindowEx(
     0, L"SCROLLBAR", L"",
     WS_VISIBLE | WS_CHILD | SBS_VERT,
     0, 0, 0, 0, hwnd, nullptr, GetModuleHandle(0), 0
   );
   SetWindowLongPtr(scrollBar, GWLP_USERDATA, (LONG_PTR)&reference);
+  pWidget::construct();
 
-  windowProc = (WindowProc)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
-  SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)HexEdit_windowProc);
-
-  pWidget::_setState();
   setAddress(state().address);
   setBackgroundColor(state().backgroundColor);
   setLength(state().length);
@@ -84,7 +27,7 @@ auto pHexEdit::destruct() -> void {
   DestroyWindow(hwnd);
 }
 
-auto pHexEdit::setAddress(unsigned address) -> void {
+auto pHexEdit::setAddress(u32 address) -> void {
   SetScrollPos(scrollBar, SB_CTL, address / state().columns, true);
   update();
 }
@@ -94,20 +37,20 @@ auto pHexEdit::setBackgroundColor(Color color) -> void {
   backgroundBrush = CreateSolidBrush(color ? CreateRGB(color) : GetSysColor(COLOR_WINDOW));
 }
 
-auto pHexEdit::setColumns(unsigned columns) -> void {
+auto pHexEdit::setColumns(u32 columns) -> void {
   update();
 }
 
 auto pHexEdit::setForegroundColor(Color color) -> void {
 }
 
-auto pHexEdit::setLength(unsigned length) -> void {
+auto pHexEdit::setLength(u32 length) -> void {
   SetScrollRange(scrollBar, SB_CTL, 0, rowsScrollable(), true);
   EnableWindow(scrollBar, rowsScrollable() > 0);
   update();
 }
 
-auto pHexEdit::setRows(unsigned rows) -> void {
+auto pHexEdit::setRows(u32 rows) -> void {
   update();
 }
 
@@ -117,10 +60,10 @@ auto pHexEdit::update() -> void {
     return;
   }
 
-  unsigned cursorPosition = Edit_GetSel(hwnd);
+  u32 cursorPosition = Edit_GetSel(hwnd);
 
   string output;
-  unsigned address = state().address;
+  u32 address = state().address;
   for(auto row : range(state().rows)) {
     output.append(hex(address, 8L));
     output.append("  ");
@@ -129,7 +72,7 @@ auto pHexEdit::update() -> void {
     string ansidata = " ";
     for(auto column : range(state().columns)) {
       if(address < state().length) {
-        uint8_t data = self().doRead(address++);
+        u8 data = self().doRead(address++);
         hexdata.append(hex(data, 2L));
         hexdata.append(" ");
         ansidata.append(data >= 0x20 && data <= 0x7e ? (char)data : '.');
@@ -149,22 +92,22 @@ auto pHexEdit::update() -> void {
   Edit_SetSel(hwnd, LOWORD(cursorPosition), HIWORD(cursorPosition));
 }
 
-bool pHexEdit::keyPress(unsigned scancode) {
+auto pHexEdit::keyPress(u32 scancode) -> bool {
   if(!state().onRead) return false;
 
-  signed position = LOWORD(Edit_GetSel(hwnd));
-  signed lineWidth = 10 + (state().columns * 3) + 1 + state().columns + 2;
-  signed cursorY = position / lineWidth;
-  signed cursorX = position % lineWidth;
+  s32 position = LOWORD(Edit_GetSel(hwnd));
+  s32 lineWidth = 10 + (state().columns * 3) + 1 + state().columns + 2;
+  s32 cursorY = position / lineWidth;
+  s32 cursorX = position % lineWidth;
 
   if(scancode == VK_HOME) {
-    signed offset = cursorY * lineWidth + 10;
+    s32 offset = cursorY * lineWidth + 10;
     Edit_SetSel(hwnd, offset, offset);
     return true;
   }
 
   if(scancode == VK_END) {
-    signed offset = cursorY * lineWidth + 57;
+    s32 offset = cursorY * lineWidth + 57;
     Edit_SetSel(hwnd, offset, offset);
     return true;
   }
@@ -207,10 +150,10 @@ bool pHexEdit::keyPress(unsigned scancode) {
       cursorX /= 3;
       if(cursorX < state().columns) {
         //not in ANSI region
-        unsigned address = state().address + (cursorY * state().columns + cursorX);
+        u32 address = state().address + (cursorY * state().columns + cursorX);
 
         if(address >= state().length) return false;  //do not edit past end of data
-        uint8_t data = self().doRead(address);
+        u8 data = self().doRead(address);
 
         //write modified value
         if(cursorNibble == 1) {
@@ -234,23 +177,65 @@ bool pHexEdit::keyPress(unsigned scancode) {
   return true;
 }
 
-signed pHexEdit::rows() {
+auto pHexEdit::rows() -> s32 {
   return (max(1u, state().length) + state().columns - 1) / state().columns;
 }
 
-signed pHexEdit::rowsScrollable() {
+auto pHexEdit::rowsScrollable() -> s32 {
   return max(0u, rows() - state().rows);
 }
 
-signed pHexEdit::scrollPosition() {
+auto pHexEdit::scrollPosition() -> s32 {
   return state().address / state().columns;
 }
 
-void pHexEdit::scrollTo(signed position) {
+auto pHexEdit::scrollTo(s32 position) -> void {
   if(position > rowsScrollable()) position = rowsScrollable();
   if(position < 0) position = 0;
   if(position == scrollPosition()) return;
   self().setAddress(position * state().columns);
+}
+
+auto pHexEdit::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  if(msg == WM_KEYDOWN) {
+    if(keyPress(wparam)) return 0;
+  }
+
+  if(msg == WM_MOUSEWHEEL) {
+    s32 offset = -((s16)HIWORD(wparam) / WHEEL_DELTA);
+    scrollTo(scrollPosition() + offset);
+    return true;
+  }
+
+  if(msg == WM_SIZE) {
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    SetWindowPos(scrollBar, HWND_TOP, rc.right - 18, 0, 18, rc.bottom, SWP_SHOWWINDOW);
+  }
+
+  if(msg == WM_VSCROLL) {
+    SCROLLINFO info{sizeof(SCROLLINFO)};
+    info.fMask = SIF_ALL;
+    GetScrollInfo((HWND)lparam, SB_CTL, &info);
+    switch(LOWORD(wparam)) {
+    case SB_LEFT: info.nPos = info.nMin; break;
+    case SB_RIGHT: info.nPos = info.nMax; break;
+    case SB_LINELEFT: info.nPos--; break;
+    case SB_LINERIGHT: info.nPos++; break;
+    case SB_PAGELEFT: info.nPos -= info.nMax >> 3; break;
+    case SB_PAGERIGHT: info.nPos += info.nMax >> 3; break;
+    case SB_THUMBTRACK: info.nPos = info.nTrackPos; break;
+    }
+
+    info.fMask = SIF_POS;
+    SetScrollInfo((HWND)lparam, SB_CTL, &info, TRUE);
+    GetScrollInfo((HWND)lparam, SB_CTL, &info);  //get clamped position
+
+    scrollTo(info.nPos);
+    return true;
+  }
+
+  return pWidget::windowProc(hwnd, msg, wparam, lparam);
 }
 
 }

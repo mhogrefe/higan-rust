@@ -1,33 +1,35 @@
 #if defined(Hiro_Window)
 
+mWindow::mWindow() {
+  mObject::state.visible = false;
+}
+
 auto mWindow::allocate() -> pObject* {
   return new pWindow(*this);
 }
 
 auto mWindow::destruct() -> void {
-  if(auto& layout = state.layout) layout->destruct();
   if(auto& menuBar = state.menuBar) menuBar->destruct();
+  if(auto& sizable = state.sizable) sizable->destruct();
   if(auto& statusBar = state.statusBar) statusBar->destruct();
   mObject::destruct();
 }
 
 //
 
-auto mWindow::append(sLayout layout) -> type& {
-  if(auto& layout = state.layout) remove(layout);
-  state.layout = layout;
-  layout->setGeometry(geometry().setPosition(0, 0));
-  layout->setParent(this, 0);
-  layout->setGeometry(geometry().setPosition(0, 0));
-  signal(append, layout);
-  return *this;
-}
-
 auto mWindow::append(sMenuBar menuBar) -> type& {
   if(auto& menuBar = state.menuBar) remove(menuBar);
   menuBar->setParent(this, 0);
   state.menuBar = menuBar;
   signal(append, menuBar);
+  return *this;
+}
+
+auto mWindow::append(sSizable sizable) -> type& {
+  if(auto& sizable = state.sizable) remove(sizable);
+  state.sizable = sizable;
+  sizable->setParent(this, 0);
+  signal(append, sizable);
   return *this;
 }
 
@@ -51,15 +53,15 @@ auto mWindow::doClose() const -> void {
   if(state.onClose) return state.onClose();
 }
 
-auto mWindow::doDrop(string_vector names) const -> void {
+auto mWindow::doDrop(vector<string> names) const -> void {
   if(state.onDrop) return state.onDrop(names);
 }
 
-auto mWindow::doKeyPress(signed key) const -> void {
+auto mWindow::doKeyPress(s32 key) const -> void {
   if(state.onKeyPress) return state.onKeyPress(key);
 }
 
-auto mWindow::doKeyRelease(signed key) const -> void {
+auto mWindow::doKeyRelease(s32 key) const -> void {
   if(state.onKeyRelease) return state.onKeyRelease(key);
 }
 
@@ -91,16 +93,36 @@ auto mWindow::geometry() const -> Geometry {
   return state.geometry;
 }
 
-auto mWindow::layout() const -> Layout {
-  return state.layout;
+auto mWindow::handle() const -> uintptr_t {
+  return signal(handle);
+}
+
+auto mWindow::maximized() const -> bool {
+  return state.maximized;
+}
+
+auto mWindow::maximumSize() const -> Size {
+  return state.maximumSize;
 }
 
 auto mWindow::menuBar() const -> MenuBar {
   return state.menuBar;
 }
 
+auto mWindow::minimized() const -> bool {
+  return state.minimized;
+}
+
+auto mWindow::minimumSize() const -> Size {
+  return state.minimumSize;
+}
+
 auto mWindow::modal() const -> bool {
   return state.modal;
+}
+
+auto mWindow::monitor() const -> u32 {
+  return signal(monitor);
 }
 
 auto mWindow::onClose(const function<void ()>& callback) -> type& {
@@ -108,17 +130,17 @@ auto mWindow::onClose(const function<void ()>& callback) -> type& {
   return *this;
 }
 
-auto mWindow::onDrop(const function<void (string_vector)>& callback) -> type& {
+auto mWindow::onDrop(const function<void (vector<string>)>& callback) -> type& {
   state.onDrop = callback;
   return *this;
 }
 
-auto mWindow::onKeyPress(const function<void (signed)>& callback) -> type& {
+auto mWindow::onKeyPress(const function<void (s32)>& callback) -> type& {
   state.onKeyPress = callback;
   return *this;
 }
 
-auto mWindow::onKeyRelease(const function<void (signed)>& callback) -> type& {
+auto mWindow::onKeyRelease(const function<void (s32)>& callback) -> type& {
   state.onKeyRelease = callback;
   return *this;
 }
@@ -133,18 +155,17 @@ auto mWindow::onSize(const function<void ()>& callback) -> type& {
   return *this;
 }
 
-auto mWindow::remove(sLayout layout) -> type& {
-  signal(remove, layout);
-  layout->setParent();
-  state.layout.reset();
+auto mWindow::remove(sMenuBar menuBar) -> type& {
+  signal(remove, menuBar);
+  menuBar->setParent();
+  state.menuBar.reset();
   return *this;
 }
 
-auto mWindow::remove(sMenuBar menuBar) -> type& {
-  signal(remove, menuBar);
-  menuBar->reset();
-  menuBar->setParent();
-  state.menuBar.reset();
+auto mWindow::remove(sSizable sizable) -> type& {
+  signal(remove, sizable);
+  sizable->setParent();
+  state.sizable.reset();
   return *this;
 }
 
@@ -156,8 +177,8 @@ auto mWindow::remove(sStatusBar statusBar) -> type& {
 }
 
 auto mWindow::reset() -> type& {
-  if(auto& layout = state.layout) remove(layout);
   if(auto& menuBar = state.menuBar) remove(menuBar);
+  if(auto& sizable = state.sizable) remove(sizable);
   if(auto& statusBar = state.statusBar) remove(statusBar);
   return *this;
 }
@@ -167,12 +188,30 @@ auto mWindow::resizable() const -> bool {
 }
 
 auto mWindow::setAlignment(Alignment alignment) -> type& {
-  if(!alignment) alignment = {0.0, 0.0};
-  auto workspace = Desktop::workspace();
+  auto workspace = Monitor::workspace();
   auto geometry = frameGeometry();
-  signed left = alignment.horizontal() * (workspace.width() - geometry.width());
-  signed top = alignment.vertical() * (workspace.height() - geometry.height());
-  setFramePosition({left, top});
+  auto x = workspace.x() + alignment.horizontal() * (workspace.width() - geometry.width());
+  auto y = workspace.y() + alignment.vertical() * (workspace.height() - geometry.height());
+  setFramePosition({(s32)x, (s32)y});
+  return *this;
+}
+
+auto mWindow::setAlignment(sWindow relativeTo, Alignment alignment) -> type& {
+  if(!relativeTo) return setAlignment(alignment);
+  auto parent = relativeTo->frameGeometry();
+  auto window = frameGeometry();
+  //+0 .. +1 => within parent window
+  auto x = parent.x() + (parent.width() - window.width()) * alignment.horizontal();
+  auto y = parent.y() + (parent.height() - window.height()) * alignment.vertical();
+  //-1 .. -0 => beyond parent window
+  //... I know, relying on -0 IEE754 here is ... less than ideal
+  if(signbit(alignment.horizontal())) {
+    x = (parent.x() - window.width()) + abs(alignment.horizontal()) * (parent.width() + window.width());
+  }
+  if(signbit(alignment.vertical())) {
+    y = (parent.y() - window.height()) + abs(alignment.vertical()) * (parent.height() + window.height());
+  }
+  setFramePosition({(s32)x, (s32)y});
   return *this;
 }
 
@@ -180,16 +219,6 @@ auto mWindow::setBackgroundColor(Color color) -> type& {
   state.backgroundColor = color;
   signal(setBackgroundColor, color);
   return *this;
-}
-
-auto mWindow::setCentered(sWindow parent) -> type& {
-  Geometry workspace = parent ? parent->frameGeometry() : Desktop::workspace();
-  Geometry geometry = frameGeometry();
-  signed x = workspace.x();
-  signed y = workspace.y();
-  if(workspace.width() > geometry.width()) x += (workspace.width() - geometry.width()) / 2;
-  if(workspace.height() > geometry.height()) y += (workspace.height() - geometry.height()) / 2;
-  return setFrameGeometry({x, y, geometry.width(), geometry.height()});
 }
 
 auto mWindow::setDismissable(bool dismissable) -> type& {
@@ -237,16 +266,63 @@ auto mWindow::setFullScreen(bool fullScreen) -> type& {
 }
 
 auto mWindow::setGeometry(Geometry geometry) -> type& {
+  //round fractional bits of geometry coordinates that window managers cannot display.
+  //the pWindow classes lose this precision and so not doing so here can cause off-by-1 issues.
+  geometry.setX(round(geometry.x()));
+  geometry.setY(round(geometry.y()));
+  geometry.setWidth(round(geometry.width()));
+  geometry.setHeight(round(geometry.height()));
+
   state.geometry = geometry;
   signal(setGeometry, geometry);
-  if(auto& layout = state.layout) {
-    layout->setGeometry(geometry.setPosition(0, 0));
-  }
+  if(auto& sizable = state.sizable) sizable->setGeometry(sizable->geometry());
+  return *this;
+}
+
+auto mWindow::setGeometry(Alignment alignment, Size size) -> type& {
+  auto margin = signal(frameMargin);
+  auto width = margin.width() + size.width();
+  auto height = margin.height() + size.height();
+  auto workspace = Monitor::workspace();
+  auto x = workspace.x() + alignment.horizontal() * (workspace.width() - width);
+  auto y = workspace.y() + alignment.vertical() * (workspace.height() - height);
+  setFrameGeometry({(s32)x, (s32)y, (s32)width, (s32)height});
+  return *this;
+}
+
+auto mWindow::setMaximized(bool maximized) -> type& {
+  state.maximized = maximized;
+  signal(setMaximized, maximized);
+  return *this;
+}
+
+auto mWindow::setMaximumSize(Size size) -> type& {
+  state.maximumSize = size;
+  signal(setMaximumSize, size);
+  return *this;
+}
+
+auto mWindow::setMinimized(bool minimized) -> type& {
+  state.minimized = minimized;
+  signal(setMinimized, minimized);
+  return *this;
+}
+
+auto mWindow::setMinimumSize(Size size) -> type& {
+  state.minimumSize = size;
+  signal(setMinimumSize, size);
   return *this;
 }
 
 auto mWindow::setModal(bool modal) -> type& {
+  if(state.modal == modal) return *this;
   state.modal = modal;
+  if(modal) {
+    Application::state().modal++;
+  } else {
+    Application::state().modal--;
+    assert(Application::state().modal >= 0);
+  }
   signal(setModal, modal);
   return *this;
 }
@@ -255,6 +331,15 @@ auto mWindow::setPosition(Position position) -> type& {
   return setGeometry({
     position.x(), position.y(),
     state.geometry.width(), state.geometry.height()
+  });
+}
+
+auto mWindow::setPosition(sWindow relativeTo, Position position) -> type& {
+  if(!relativeTo) return setPosition(position);
+  auto geometry = relativeTo->frameGeometry();
+  return setFramePosition({
+    geometry.x() + position.x(),
+    geometry.y() + position.y()
   });
 }
 
@@ -275,6 +360,25 @@ auto mWindow::setTitle(const string& title) -> type& {
   state.title = title;
   signal(setTitle, title);
   return *this;
+}
+
+auto mWindow::setAssociatedFile(const string& filename) -> type& {
+#if defined(PLATFORM_MACOS)
+    signal(setAssociatedFile, filename);
+#endif
+    return *this;
+}
+
+auto mWindow::setVisible(bool visible) -> type& {
+  mObject::setVisible(visible);
+  if(auto& menuBar = state.menuBar) menuBar->setVisible(menuBar->visible());
+  if(auto& sizable = state.sizable) sizable->setVisible(sizable->visible());
+  if(auto& statusBar = state.statusBar) statusBar->setVisible(statusBar->visible());
+  return *this;
+}
+
+auto mWindow::sizable() const -> Sizable {
+  return state.sizable;
 }
 
 auto mWindow::statusBar() const -> StatusBar {

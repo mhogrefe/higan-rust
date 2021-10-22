@@ -1,5 +1,3 @@
-#include "settings.hpp"
-
 #define Declare(Name, Base) \
   p##Name(m##Name& reference) : p##Base(reference) {} \
   auto self() const -> m##Name& { return (m##Name&)reference; } \
@@ -8,6 +6,7 @@
   auto destruct() -> void override; \
 
 #include "application.hpp"
+#include "settings.hpp"
 #include "font.hpp"
 #include "desktop.hpp"
 #include "monitor.hpp"
@@ -33,7 +32,6 @@
 #include "action/menu-radio-item.hpp"
 
 #include "sizable.hpp"
-#include "layout.hpp"
 
 #include "widget/widget.hpp"
 #include "widget/button.hpp"
@@ -54,11 +52,12 @@
 #include "widget/tab-frame.hpp"
 #include "widget/tab-frame-item.hpp"
 #include "widget/table-view.hpp"
-#include "widget/table-view-header.hpp"
 #include "widget/table-view-column.hpp"
 #include "widget/table-view-item.hpp"
 #include "widget/table-view-cell.hpp"
 #include "widget/text-edit.hpp"
+#include "widget/tree-view.hpp"
+#include "widget/tree-view-item.hpp"
 #include "widget/vertical-scroll-bar.hpp"
 #include "widget/vertical-slider.hpp"
 #include "widget/viewport.hpp"

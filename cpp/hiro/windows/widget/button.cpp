@@ -2,49 +2,12 @@
 
 namespace hiro {
 
-static auto Button_paintProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam,
-  bool bordered, bool checked, bool enabled, const Font& font, const image& icon, Orientation orientation, const string& text
-) -> LRESULT {
-  if(msg == WM_PAINT) {
-    PAINTSTRUCT ps;
-    BeginPaint(hwnd, &ps);
-    auto state = Button_GetState(hwnd);
-    Button_CustomDraw(hwnd, ps, bordered, checked, enabled, state, font, icon, orientation, text);
-    EndPaint(hwnd, &ps);
-  }
-  return DefWindowProc(hwnd, msg, wparam, lparam);
-}
-
-//BUTTON cannot draw borderless buttons on its own
-//BS_OWNERDRAW will send WM_DRAWITEM; but will disable hot-tracking notifications
-//to gain hot-tracking plus borderless buttons; BUTTON is superclassed and WM_PAINT is hijacked
-//note: letting hiro paint bordered buttons will lose the fade animations on Vista+;
-//however, it will allow placing icons immediately next to text (original forces icon left alignment)
-static auto CALLBACK Button_windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
-  if(auto object = (mObject*)GetWindowLongPtr(hwnd, GWLP_USERDATA)) {
-    if(auto button = dynamic_cast<mButton*>(object)) {
-      if(auto self = button->self()) {
-        if(msg == WM_ERASEBKGND) return DefWindowProc(hwnd, msg, wparam, lparam);
-        if(msg == WM_PAINT) return Button_paintProc(hwnd, msg, wparam, lparam,
-          button->state.bordered, false, button->enabled(true), button->font(true),
-          button->state.icon, button->state.orientation, button->state.text
-        );
-        return self->windowProc(hwnd, msg, wparam, lparam);
-      }
-    }
-  }
-  return DefWindowProc(hwnd, msg, wparam, lparam);
-}
-
 auto pButton::construct() -> void {
   hwnd = CreateWindow(
     L"BUTTON", L"", WS_CHILD | WS_TABSTOP,
     0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0
   );
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  windowProc = (WindowProc)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
-  SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)Button_windowProc);
-  pWidget::_setState();
+  pWidget::construct();
   _setState();
 }
 
@@ -53,7 +16,7 @@ auto pButton::destruct() -> void {
 }
 
 auto pButton::minimumSize() const -> Size {
-  Size icon = {(int)state().icon.width(), (int)state().icon.height()};
+  Size icon = {(s32)state().icon.width(), (s32)state().icon.height()};
   Size text = state().text ? pFont::size(self().font(true), state().text) : Size{};
   Size size;
   if(state().orientation == Orientation::Horizontal) {
@@ -99,20 +62,50 @@ auto pButton::setVisible(bool visible) -> void {
   _setState();
 }
 
+//
+
 auto pButton::onActivate() -> void {
   self().doActivate();
 }
+
+//BUTTON cannot draw borderless buttons on its own
+//BS_OWNERDRAW will send WM_DRAWITEM; but will disable hot-tracking notifications
+//to gain hot-tracking plus borderless buttons; BUTTON is superclassed and WM_PAINT is hijacked
+//note: letting hiro paint bordered buttons will lose the fade animations on Vista+;
+//however, it will allow placing icons immediately next to text (original forces icon left alignment)
+auto pButton::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  if(msg == WM_KEYDOWN) {
+    //very useful for MessageDialog
+    self().doActivate();
+  }
+
+  if(msg == WM_PAINT) {
+    PAINTSTRUCT ps;
+    BeginPaint(hwnd, &ps);
+    auto buttonState = Button_GetState(hwnd);
+    Button_CustomDraw(hwnd, ps,
+      state().bordered, false, self().enabled(true), buttonState,
+      self().font(true), state().icon, state().orientation, state().text
+    );
+    EndPaint(hwnd, &ps);
+    return false;
+  }
+
+  return pWidget::windowProc(hwnd, msg, wparam, lparam);
+}
+
+//
 
 auto pButton::_setState() -> void {
   InvalidateRect(hwnd, 0, false);
 }
 
 //this function is designed to be used with Button, CheckButton, and RadioButton
-auto Button_CustomDraw(HWND hwnd, PAINTSTRUCT& ps, bool bordered, bool checked, bool enabled, unsigned state, const Font& font, const image& icon, Orientation orientation, const string& text) -> void {
+auto Button_CustomDraw(HWND hwnd, PAINTSTRUCT& ps, bool bordered, bool checked, bool enabled, u32 state, const Font& font, const image& icon, Orientation orientation, const string& text) -> void {
   RECT rc;
   GetClientRect(hwnd, &rc);
   Geometry geometry{rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top}, iconGeometry, textGeometry;
-  if(icon) iconGeometry.setSize({(int)icon.width(), (int)icon.height()});
+  if(icon) iconGeometry.setSize({(s32)icon.width(), (s32)icon.height()});
   if(text) textGeometry.setSize(pFont::size(font, text));
 
   Position position;
@@ -135,7 +128,7 @@ auto Button_CustomDraw(HWND hwnd, PAINTSTRUCT& ps, bool bordered, bool checked, 
 
   if(auto theme = OpenThemeData(hwnd, L"BUTTON")) {
     DrawThemeParentBackground(hwnd, ps.hdc, &rc);
-    unsigned flags = 0;
+    u32 flags = 0;
     if(state & BST_PUSHED || checked) flags = PBS_PRESSED;
     else if(state & BST_HOT) flags = PBS_HOT;
     else if(bordered) flags = enabled ? PBS_NORMAL : PBS_DISABLED;
@@ -144,12 +137,12 @@ auto Button_CustomDraw(HWND hwnd, PAINTSTRUCT& ps, bool bordered, bool checked, 
   } else {
     //Windows Classic
     FillRect(ps.hdc, &rc, GetSysColorBrush(COLOR_3DFACE));
-    unsigned flags = (state & BST_PUSHED || checked) ? DFCS_PUSHED : 0;
+    u32 flags = (state & BST_PUSHED || checked) ? DFCS_PUSHED : 0;
     if(bordered || flags) DrawFrameControl(ps.hdc, &rc, DFC_BUTTON, DFCS_BUTTONPUSH | flags | (enabled ? 0 : DFCS_INACTIVE));
   }
 
   if(GetFocus() == hwnd) {
-    signed offset = state ? 4 : 1;
+    s32 offset = state ? 4 : 1;
     RECT rcFocus{rc.left + offset, rc.top + offset, rc.right - offset, rc.bottom - offset};
     if(!(state & BST_PUSHED) && !(state & BST_HOT)) DrawFocusRect(ps.hdc, &rcFocus);
   }

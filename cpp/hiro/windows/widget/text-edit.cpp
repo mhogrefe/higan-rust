@@ -8,12 +8,11 @@ auto pTextEdit::construct() -> void {
     WS_CHILD | WS_TABSTOP | WS_VSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_WANTRETURN | (!state().wordWrap ? WS_HSCROLL | ES_AUTOHSCROLL : 0),
     0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0
   );
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  pWidget::_setState();
+  pWidget::construct();
   setBackgroundColor(state().backgroundColor);
   setEditable(state().editable);
   setText(state().text);
-  setCursor(state().cursor);
+  setTextCursor(state().textCursor);
 }
 
 auto pTextEdit::destruct() -> void {
@@ -25,14 +24,7 @@ auto pTextEdit::destruct() -> void {
 auto pTextEdit::setBackgroundColor(Color color) -> void {
   if(backgroundBrush) { DeleteObject(backgroundBrush); backgroundBrush = 0; }
   backgroundBrush = CreateSolidBrush(color ? CreateRGB(color) : GetSysColor(COLOR_WINDOW));
-}
-
-auto pTextEdit::setCursor(Cursor cursor) -> void {
-  signed end = GetWindowTextLength(hwnd);
-  signed offset = max(0, min(end, cursor.offset()));
-  signed length = max(0, min(end, cursor.offset() + cursor.length()));
-  Edit_SetSel(hwnd, offset, length);
-  Edit_ScrollCaret(hwnd);
+  InvalidateRect(hwnd, 0, true);
 }
 
 auto pTextEdit::setEditable(bool editable) -> void {
@@ -40,14 +32,22 @@ auto pTextEdit::setEditable(bool editable) -> void {
 }
 
 auto pTextEdit::setForegroundColor(Color color) -> void {
+  InvalidateRect(hwnd, 0, true);
 }
 
 auto pTextEdit::setText(string text) -> void {
-  lock();
+  auto lock = acquire();
   text.replace("\r", "");
   text.replace("\n", "\r\n");
   SetWindowText(hwnd, utf16_t(text));
-  unlock();
+}
+
+auto pTextEdit::setTextCursor(TextCursor cursor) -> void {
+  s32 end = GetWindowTextLength(hwnd);
+  s32 offset = max(0, min(end, cursor.offset()));
+  s32 length = max(0, min(end, cursor.offset() + cursor.length()));
+  Edit_SetSel(hwnd, offset, length);
+  Edit_ScrollCaret(hwnd);
 }
 
 auto pTextEdit::setWordWrap(bool wordWrap) -> void {
@@ -57,7 +57,7 @@ auto pTextEdit::setWordWrap(bool wordWrap) -> void {
 }
 
 auto pTextEdit::text() const -> string {
-  unsigned length = GetWindowTextLength(hwnd);
+  u32 length = GetWindowTextLength(hwnd);
   wchar_t buffer[length + 1];
   GetWindowText(hwnd, buffer, length + 1);
   buffer[length] = 0;
@@ -66,8 +66,52 @@ auto pTextEdit::text() const -> string {
   return text;
 }
 
+auto pTextEdit::textCursor() const -> TextCursor {
+  return state().textCursor;
+}
+
+//
+
 auto pTextEdit::onChange() -> void {
   if(!locked()) self().doChange();
+}
+
+auto pTextEdit::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  if(msg == WM_KEYDOWN) {
+    if(wparam == 'A' && GetKeyState(VK_CONTROL) < 0) {
+      //Ctrl+A = select all text
+      //note: this is not a standard accelerator on Windows
+      Edit_SetSel(hwnd, 0, ~0);
+      return true;
+    } else if(wparam == 'V' && GetKeyState(VK_CONTROL) < 0) {
+      //Ctrl+V = paste text
+      //note: this formats Unix (LF) and OS9 (CR) line-endings to Windows (CR+LF) line-endings
+      //this is necessary as the EDIT control only supports Windows line-endings
+      OpenClipboard(hwnd);
+      if(auto handle = GetClipboardData(CF_UNICODETEXT)) {
+        if(auto text = (wchar_t*)GlobalLock(handle)) {
+          string data = (const char*)utf8_t(text);
+          data.replace("\r\n", "\n");
+          data.replace("\r", "\n");
+          data.replace("\n", "\r\n");
+          GlobalUnlock(handle);
+          utf16_t output(data);
+          if(auto resource = GlobalAlloc(GMEM_MOVEABLE, (wcslen(output) + 1) * sizeof(wchar_t))) {
+            if(auto write = (wchar_t*)GlobalLock(resource)) {
+              wcscpy(write, output);
+              GlobalUnlock(write);
+              if(SetClipboardData(CF_UNICODETEXT, resource) == nullptr) {
+                GlobalFree(resource);
+              }
+            }
+          }
+        }
+      }
+      CloseClipboard();
+    }
+  }
+
+  return pWidget::windowProc(hwnd, msg, wparam, lparam);
 }
 
 }

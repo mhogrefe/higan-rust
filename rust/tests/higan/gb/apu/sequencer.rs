@@ -1,7 +1,7 @@
-use higan_rust::higan::emulator::types::U3;
-use higan_rust::higan::gb::apu::sequencer::Sequencer;
-use higan_rust::higan::gb::memory::memory::Bus;
-use higan_rust::higan::gb::system::system::{Model, System};
+use higan_rust::ares::emulator::types::U3;
+use higan_rust::ares::gb::apu::sequencer::Sequencer;
+use higan_rust::ares::gb::memory::memory::Bus;
+use higan_rust::ares::gb::system::system::{Model, System};
 use malachite_base::num::basic::traits::Zero;
 use malachite_base::num::conversion::traits::WrappingFrom;
 

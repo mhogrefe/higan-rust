@@ -10,6 +10,7 @@ auto pComboButton::construct() -> void {
 }
 
 auto pComboButton::destruct() -> void {
+if(Application::state().quit) return;  //TODO: hack
   delete qtComboButton;
   qtWidget = qtComboButton = nullptr;
 }
@@ -30,9 +31,8 @@ auto pComboButton::remove(sComboButtonItem item) -> void {
 }
 
 auto pComboButton::reset() -> void {
-  lock();
+  auto lock = acquire();
   while(qtComboButton->count()) qtComboButton->removeItem(0);
-  unlock();
 }
 
 auto QtComboButton::onChange(int offset) -> void {

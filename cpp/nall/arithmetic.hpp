@@ -10,6 +10,17 @@
 
 #include <nall/arithmetic/unsigned.hpp>
 
+namespace nall {
+  template<u32 Bits> struct ArithmeticNatural;
+  template<> struct ArithmeticNatural<  8> { using type = u8;   };
+  template<> struct ArithmeticNatural< 16> { using type = u16;  };
+  template<> struct ArithmeticNatural< 32> { using type = u32;  };
+  template<> struct ArithmeticNatural< 64> { using type = u64;  };
+  #if defined(__SIZEOF_INT128__)
+  template<> struct ArithmeticNatural<128> { using type = u128; };
+  #endif
+}
+
 #if !defined(__SIZEOF_INT128__)
 #define PairBits 128
 #define TypeBits  64
@@ -67,3 +78,12 @@
 #undef PairBits
 #undef TypeBits
 #undef HalfBits
+
+namespace nall {
+  //TODO: these types are for expressing smaller bit ranges in class interfaces
+  //for instance, XChaCha20 taking a 192-bit nonce
+  //however, they still allow more bits than expressed ...
+  //some sort of wrapper needs to be devised to ensure these sizes are masked and wrap appropriately
+
+  using u192 = u256;
+}

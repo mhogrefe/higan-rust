@@ -1,6 +1,6 @@
 #pragma once
 
-namespace nall { namespace Markup {
+namespace nall::Markup {
 
 struct Node;
 struct ManagedNode;
@@ -8,8 +8,8 @@ using SharedNode = shared_pointer<ManagedNode>;
 
 struct ManagedNode {
   ManagedNode() = default;
-  explicit ManagedNode(const string& name) : _name(name) {}
-  explicit ManagedNode(const string& name, const string& value) : _name(name), _value(value) {}
+  ManagedNode(const string& name) : _name(name) {}
+  ManagedNode(const string& name, const string& value) : _name(name), _value(value) {}
 
   auto clone() const -> SharedNode {
     SharedNode clone{new ManagedNode(_name, _value)};
@@ -35,10 +35,10 @@ protected:
   uintptr _metadata = 0;
   vector<SharedNode> _children;
 
-  inline auto _evaluate(string query) const -> bool;
-  inline auto _find(const string& query) const -> vector<Node>;
-  inline auto _lookup(const string& path) const -> Node;
-  inline auto _create(const string& path) -> Node;
+  auto _evaluate(string query) const -> bool;
+  auto _find(const string& query) const -> vector<Node>;
+  auto _lookup(const string& path) const -> Node;
+  auto _create(const string& path) -> Node;
 
   friend class Node;
 };
@@ -46,28 +46,42 @@ protected:
 struct Node {
   Node() : shared(new ManagedNode) {}
   Node(const SharedNode& source) : shared(source ? source : new ManagedNode) {}
-  explicit Node(const string& name) : shared(new ManagedNode(name)) {}
-  explicit Node(const string& name, const string& value) : shared(new ManagedNode(name, value)) {}
+  Node(const nall::string& name) : shared(new ManagedNode(name)) {}
+  Node(const nall::string& name, const nall::string& value) : shared(new ManagedNode(name, value)) {}
 
   auto unique() const -> bool { return shared.unique(); }
   auto clone() const -> Node { return shared->clone(); }
   auto copy(Node source) -> void { return shared->copy(source.shared); }
 
   explicit operator bool() const { return shared->_name || shared->_children; }
-  auto name() const -> string { return shared->_name; }
-  auto value() const -> string { return shared->_value; }
+  auto name() const -> nall::string { return shared->_name; }
+  auto value() const -> nall::string { return shared->_value; }
 
-  auto text() const -> string { return value().strip(); }
+  auto value(nall::string& target) const -> bool { if(shared) target = string(); return (bool)shared; }
+  auto value(bool& target) const -> bool { if(shared) target = boolean(); return (bool)shared; }
+  auto value(s32& target) const -> bool { if(shared) target = integer(); return (bool)shared; }
+  auto value(u32& target) const -> bool { if(shared) target = natural(); return (bool)shared; }
+  auto value(f64& target) const -> bool { if(shared) target = real(); return (bool)shared; }
+
+  auto text() const -> nall::string { return value().strip(); }
+  auto string() const -> nall::string { return value().strip(); }
   auto boolean() const -> bool { return text() == "true"; }
-  auto integer() const -> intmax { return text().integer(); }
-  auto natural() const -> uintmax { return text().natural(); }
-  auto real() const -> double { return text().real(); }
+  auto integer() const -> s64 { return text().integer(); }
+  auto natural() const -> u64 { return text().natural(); }
+  auto real() const -> f64 { return text().real(); }
 
-  auto setName(const string& name = "") -> Node& { shared->_name = name; return *this; }
-  auto setValue(const string& value = "") -> Node& { shared->_value = value; return *this; }
+  auto text(const nall::string& fallback) const -> nall::string { return bool(*this) ? text() : fallback; }
+  auto string(const nall::string& fallback) const -> nall::string { return bool(*this) ? string() : fallback; }
+  auto boolean(bool fallback) const -> bool { return bool(*this) ? boolean() : fallback; }
+  auto integer(s64 fallback) const -> s64 { return bool(*this) ? integer() : fallback; }
+  auto natural(u64 fallback) const -> u64 { return bool(*this) ? natural() : fallback; }
+  auto real(f64 fallback) const -> f64 { return bool(*this) ? real() : fallback; }
+
+  auto setName(const nall::string& name = "") -> Node& { shared->_name = name; return *this; }
+  auto setValue(const nall::string& value = "") -> Node& { shared->_value = value; return *this; }
 
   auto reset() -> void { shared->_children.reset(); }
-  auto size() const -> uint { return shared->_children.size(); }
+  auto size() const -> u32 { return shared->_children.size(); }
 
   auto prepend(const Node& node) -> void { shared->_children.prepend(node.shared); }
   auto append(const Node& node) -> void { shared->_children.append(node.shared); }
@@ -80,47 +94,47 @@ struct Node {
     return false;
   }
 
-  auto insert(uint position, const Node& node) -> bool {
+  auto insert(u32 position, const Node& node) -> bool {
     if(position > size()) return false;  //used > instead of >= to allow indexed-equivalent of append()
     return shared->_children.insert(position, node.shared), true;
   }
 
-  auto remove(uint position) -> bool {
+  auto remove(u32 position) -> bool {
     if(position >= size()) return false;
     return shared->_children.remove(position), true;
   }
 
-  auto swap(uint x, uint y) -> bool {
+  auto swap(u32 x, u32 y) -> bool {
     if(x >= size() || y >= size()) return false;
     return std::swap(shared->_children[x], shared->_children[y]), true;
   }
 
   auto sort(function<bool (Node, Node)> comparator = [](auto x, auto y) {
-    return string::compare(x.shared->_name, y.shared->_name) < 0;
+    return nall::string::compare(x.shared->_name, y.shared->_name) < 0;
   }) -> void {
     nall::sort(shared->_children.data(), shared->_children.size(), [&](auto x, auto y) {
       return comparator(x, y);  //this call converts SharedNode objects to Node objects
     });
   }
 
-  auto operator[](int position) -> Node {
+  auto operator[](s32 position) -> Node {
     if(position >= size()) return {};
     return shared->_children[position];
   }
 
-  auto operator[](const string& path) const -> Node { return shared->_lookup(path); }
-  auto operator()(const string& path) -> Node { return shared->_create(path); }
-  auto find(const string& query) const -> vector<Node> { return shared->_find(query); }
+  auto operator[](const nall::string& path) const -> Node { return shared->_lookup(path); }
+  auto operator()(const nall::string& path) -> Node { return shared->_create(path); }
+  auto find(const nall::string& query) const -> vector<Node> { return shared->_find(query); }
 
   struct iterator {
     auto operator*() -> Node { return {source.shared->_children[position]}; }
     auto operator!=(const iterator& source) const -> bool { return position != source.position; }
     auto operator++() -> iterator& { return position++, *this; }
-    iterator(const Node& source, uint position) : source(source), position(position) {}
+    iterator(const Node& source, u32 position) : source(source), position(position) {}
 
   private:
     const Node& source;
-    uint position;
+    u32 position;
   };
 
   auto begin() const -> iterator { return iterator(*this, 0); }
@@ -130,9 +144,4 @@ protected:
   SharedNode shared;
 };
 
-}}
-
-namespace nall {
-  inline auto range(const Markup::Node& value) { return range_t{0, (int)value.size(), 1}; }
-  inline auto rrange(const Markup::Node& value) { return range_t{(int)value.size() - 1, -1, -1}; }
 }

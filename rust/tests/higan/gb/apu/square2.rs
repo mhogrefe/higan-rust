@@ -1,6 +1,6 @@
-use higan_rust::higan::emulator::types::{U11, U2, U3, U4};
-use higan_rust::higan::gb::apu::square_2::Square2;
-use higan_rust::higan::gb::memory::memory::Bus;
+use higan_rust::ares::emulator::types::{U11, U2, U3, U4};
+use higan_rust::ares::gb::apu::square_2::Square2;
+use higan_rust::ares::gb::memory::memory::Bus;
 use malachite_base::comparison::traits::Max;
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;

@@ -4,7 +4,5 @@
 *.iml
 *.o
 *.tmp
-cpp/higan/out
-cpp/icarus/out
+cpp/desktop-ui/out
 rust/target
-

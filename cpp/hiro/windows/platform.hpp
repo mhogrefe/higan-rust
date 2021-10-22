@@ -1,14 +1,7 @@
 namespace hiro {
 
-struct pFont;
-struct pObject;
-struct pWindow;
-struct pMenu;
-struct pLayout;
-struct pWidget;
-
 struct AppMessage {
-  enum : unsigned {
+  enum : uint {
     None = WM_APP,
     TableView_doPaint,
     TableView_onActivate,
@@ -55,7 +48,8 @@ static vector<wObject> windows;
 #include "action/menu-radio-item.hpp"
 
 #include "sizable.hpp"
-#include "layout.hpp"
+
+#include "tool-tip.hpp"
 
 #include "widget/widget.hpp"
 #include "widget/button.hpp"
@@ -76,15 +70,17 @@ static vector<wObject> windows;
 #include "widget/tab-frame.hpp"
 #include "widget/tab-frame-item.hpp"
 #include "widget/table-view.hpp"
-#include "widget/table-view-header.hpp"
 #include "widget/table-view-column.hpp"
 #include "widget/table-view-item.hpp"
 #include "widget/table-view-cell.hpp"
 #include "widget/text-edit.hpp"
+#include "widget/tree-view.hpp"
+#include "widget/tree-view-item.hpp"
 #include "widget/vertical-scroll-bar.hpp"
 #include "widget/vertical-slider.hpp"
 #include "widget/viewport.hpp"
 
 #include "application.hpp"
+#include "settings.hpp"
 
 #undef Declare

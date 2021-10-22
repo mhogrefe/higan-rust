@@ -4,20 +4,20 @@
 #include <nall/encode/url.hpp>
 #include <nall/http/message.hpp>
 
-namespace nall { namespace HTTP {
+namespace nall::HTTP {
 
 struct Request : Message {
   using type = Request;
 
-  enum class RequestType : uint { None, Head, Get, Post };
+  enum class RequestType : u32 { None, Head, Get, Post };
 
   explicit operator bool() const { return requestType() != RequestType::None; }
 
-  inline auto head(const function<bool (const uint8_t* data, uint size)>& callback) const -> bool override;
-  inline auto setHead() -> bool override;
+  auto head(const function<bool (const u8* data, u32 size)>& callback) const -> bool override;
+  auto setHead() -> bool override;
 
-  inline auto body(const function<bool (const uint8_t* data, uint size)>& callback) const -> bool override;
-  inline auto setBody() -> bool override;
+  auto body(const function<bool (const u8* data, u32 size)>& callback) const -> bool override;
+  auto setBody() -> bool override;
 
   auto ipv4() const -> bool { return _ipv6 == false; }
   auto ipv6() const -> bool { return _ipv6 == true; }
@@ -40,7 +40,7 @@ struct Request : Message {
   string _path;
 };
 
-auto Request::head(const function<bool (const uint8_t*, uint)>& callback) const -> bool {
+inline auto Request::head(const function<bool (const u8*, u32)>& callback) const -> bool {
   if(!callback) return false;
   string output;
 
@@ -65,10 +65,10 @@ auto Request::head(const function<bool (const uint8_t*, uint)>& callback) const 
   }
   output.append("\r\n");
 
-  return callback(output.data<uint8_t>(), output.size());
+  return callback(output.data<u8>(), output.size());
 }
 
-auto Request::setHead() -> bool {
+inline auto Request::setHead() -> bool {
   auto headers = _head.split("\n");
   string request = headers.takeLeft().trimRight("\r", 1L);
   string requestHost;
@@ -122,17 +122,17 @@ auto Request::setHead() -> bool {
   return true;
 }
 
-auto Request::body(const function<bool (const uint8_t*, uint)>& callback) const -> bool {
+inline auto Request::body(const function<bool (const u8*, u32)>& callback) const -> bool {
   if(!callback) return false;
 
   if(_body) {
-    return callback(_body.data<uint8_t>(), _body.size());
+    return callback(_body.data<u8>(), _body.size());
   }
 
   return true;
 }
 
-auto Request::setBody() -> bool {
+inline auto Request::setBody() -> bool {
   if(requestType() == RequestType::Post) {
     auto contentType = header["Content-Type"].value();
     if(contentType.iequals("application/x-www-form-urlencoded")) {
@@ -181,4 +181,4 @@ auto Request::setBody() -> bool {
   return true;
 }
 
-}}
+}

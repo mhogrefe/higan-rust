@@ -1,18 +1,23 @@
 #if defined(Hiro_Canvas)
 
-@implementation CocoaCanvas : NSImageView
+@implementation CocoaCanvas : NSView
 
 -(id) initWith:(hiro::mCanvas&)canvasReference {
   if(self = [super initWithFrame:NSMakeRect(0, 0, 0, 0)]) {
     canvas = &canvasReference;
-    [self setEditable:NO];  //disable image drag-and-drop functionality
-    NSTrackingArea* area = [[[NSTrackingArea alloc] initWithRect:[self frame]
+    NSTrackingArea* area = [[NSTrackingArea alloc] initWithRect:[self frame]
       options:NSTrackingMouseMoved | NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect
       owner:self userInfo:nil
-    ] autorelease];
+    ];
     [self addTrackingArea:area];
   }
   return self;
+}
+
+-(void) resetCursorRects {
+  if(auto mouseCursor = NSMakeCursor(canvas->mouseCursor())) {
+    [self addCursorRect:self.bounds cursor:mouseCursor];
+  }
 }
 
 -(NSDragOperation) draggingEntered:(id<NSDraggingInfo>)sender {
@@ -42,6 +47,10 @@
   }
 }
 
+-(void) mouseEntered:(NSEvent*)event {
+  canvas->doMouseEnter();
+}
+
 -(void) mouseExited:(NSEvent*)event {
   canvas->doMouseLeave();
 }
@@ -49,7 +58,7 @@
 -(void) mouseMove:(NSEvent*)event {
   if([event window] == nil) return;
   NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-  canvas->doMouseMove({(int)location.x, (int)([self frame].size.height - 1 - location.y)});
+  canvas->doMouseMove({(s32)location.x, (s32)([self frame].size.height - 1 - location.y)});
 }
 
 -(void) mouseDown:(NSEvent*)event {
@@ -88,29 +97,48 @@
   [self mouseMove:event];
 }
 
+-(void) drawRect:(NSRect)dirtyRect {
+  NSRect frame = self.bounds;
+  s32 width = frame.size.width;
+  s32 height = frame.size.height;
+  if(auto icon = canvas->state.icon) {
+    NSRect alignedFrame = NSMakeRect(canvas->state.alignment.horizontal() * (width - (s32)icon.width()),
+                                     (1 - canvas->state.alignment.vertical()) * (height - (s32)icon.height()),
+                                     icon.width(), icon.height());
+    [NSGraphicsContext currentContext].imageInterpolation = NSImageInterpolationNone;
+    [NSMakeImage(icon) drawInRect:alignedFrame];
+  } else if(auto& gradient = canvas->state.gradient) {
+    auto& colors = gradient.state.colors;
+    image fill;
+    fill.allocate(width, height);
+    fill.gradient(colors[0].value(), colors[1].value(), colors[2].value(), colors[3].value());
+    [NSMakeImage(fill) drawInRect:frame];
+  } else {
+    [NSMakeColor(canvas->state.color) set];
+    NSRectFill(dirtyRect);
+  }
+}
+
 @end
 
 namespace hiro {
 
 auto pCanvas::construct() -> void {
-  @autoreleasepool {
-    cocoaView = cocoaCanvas = [[CocoaCanvas alloc] initWith:self()];
-    pWidget::construct();
-
-    setDroppable(state().droppable);
-  }
+  cocoaView = cocoaCanvas = [[CocoaCanvas alloc] initWith:self()];
+  pWidget::construct();
 }
 
 auto pCanvas::destruct() -> void {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+  [cocoaView removeFromSuperview];
 }
 
 auto pCanvas::minimumSize() const -> Size {
-  if(auto& icon = state().icon) return {(int)icon.width(), (int)icon.height()};
+  if(auto& icon = state().icon) return {(s32)icon.width(), (s32)icon.height()};
   return {0, 0};
+}
+
+auto pCanvas::setAlignment(Alignment) -> void {
+  update();
 }
 
 auto pCanvas::setColor(Color color) -> void {
@@ -118,13 +146,15 @@ auto pCanvas::setColor(Color color) -> void {
 }
 
 auto pCanvas::setDroppable(bool droppable) -> void {
-  @autoreleasepool {
-    if(droppable) {
-      [cocoaCanvas registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
-    } else {
-      [cocoaCanvas unregisterDraggedTypes];
-    }
+  if(droppable) {
+    [cocoaCanvas registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
+  } else {
+    [cocoaCanvas unregisterDraggedTypes];
   }
+}
+
+auto pCanvas::setFocusable(bool focusable) -> void {
+  //TODO
 }
 
 auto pCanvas::setGeometry(Geometry geometry) -> void {
@@ -141,66 +171,7 @@ auto pCanvas::setIcon(const image& icon) -> void {
 }
 
 auto pCanvas::update() -> void {
-  _rasterize();
-  @autoreleasepool {
-    [cocoaView setNeedsDisplay:YES];
-  }
-}
-
-auto pCanvas::_rasterize() -> void {
-  @autoreleasepool {
-    int width = 0;
-    int height = 0;
-
-    if(auto& icon = state().icon) {
-      width = icon.width();
-      height = icon.height();
-    } else {
-      width = pSizable::state().geometry.width();
-      height = pSizable::state().geometry.height();
-    }
-    if(width <= 0 || height <= 0) return;
-
-    if(width != surfaceWidth || height != surfaceHeight) {
-      [cocoaView setImage:nil];
-      [surface release];
-      surface = nullptr;
-      bitmap = nullptr;
-    }
-
-    surfaceWidth = width;
-    surfaceHeight = height;
-
-    if(!surface) {
-      surface = [[[NSImage alloc] initWithSize:NSMakeSize(width, height)] autorelease];
-      bitmap = [[[NSBitmapImageRep alloc]
-        initWithBitmapDataPlanes:nil
-        pixelsWide:width pixelsHigh:height
-        bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES
-        isPlanar:NO colorSpaceName:NSCalibratedRGBColorSpace
-        bitmapFormat:NSAlphaNonpremultipliedBitmapFormat
-        bytesPerRow:(width * 4) bitsPerPixel:32
-      ] autorelease];
-      [surface addRepresentation:bitmap];
-      [cocoaView setImage:surface];
-    }
-
-    auto target = (uint32_t*)[bitmap bitmapData];
-
-    if(auto icon = state().icon) {
-      icon.transform(0, 32, 255u << 24, 255u << 0, 255u << 8, 255u << 16);  //Cocoa uses ABGR format
-      memory::copy(target, icon.data(), icon.size());
-    } else if(auto& gradient = state().gradient) {
-      auto& colors = gradient.state.colors;
-      image fill;
-      fill.allocate(width, height);
-      fill.gradient(colors[0].value(), colors[1].value(), colors[2].value(), colors[3].value());
-      memory::copy(target, fill.data(), fill.size());
-    } else {
-      uint32_t color = state().color.value();
-      for(auto n : range(width * height)) target[n] = color;
-    }
-  }
+  [cocoaView setNeedsDisplay:YES];
 }
 
 }

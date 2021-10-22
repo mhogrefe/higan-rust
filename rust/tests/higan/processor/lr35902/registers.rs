@@ -1,4 +1,4 @@
-use higan_rust::higan::processor::lr35902::lr35902::LR35902;
+use higan_rust::ares::processor::lr35902::lr35902::LR35902;
 
 #[test]
 fn test_af() {

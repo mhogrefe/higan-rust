@@ -8,8 +8,6 @@
   #include "../gtk/header.hpp"
 #elif defined(HIRO_COCOA)
   #include "../cocoa/header.hpp"
-#elif defined(HIRO_REFERENCE)
-  #include "../reference/header.hpp"
 #endif
 
 #include "core.hpp"
@@ -23,22 +21,24 @@ using namespace nall;
   #include "../gtk/platform.cpp"
 #elif defined(HIRO_COCOA)
   #include "../cocoa/platform.cpp"
-#elif defined(HIRO_REFERENCE)
-  #include "../reference/platform.cpp"
 #endif
 
 #define signal(function, ...) \
   (delegate ? self()->function(__VA_ARGS__) : decltype(self()->function(__VA_ARGS__))())
 
+#define signalex(object, function, ...) \
+  (object->delegate ? object->self()->function(__VA_ARGS__) : decltype(object->self()->function(__VA_ARGS__))())
+
 namespace hiro {
   #include "color.cpp"
   #include "gradient.cpp"
   #include "alignment.cpp"
-  #include "cursor.cpp"
+  #include "text-cursor.cpp"
   #include "position.cpp"
   #include "size.cpp"
   #include "geometry.cpp"
   #include "font.cpp"
+  #include "mouse-cursor.cpp"
 
   #include "application.cpp"
   #include "desktop.cpp"
@@ -48,7 +48,7 @@ namespace hiro {
   #include "browser-window.cpp"
   #include "message-window.cpp"
 
-  #include "property.cpp"
+  #include "attribute.cpp"
 
   #include "object.cpp"
   #include "group.cpp"
@@ -68,7 +68,6 @@ namespace hiro {
   #include "action/menu-radio-item.cpp"
 
   #include "sizable.cpp"
-  #include "layout.cpp"
 
   #include "widget/widget.cpp"
   #include "widget/button.cpp"
@@ -95,7 +94,6 @@ namespace hiro {
   #include "widget/tab-frame.cpp"
   #include "widget/tab-frame-item.cpp"
   #include "widget/table-view.cpp"
-  #include "widget/table-view-header.cpp"
   #include "widget/table-view-column.cpp"
   #include "widget/table-view-item.cpp"
   #include "widget/table-view-cell.cpp"
@@ -108,3 +106,4 @@ namespace hiro {
 }
 
 #undef signal
+#undef signalex

@@ -1,18 +1,13 @@
-#define UNICODE
-#define WINVER 0x0601
-#define _WIN32_WINNT WINVER
-#define _WIN32_IE WINVER
-#define __MSVCRT_VERSION__ WINVER
-#define NOMINMAX
-
 #include <nall/windows/guard.hpp>
 #include <winsock2.h>
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+#include <commdlg.h>
 #include <uxtheme.h>
 #include <io.h>
 #include <shlobj.h>
+#include <dwmapi.h>
 #include <nall/windows/guard.hpp>
 #include <nall/windows/registry.hpp>
 #include <nall/windows/utf8.hpp>
@@ -79,4 +74,12 @@
 
 #if !defined(TBS_TRANSPARENTBKGND)
   #define TBS_TRANSPARENTBKGND 0x1000
+#endif
+
+#if !defined(TTP_STANDARD)
+  #define TTP_STANDARD 1
+#endif
+
+#if !defined(TTSS_NORMAL)
+  #define TTSS_NORMAL 1
 #endif

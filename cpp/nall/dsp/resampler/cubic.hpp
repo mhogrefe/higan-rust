@@ -1,39 +1,57 @@
 #pragma once
 
 #include <nall/queue.hpp>
+#include <nall/serializer.hpp>
 
-namespace nall { namespace DSP { namespace Resampler {
+namespace nall::DSP::Resampler {
 
 struct Cubic {
-  inline auto reset(double inputFrequency, double outputFrequency, uint queueSize = 0) -> void;
-  inline auto pending() const -> bool { return samples.pending(); }
-  inline auto read() -> double { return samples.read(); }
-  inline auto write(double sample) -> void;
+  auto inputFrequency() const -> f64 { return _inputFrequency; }
+  auto outputFrequency() const -> f64 { return _outputFrequency; }
+
+  auto reset(f64 inputFrequency, f64 outputFrequency = 0, u32 queueSize = 0) -> void;
+  auto setInputFrequency(f64 inputFrequency) -> void;
+  auto pending() const -> bool;
+  auto read() -> f64;
+  auto write(f64 sample) -> void;
+  auto serialize(serializer&) -> void;
 
 private:
-  double inputFrequency;
-  double outputFrequency;
+  f64 _inputFrequency;
+  f64 _outputFrequency;
 
-  double ratio;
-  double fraction;
-  double history[4];
-  queue<double> samples;
+  f64 _ratio;
+  f64 _fraction;
+  f64 _history[4];
+  queue<f64> _samples;
 };
 
-auto Cubic::reset(double inputFrequency, double outputFrequency, uint queueSize) -> void {
-  this->inputFrequency = inputFrequency;
-  this->outputFrequency = outputFrequency;
-  if(!queueSize) queueSize = outputFrequency * 0.02;  //20ms
+inline auto Cubic::reset(f64 inputFrequency, f64 outputFrequency, u32 queueSize) -> void {
+  _inputFrequency = inputFrequency;
+  _outputFrequency = outputFrequency ? outputFrequency : _inputFrequency;
 
-  ratio = inputFrequency / outputFrequency;
-  fraction = 0.0;
-  for(auto& sample: history) sample = 0.0;
-  samples.resize(queueSize);
+  _ratio = _inputFrequency / _outputFrequency;
+  _fraction = 0.0;
+  for(auto& sample : _history) sample = 0.0;
+  _samples.resize(queueSize ? queueSize : _outputFrequency * 0.02);  //default to 20ms max queue size
 }
 
-auto Cubic::write(double sample) -> void {
-  auto& mu = fraction;
-  auto& s = history;
+inline auto Cubic::setInputFrequency(f64 inputFrequency) -> void {
+  _inputFrequency = inputFrequency;
+  _ratio = _inputFrequency / _outputFrequency;
+}
+
+inline auto Cubic::pending() const -> bool {
+  return _samples.pending();
+}
+
+inline auto Cubic::read() -> double {
+  return _samples.read();
+}
+
+inline auto Cubic::write(f64 sample) -> void {
+  auto& mu = _fraction;
+  auto& s = _history;
 
   s[0] = s[1];
   s[1] = s[2];
@@ -41,16 +59,25 @@ auto Cubic::write(double sample) -> void {
   s[3] = sample;
 
   while(mu <= 1.0) {
-    double A = s[3] - s[2] - s[0] + s[1];
-    double B = s[0] - s[1] - A;
-    double C = s[2] - s[0];
-    double D = s[1];
+    f64 A = s[3] - s[2] - s[0] + s[1];
+    f64 B = s[0] - s[1] - A;
+    f64 C = s[2] - s[0];
+    f64 D = s[1];
 
-    samples.write(A * mu * mu * mu + B * mu * mu + C * mu + D);
-    mu += ratio;
+    _samples.write(A * mu * mu * mu + B * mu * mu + C * mu + D);
+    mu += _ratio;
   }
 
   mu -= 1.0;
 }
 
-}}}
+inline auto Cubic::serialize(serializer& s) -> void {
+  s(_inputFrequency);
+  s(_outputFrequency);
+  s(_ratio);
+  s(_fraction);
+  s(_history);
+  s(_samples);
+}
+
+}

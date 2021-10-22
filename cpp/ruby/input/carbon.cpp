@@ -1,38 +1,43 @@
 #include "keyboard/carbon.cpp"
 
-struct InputCarbon : Input {
-  InputCarbon() : _keyboard(*this) { initialize(); }
+struct InputCarbon : InputDriver {
+  InputCarbon& self = *this;
+  InputCarbon(Input& super) : InputDriver(super), keyboard(super) {}
   ~InputCarbon() { terminate(); }
 
-  auto ready() -> bool { return _ready; }
+  auto create() -> bool override {
+    return initialize();
+  }
 
-  auto acquired() -> bool { return false; }
-  auto acquire() -> bool { return false; }
-  auto release() -> bool { return false; }
+  auto driver() -> string override { return "Carbon"; }
+  auto ready() -> bool override { return isReady; }
 
-  auto poll() -> vector<shared_pointer<HID::Device>> {
+  auto acquired() -> bool override { return false; }
+  auto acquire() -> bool override { return false; }
+  auto release() -> bool override { return false; }
+
+  auto poll() -> vector<shared_pointer<HID::Device>> override {
     vector<shared_pointer<HID::Device>> devices;
-    _keyboard.poll(devices);
+    keyboard.poll(devices);
     return devices;
   }
 
-  auto rumble(uint64 id, bool enable) -> bool {
+  auto rumble(u64 id, bool enable) -> bool override {
     return false;
   }
 
 private:
   auto initialize() -> bool {
     terminate();
-    if(!_keyboard.initialize()) return false;
-    return _ready = true;
+    if(!keyboard.initialize()) return false;
+    return isReady = true;
   }
 
   auto terminate() -> void {
-    _ready = false;
-    _keyboard.terminate();
+    isReady = false;
+    keyboard.terminate();
   }
 
-  bool _ready = false;
-
-  InputKeyboardCarbon _keyboard;
+  bool isReady = false;
+  InputKeyboardCarbon keyboard;
 };

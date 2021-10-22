@@ -1,4 +1,4 @@
-//moc-qt4 -i -o qt.moc qt.hpp
+//$(moc) -i -o qt.moc qt.hpp
 
 /*
   Qt requires moc in order to bind callbacks, which causes many complications.
@@ -184,6 +184,18 @@ public slots:
 };
 #endif
 
+#if defined(Hiro_Label)
+struct QtLabel : public QWidget {
+  Q_OBJECT
+public:
+  QtLabel(pLabel& p) : p(p) {}
+  auto mousePressEvent(QMouseEvent*) -> void;
+  auto mouseReleaseEvent(QMouseEvent*) -> void;
+  auto paintEvent(QPaintEvent*) -> void;
+  pLabel& p;
+};
+#endif
+
 #if defined(Hiro_LineEdit)
 struct QtLineEdit : public QLineEdit {
   Q_OBJECT
@@ -240,9 +252,9 @@ public:
   auto showEvent(QShowEvent*) -> void override;
   pTableView& p;
 public slots:
-  void onActivate();
+  void onActivate(QTreeWidgetItem* item, int column);
   void onChange();
-  void onContext();
+  void onContext(const QPoint&);
   void onSort(int column);
   void onToggle(QTreeWidgetItem* item, int column);
 };
@@ -262,6 +274,15 @@ public:
   pTextEdit& p;
 public slots:
   void onChange();
+};
+#endif
+
+#if defined(Hiro_TreeView)
+struct QtTreeView : public QTreeView {
+  Q_OBJECT
+public:
+  QtTreeView(pTreeView& p) : p(p) {}
+  pTreeView& p;
 };
 #endif
 

@@ -1,0 +1,144 @@
+//TODO test
+
+use ares::emulator::types::{U12, U3};
+use ares::gb::apu::sequencer::Sequencer;
+use ares::gb::memory::memory::{Bus, MMIO};
+use malachite_base::num::arithmetic::traits::WrappingAddAssign;
+use malachite_base::num::basic::traits::{One, Zero};
+use nall::random::{Pcg, Rng};
+
+//TODO impl Thread
+//TODO auto APU::Enter() -> void
+
+#[derive(Clone, Debug, Default)]
+pub struct APU {
+    pub model_is_game_boy_color: bool,
+    pub sequencer: Sequencer,
+
+    pub phase: U3,  //high 3-bits of clock counter
+    pub cycle: U12, //low 12-bits of clock counter
+}
+
+impl APU {
+    pub fn main(&mut self) {
+        self.sequencer.square_1.run();
+        self.sequencer.square_2.run();
+        self.sequencer.wave.run();
+        self.sequencer.noise.run();
+        self.sequencer.run();
+
+        if self.cycle.x() == 0 {
+            //512hz
+            if self.phase.x() == 0
+                || self.phase.x() == 2
+                || self.phase.x() == 4
+                || self.phase.x() == 6
+            {
+                //256hz
+                self.sequencer.square_1.clock_length();
+                self.sequencer.square_2.clock_length();
+                self.sequencer.wave.clock_length();
+                self.sequencer.noise.clock_length();
+            }
+            if self.phase.x() == 2 || self.phase.x() == 6 {
+                //128hz
+                self.sequencer.square_1.clock_sweep();
+            }
+            if self.phase.x() == 7 {
+                //64hz
+                self.sequencer.square_1.clock_envelope();
+                self.sequencer.square_2.clock_envelope();
+                self.sequencer.noise.clock_envelope();
+            }
+            self.phase.wrapping_add_assign(U3::ONE);
+        }
+        self.cycle.wrapping_add_assign(U12::ONE);
+
+        //TODO Thread::step(1);
+        //TODO synchronize(cpu);
+    }
+}
+
+impl Bus {
+    pub fn power_apu(&mut self) {
+        //TODO Thread::create(2 * 1024 * 1024, {&APU::main, this});
+
+        self.apu.sequencer.square_1.power(false);
+        self.apu.sequencer.square_2.power(false);
+        self.apu.sequencer.wave.power(false);
+        self.apu.sequencer.noise.power(false);
+        self.apu.sequencer.power();
+        self.apu.phase = U3::ZERO;
+        self.apu.cycle = U12::ZERO;
+
+        let mut prng = Pcg::new();
+        for n in self.apu.sequencer.wave.pattern.iter_mut() {
+            *n = prng.random() as u8;
+        }
+    }
+}
+
+impl MMIO for APU {
+    fn read_io(&self, addr: u16) -> u8 {
+        match addr {
+            0xff10..=0xff14 => self.sequencer.square_1.read(addr),
+            0xff15..=0xff19 => self.sequencer.square_2.read(addr),
+            0xff1a..=0xff1e => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
+            0xff1f..=0xff23 => self.sequencer.noise.read(addr),
+            0xff24..=0xff26 => self.sequencer.read(addr),
+            0xff30..=0xff3f => self.sequencer.wave.read(self.model_is_game_boy_color, addr),
+            _ => 0xff,
+        }
+    }
+
+    fn write_io(&mut self, addr: u16, mut data: u8) {
+        if !self.sequencer.enable {
+            let mut valid = addr == 0xff26; //NR52
+            if !self.model_is_game_boy_color {
+                //NRx1 length is writable only on DMG,SGB; not on CGB
+                //NR11; duty is not writable (remains 0)
+                match addr {
+                    0xff11 => {
+                        valid = true;
+                        data &= 0x3f;
+                    }
+                    //NR21; duty is not writable (remains 0)
+                    0xff16 => {
+                        valid = true;
+                        data &= 0x3f;
+                    }
+                    0xff1b => {
+                        valid = true; //NR31
+                    }
+                    0xff20 => {
+                        valid = true; //NR41
+                    }
+                    _ => {}
+                }
+            }
+            if !valid {
+                return;
+            }
+        }
+        match addr {
+            0xff10..=0xff14 => self.sequencer.square_1.write(self.phase, addr, data),
+            0xff15..=0xff19 => self.sequencer.square_2.write(self.phase, addr, data),
+            0xff1a..=0xff1e => {
+                self.sequencer
+                    .wave
+                    .write(self.model_is_game_boy_color, self.phase, addr, data)
+            }
+            0xff1f..=0xff23 => self.sequencer.noise.write(self.phase, addr, data),
+            0xff24..=0xff26 => {
+                self.sequencer
+                    .write(self.model_is_game_boy_color, &mut self.phase, addr, data)
+            }
+            0xff30..=0xff3f => {
+                self.sequencer
+                    .wave
+                    .write(self.model_is_game_boy_color, self.phase, addr, data)
+            }
+            _ => {}
+        }
+    }
+}

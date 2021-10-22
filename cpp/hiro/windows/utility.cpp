@@ -1,48 +1,54 @@
 namespace hiro {
 
-static const uint Windows2000  = 0x0500;
-static const uint WindowsXP    = 0x0501;
-static const uint WindowsVista = 0x0600;
-static const uint Windows7     = 0x0601;
+static constexpr u32 Windows2000  = 0x0500;
+static constexpr u32 WindowsXP    = 0x0501;
+static constexpr u32 WindowsVista = 0x0600;
+static constexpr u32 Windows7     = 0x0601;
 
-static auto Button_CustomDraw(HWND, PAINTSTRUCT&, bool, bool, bool, unsigned, const Font&, const image&, Orientation, const string&) -> void;
+static auto Button_CustomDraw(HWND, PAINTSTRUCT&, bool, bool, bool, u32, const Font&, const image&, Orientation, const string&) -> void;
 
-static auto OsVersion() -> unsigned {
+static auto OsVersion() -> u32 {
   OSVERSIONINFO versionInfo{0};
   versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
   GetVersionEx(&versionInfo);
   return (versionInfo.dwMajorVersion << 8) + (versionInfo.dwMajorVersion << 0);
 }
 
+static auto CreateBitmap(HDC hdc, u32 width, u32 height, u32*& data) -> HBITMAP {
+  BITMAPINFO info{};
+  info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+  info.bmiHeader.biWidth = width;
+  info.bmiHeader.biHeight = -(s32)height;  //bitmaps are stored upside down unless we negate height
+  info.bmiHeader.biPlanes = 1;
+  info.bmiHeader.biBitCount = 32;
+  info.bmiHeader.biCompression = BI_RGB;
+  info.bmiHeader.biSizeImage = width * height * sizeof(u32);
+  void* bits = nullptr;
+  auto bitmap = CreateDIBSection(hdc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+  data = (u32*)bits;
+  return bitmap;
+}
+
 static auto CreateBitmap(image icon) -> HBITMAP {
   icon.alphaMultiply();  //Windows AlphaBlend() requires premultiplied image data
   icon.transform();
-  HDC hdc = GetDC(0);
-  BITMAPINFO bitmapInfo;
-  memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-  bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-  bitmapInfo.bmiHeader.biWidth = icon.width();
-  bitmapInfo.bmiHeader.biHeight = -(signed)icon.height();  //bitmaps are stored upside down unless we negate height
-  bitmapInfo.bmiHeader.biPlanes = 1;
-  bitmapInfo.bmiHeader.biBitCount = 32;
-  bitmapInfo.bmiHeader.biCompression = BI_RGB;
-  bitmapInfo.bmiHeader.biSizeImage = icon.size();
-  void* bits = nullptr;
-  HBITMAP hbitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, &bits, NULL, 0);
-  if(bits) memory::copy(bits, icon.data(), icon.size());
-  ReleaseDC(0, hdc);
-  return hbitmap;
+  u32* data = nullptr;
+  auto hdc = GetDC(nullptr);
+  auto bitmap = CreateBitmap(hdc, icon.width(), icon.height(), data);
+  memory::copy(data, icon.data(), icon.size());
+  ReleaseDC(nullptr, hdc);
+  return bitmap;
 }
 
 static auto CreateRGB(const Color& color) -> COLORREF {
   return RGB(color.red(), color.green(), color.blue());
 }
 
-static auto DropPaths(WPARAM wparam) -> string_vector {
+static auto DropPaths(WPARAM wparam) -> vector<string> {
   auto dropList = HDROP(wparam);
   auto fileCount = DragQueryFile(dropList, ~0u, nullptr, 0);
 
-  string_vector paths;
+  vector<string> paths;
   for(auto n : range(fileCount)) {
     auto length = DragQueryFile(dropList, n, nullptr, 0);
     auto buffer = new wchar_t[length + 1];
@@ -60,13 +66,25 @@ static auto DropPaths(WPARAM wparam) -> string_vector {
   return paths;
 }
 
-static auto GetWindowZOrder(HWND hwnd) -> unsigned {
-  unsigned z = 0;
-  for(HWND next = hwnd; next != NULL; next = GetWindow(next, GW_HWNDPREV)) z++;
+static auto WINAPI EnumVisibleChildWindowsProc(HWND hwnd, LPARAM lparam) -> BOOL {
+  auto children = (vector<HWND>*)lparam;
+  if(IsWindowVisible(hwnd)) children->append(hwnd);
+  return true;
+}
+
+static auto EnumVisibleChildWindows(HWND hwnd) -> vector<HWND> {
+  vector<HWND> children;
+  EnumChildWindows(hwnd, EnumVisibleChildWindowsProc, (LPARAM)&children);
+  return children;
+}
+
+static auto GetWindowZOrder(HWND hwnd) -> u32 {
+  u32 z = 0;
+  for(HWND next = hwnd; next != nullptr; next = GetWindow(next, GW_HWNDPREV)) z++;
   return z;
 }
 
-static auto ImageList_Append(HIMAGELIST imageList, image icon, unsigned scale) -> void {
+static auto ImageList_Append(HIMAGELIST imageList, image icon, u32 scale) -> void {
   if(icon) {
     icon.scale(scale, scale);
   } else {
@@ -86,7 +104,7 @@ static auto PostMessageOnce(HWND hwnd, UINT id, WPARAM wparam, LPARAM lparam) ->
   }
 }
 
-static auto ScrollEvent(HWND hwnd, WPARAM wparam) -> unsigned {
+static auto ScrollEvent(HWND hwnd, WPARAM wparam) -> u32 {
   SCROLLINFO info;
   memset(&info, 0, sizeof(SCROLLINFO));
   info.cbSize = sizeof(SCROLLINFO);
@@ -109,6 +127,10 @@ static auto ScrollEvent(HWND hwnd, WPARAM wparam) -> unsigned {
   //Windows may clamp position to scrollbar range
   GetScrollInfo(hwnd, SB_CTL, &info);
   return info.nPos;
+}
+
+static auto CALLBACK Default_windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
+  return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
 //separate because PopupMenu HWND does not contain GWLP_USERDATA pointing at Window needed for Shared_windowProc
@@ -148,7 +170,7 @@ static auto CALLBACK Menu_windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM 
 }
 
 static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
-  if(Application::state.quit) return DefWindowProc(hwnd, msg, wparam, lparam);
+  if(Application::state().quit) return DefWindowProc(hwnd, msg, wparam, lparam);
 
   auto object = (mObject*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
   if(!object) return DefWindowProc(hwnd, msg, wparam, lparam);
@@ -157,8 +179,6 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
   if(!window) return DefWindowProc(hwnd, msg, wparam, lparam);
   auto pWindow = window->self();
   if(!pWindow) return DefWindowProc(hwnd, msg, wparam, lparam);
-
-  if(pWindow->_modalityDisabled()) return DefWindowProc(hwnd, msg, wparam, lparam);
 
   switch(msg) {
   case WM_CTLCOLORBTN:
@@ -205,17 +225,17 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
     break;
   }
 
-  case WM_DRAWITEM: {
-    auto drawItem = (LPDRAWITEMSTRUCT)lparam;
-    auto object = (mObject*)GetWindowLongPtr((HWND)drawItem->hwndItem, GWLP_USERDATA);
-    if(!object) break;
-
-    #if defined(Hiro_TabFrame)
-    if(auto tabFrame = dynamic_cast<mTabFrame*>(object)) {
-      return tabFrame->self()->onDrawItem(lparam), true;
+  case WM_GETMINMAXINFO: {
+    auto info = (LPMINMAXINFO)lparam;
+    auto frameMargin = pWindow->frameMargin();
+    if(auto minimumSize = window->state.minimumSize) {
+      info->ptMinTrackSize.x = minimumSize.width()  + frameMargin.width();
+      info->ptMinTrackSize.y = minimumSize.height() + frameMargin.height();
     }
-    #endif
-
+    if(auto maximumSize = window->state.maximumSize) {
+      info->ptMaxTrackSize.x = maximumSize.width()  + frameMargin.width();
+      info->ptMaxTrackSize.y = maximumSize.height() + frameMargin.height();
+    }
     break;
   }
 
@@ -339,23 +359,16 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
     break;
   }
 
-  #if defined(Hiro_TableView)
-  case AppMessage::TableView_doPaint: {
-    if(auto tableView = (mTableView*)lparam) {
-      if(auto self = tableView->self()) InvalidateRect(self->hwnd, nullptr, true);
-    }
+  case WM_SIZE: {
+    bool maximized = IsZoomed(pWindow->hwnd);
+    bool minimized = IsIconic(pWindow->hwnd);
+
+    window->state.maximized = maximized;
+    window->state.minimized = minimized;
+
+    //todo: call Window::doSize() ?
     break;
   }
-
-  case AppMessage::TableView_onActivate: {
-    if(auto tableView = (mTableView*)lparam) tableView->doActivate();
-    break;
-  }
-
-  case AppMessage::TableView_onChange: {
-    if(auto tableView = (mTableView*)lparam) tableView->doChange();
-  }
-  #endif
 
   case WM_HSCROLL:
   case WM_VSCROLL: {
@@ -389,9 +402,76 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
 
     break;
   }
+
+  //catch mouse events over disabled windows
+  case WM_MOUSEMOVE:
+  case WM_MOUSELEAVE:
+  case WM_MOUSEHOVER: {
+    POINT p{};
+    GetCursorPos(&p);
+    ScreenToClient(hwnd, &p);
+    for(auto window : EnumVisibleChildWindows(hwnd)) {
+      if(auto widget = (mWidget*)GetWindowLongPtr(window, GWLP_USERDATA)) {
+        auto geometry = widget->geometry();
+        if(p.x <  geometry.x()) continue;
+        if(p.y <  geometry.y()) continue;
+        if(p.x >= geometry.x() + geometry.width ()) continue;
+        if(p.y >= geometry.y() + geometry.height()) continue;
+
+        if(msg == WM_MOUSEMOVE) {
+          TRACKMOUSEEVENT event{sizeof(TRACKMOUSEEVENT)};
+          event.hwndTrack = hwnd;
+          event.dwFlags = TME_LEAVE | TME_HOVER;
+          event.dwHoverTime = pToolTip::Delay;
+          TrackMouseEvent(&event);
+          POINT p{};
+          GetCursorPos(&p);
+          widget->self()->doMouseMove(p.x, p.y);
+          if(auto toolTip = pApplication::state().toolTip) {
+            toolTip->windowProc(hwnd, msg, wparam, lparam);
+          }
+        }
+
+        if(msg == WM_MOUSELEAVE) {
+          widget->self()->doMouseLeave();
+        }
+
+        if(msg == WM_MOUSEHOVER) {
+          widget->self()->doMouseHover();
+        }
+      }
+    }
+    break;
   }
 
-  return windowProc(hwnd, msg, wparam, lparam);
+  #if defined(Hiro_TableView)
+  case AppMessage::TableView_doPaint: {
+    if(auto tableView = (mTableView*)lparam) {
+      if(auto self = tableView->self()) {
+        InvalidateRect(self->hwnd, nullptr, true);
+      }
+    }
+    break;
+  }
+
+  case AppMessage::TableView_onActivate: {
+    if(auto tableView = (mTableView*)lparam) {
+      if(auto self = tableView->self()) {
+        tableView->doActivate(self->activateCell);
+      }
+    }
+    break;
+  }
+
+  case AppMessage::TableView_onChange: {
+    if(auto tableView = (mTableView*)lparam) {
+      tableView->doChange();
+    }
+  }
+  #endif
+  }
+
+  return CallWindowProc(windowProc, hwnd, msg, wparam, lparam);
 }
 
 }

@@ -5,6 +5,7 @@ auto mComboEdit::allocate() -> pObject* {
 }
 
 auto mComboEdit::destruct() -> void {
+  for(auto& item : state.items) item->destruct();
   mWidget::destruct();
 }
 
@@ -29,16 +30,20 @@ auto mComboEdit::doChange() const -> void {
   if(state.onChange) return state.onChange();
 }
 
+auto mComboEdit::editable() const -> bool {
+  return state.editable;
+}
+
 auto mComboEdit::foregroundColor() const -> Color {
   return state.foregroundColor;
 }
 
-auto mComboEdit::item(uint position) const -> ComboEditItem {
+auto mComboEdit::item(u32 position) const -> ComboEditItem {
   if(position < itemCount()) return state.items[position];
   return {};
 }
 
-auto mComboEdit::itemCount() const -> uint {
+auto mComboEdit::itemCount() const -> u32 {
   return state.items.size();
 }
 
@@ -81,13 +86,19 @@ auto mComboEdit::setBackgroundColor(Color color) -> type& {
   return *this;
 }
 
+auto mComboEdit::setEditable(bool editable) -> type& {
+  state.editable = editable;
+  signal(setEditable, editable);
+  return *this;
+}
+
 auto mComboEdit::setForegroundColor(Color color) -> type& {
   state.foregroundColor = color;
   signal(setForegroundColor, color);
   return *this;
 }
 
-auto mComboEdit::setParent(mObject* parent, int offset) -> type& {
+auto mComboEdit::setParent(mObject* parent, s32 offset) -> type& {
   for(auto& item : state.items) item->destruct();
   mObject::setParent(parent, offset);
   for(auto& item : state.items) item->setParent(this, item->offset());

@@ -2,7 +2,10 @@
 
 namespace hiro {
 
-static auto Timer_trigger(pTimer* p) -> signed {
+static auto Timer_trigger(pTimer* p) -> int {
+  //prevent all timers from firing once the program has been terminated
+  if(Application::state().quit) return false;
+
   //timer may have been disabled prior to triggering, so check state
   if(p->self().enabled(true)) p->self().doActivate();
 
@@ -27,7 +30,7 @@ auto pTimer::setEnabled(bool enabled) -> void {
   }
 }
 
-auto pTimer::setInterval(uint interval) -> void {
+auto pTimer::setInterval(u32 interval) -> void {
 }
 
 }

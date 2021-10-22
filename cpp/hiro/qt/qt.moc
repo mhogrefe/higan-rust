@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'qt.hpp'
 **
-** Created by: The Qt Meta Object Compiler version 63 (Qt 4.8.6)
+** Created by: The Qt Meta Object Compiler version 63 (Qt 4.8.7)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
@@ -9,7 +9,7 @@
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'qt.hpp' doesn't include <QObject>."
 #elif Q_MOC_OUTPUT_REVISION != 63
-#error "This file was generated using the moc from 4.8.6. It"
+#error "This file was generated using the moc from 4.8.7. It"
 #error "cannot be used with the include files from this version of Qt."
 #error "(The moc has changed too much.)"
 #endif
@@ -954,6 +954,67 @@ int hiro::QtHorizontalSlider::qt_metacall(QMetaObject::Call _c, int _id, void **
     }
     return _id;
 }
+static const uint qt_meta_data_hiro__QtLabel[] = {
+
+ // content:
+       6,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+static const char qt_meta_stringdata_hiro__QtLabel[] = {
+    "hiro::QtLabel\0"
+};
+
+void hiro::QtLabel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    Q_UNUSED(_o);
+    Q_UNUSED(_id);
+    Q_UNUSED(_c);
+    Q_UNUSED(_a);
+}
+
+const QMetaObjectExtraData hiro::QtLabel::staticMetaObjectExtraData = {
+    0,  qt_static_metacall 
+};
+
+const QMetaObject hiro::QtLabel::staticMetaObject = {
+    { &QWidget::staticMetaObject, qt_meta_stringdata_hiro__QtLabel,
+      qt_meta_data_hiro__QtLabel, &staticMetaObjectExtraData }
+};
+
+#ifdef Q_NO_DATA_RELOCATION
+const QMetaObject &hiro::QtLabel::getStaticMetaObject() { return staticMetaObject; }
+#endif //Q_NO_DATA_RELOCATION
+
+const QMetaObject *hiro::QtLabel::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->metaObject : &staticMetaObject;
+}
+
+void *hiro::QtLabel::qt_metacast(const char *_clname)
+{
+    if (!_clname) return 0;
+    if (!strcmp(_clname, qt_meta_stringdata_hiro__QtLabel))
+        return static_cast<void*>(const_cast< QtLabel*>(this));
+    return QWidget::qt_metacast(_clname);
+}
+
+int hiro::QtLabel::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QWidget::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    return _id;
+}
 static const uint qt_meta_data_hiro__QtLineEdit[] = {
 
  // content:
@@ -1267,20 +1328,19 @@ static const uint qt_meta_data_hiro__QtTableView[] = {
        0,       // signalCount
 
  // slots: signature, parameters, type, tag, flags
-      18,   31,   31,   31, 0x0a,
-      32,   31,   31,   31, 0x0a,
-      43,   31,   31,   31, 0x0a,
-      55,   67,   31,   31, 0x0a,
-      74,  105,   31,   31, 0x0a,
+      18,   51,   63,   63, 0x0a,
+      64,   63,   63,   63, 0x0a,
+      75,   63,   63,   63, 0x0a,
+      87,   99,   63,   63, 0x0a,
+     106,   51,   63,   63, 0x0a,
 
        0        // eod
 };
 
 static const char qt_meta_stringdata_hiro__QtTableView[] = {
-    "hiro::QtTableView\0onActivate()\0\0"
-    "onChange()\0onContext()\0onSort(int)\0"
-    "column\0onToggle(QTreeWidgetItem*,int)\0"
-    "item,column\0"
+    "hiro::QtTableView\0onActivate(QTreeWidgetItem*,int)\0"
+    "item,column\0\0onChange()\0onContext()\0"
+    "onSort(int)\0column\0onToggle(QTreeWidgetItem*,int)\0"
 };
 
 void hiro::QtTableView::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -1289,7 +1349,7 @@ void hiro::QtTableView::qt_static_metacall(QObject *_o, QMetaObject::Call _c, in
         Q_ASSERT(staticMetaObject.cast(_o));
         QtTableView *_t = static_cast<QtTableView *>(_o);
         switch (_id) {
-        case 0: _t->onActivate(); break;
+        case 0: _t->onActivate((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 1: _t->onChange(); break;
         case 2: _t->onContext(); break;
         case 3: _t->onSort((*reinterpret_cast< int(*)>(_a[1]))); break;
@@ -1409,6 +1469,67 @@ int hiro::QtTextEdit::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
             qt_static_metacall(this, _c, _id, _a);
         _id -= 1;
     }
+    return _id;
+}
+static const uint qt_meta_data_hiro__QtTreeView[] = {
+
+ // content:
+       6,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       0,    0, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+       0        // eod
+};
+
+static const char qt_meta_stringdata_hiro__QtTreeView[] = {
+    "hiro::QtTreeView\0"
+};
+
+void hiro::QtTreeView::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    Q_UNUSED(_o);
+    Q_UNUSED(_id);
+    Q_UNUSED(_c);
+    Q_UNUSED(_a);
+}
+
+const QMetaObjectExtraData hiro::QtTreeView::staticMetaObjectExtraData = {
+    0,  qt_static_metacall 
+};
+
+const QMetaObject hiro::QtTreeView::staticMetaObject = {
+    { &QTreeView::staticMetaObject, qt_meta_stringdata_hiro__QtTreeView,
+      qt_meta_data_hiro__QtTreeView, &staticMetaObjectExtraData }
+};
+
+#ifdef Q_NO_DATA_RELOCATION
+const QMetaObject &hiro::QtTreeView::getStaticMetaObject() { return staticMetaObject; }
+#endif //Q_NO_DATA_RELOCATION
+
+const QMetaObject *hiro::QtTreeView::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->metaObject : &staticMetaObject;
+}
+
+void *hiro::QtTreeView::qt_metacast(const char *_clname)
+{
+    if (!_clname) return 0;
+    if (!strcmp(_clname, qt_meta_stringdata_hiro__QtTreeView))
+        return static_cast<void*>(const_cast< QtTreeView*>(this));
+    return QTreeView::qt_metacast(_clname);
+}
+
+int hiro::QtTreeView::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QTreeView::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
     return _id;
 }
 static const uint qt_meta_data_hiro__QtVerticalScrollBar[] = {

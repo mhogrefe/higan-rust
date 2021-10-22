@@ -6,20 +6,20 @@ struct pHexEdit : pWidget {
   Declare(HexEdit, Widget)
 
   auto focused() const -> bool override;
-  auto setAddress(unsigned address) -> void;
+  auto setAddress(u32 address) -> void;
   auto setBackgroundColor(Color color) -> void;
-  auto setColumns(unsigned columns) -> void;
+  auto setColumns(u32 columns) -> void;
   auto setForegroundColor(Color color) -> void;
-  auto setLength(unsigned length) -> void;
-  auto setRows(unsigned rows) -> void;
+  auto setLength(u32 length) -> void;
+  auto setRows(u32 rows) -> void;
   auto update() -> void;
 
-  auto cursorPosition() -> unsigned;
-  auto keyPress(unsigned scancode, unsigned mask) -> bool;
-  auto rows() -> signed;
-  auto rowsScrollable() -> signed;
-  auto scroll(signed position) -> void;
-  auto setCursorPosition(unsigned position) -> void;
+  auto cursorPosition() -> u32;
+  auto keyPress(u32 scancode, u32 mask) -> bool;
+  auto rows() -> s32;
+  auto rowsScrollable() -> s32;
+  auto scroll(s32 position) -> void;
+  auto setCursorPosition(u32 position) -> void;
   auto setScroll() -> void;
   auto updateScroll() -> void;
 

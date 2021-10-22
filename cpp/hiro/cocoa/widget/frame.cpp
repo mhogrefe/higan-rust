@@ -16,37 +16,30 @@
 namespace hiro {
 
 auto pFrame::construct() -> void {
-  @autoreleasepool {
-    cocoaView = cocoaFrame = [[CocoaFrame alloc] initWith:self()];
-    pWidget::construct();
+  cocoaView = cocoaFrame = [[CocoaFrame alloc] initWith:self()];
+  pWidget::construct();
 
-    setText(state().text);
-  }
+  setText(state().text);
 }
 
 auto pFrame::destruct() -> void {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+  [cocoaView removeFromSuperview];
 }
 
-auto pFrame::append(sLayout layout) -> void {
+auto pFrame::append(sSizable sizable) -> void {
 }
 
-auto pFrame::remove(sLayout layout) -> void {
+auto pFrame::remove(sSizable sizable) -> void {
 }
 
 auto pFrame::setEnabled(bool enabled) -> void {
   pWidget::setEnabled(enabled);
-  if(auto layout = _layout()) layout->setEnabled(layout->self().enabled(true));
+  if(auto& sizable = state().sizable) sizable->setEnabled(enabled);
 }
 
 auto pFrame::setFont(const Font& font) -> void {
-  @autoreleasepool {
-    [cocoaView setTitleFont:pFont::create(font)];
-  }
-  if(auto layout = _layout()) layout->setFont(layout->self().font(true));
+  [(CocoaFrame*)cocoaView setTitleFont:pFont::create(font)];
+  if(auto& sizable = state().sizable) sizable->setFont(font);
 }
 
 auto pFrame::setGeometry(Geometry geometry) -> void {
@@ -56,8 +49,8 @@ auto pFrame::setGeometry(Geometry geometry) -> void {
     geometry.x() - 3, geometry.y() - (empty ? size.height() - 2 : 1),
     geometry.width() + 6, geometry.height() + (empty ? size.height() + 2 : 5)
   });
-  if(auto layout = state().layout) {
-    layout->setGeometry({
+  if(auto& sizable = state().sizable) {
+    sizable->setGeometry({
       geometry.x() + 1, geometry.y() + (empty ? 1 : size.height() - 2),
       geometry.width() - 2, geometry.height() - (empty ? 1 : size.height() - 1)
     });
@@ -65,21 +58,12 @@ auto pFrame::setGeometry(Geometry geometry) -> void {
 }
 
 auto pFrame::setText(const string& text) -> void {
-  @autoreleasepool {
-    [cocoaView setTitle:[NSString stringWithUTF8String:text]];
-  }
+  [(CocoaFrame*)cocoaView setTitle:[NSString stringWithUTF8String:text]];
 }
 
 auto pFrame::setVisible(bool visible) -> void {
   pWidget::setVisible(visible);
-  if(auto layout = _layout()) layout->setVisible(layout->self().visible(true));
-}
-
-auto pFrame::_layout() -> maybe<pLayout&> {
-  if(auto layout = state().layout) {
-    if(auto self = layout->self()) return *self;
-  }
-  return nothing;
+  if(auto& sizable = state().sizable) sizable->setVisible(visible);
 }
 
 }

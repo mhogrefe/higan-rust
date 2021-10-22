@@ -10,6 +10,13 @@
 #include <nall/function.hpp>
 #include <nall/intrinsics.hpp>
 
+namespace nall {
+  using mutex = std::mutex;
+  using recursive_mutex = std::recursive_mutex;
+  template<typename T> using lock_guard = std::lock_guard<T>;
+  template<typename T> using atomic = std::atomic<T>;
+}
+
 #if defined(API_POSIX)
 
 #include <pthread.h>
@@ -17,11 +24,18 @@
 namespace nall {
 
 struct thread {
-  inline auto join() -> void;
+  thread(const thread&) = delete;
+  auto operator=(const thread&) -> thread& = delete;
 
-  static inline auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, uint stacksize = 0) -> thread;
-  static inline auto detach() -> void;
-  static inline auto exit() -> void;
+  thread() = default;
+  thread(thread&&) = default;
+  auto operator=(thread&&) -> thread& = default;
+
+  auto join() -> void;
+
+  static auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, u32 stacksize = 0) -> thread;
+  static auto detach() -> void;
+  static auto exit() -> void;
 
   struct context {
     function<auto (uintptr) -> void> callback;
@@ -29,7 +43,7 @@ struct thread {
   };
 
 private:
-  pthread_t handle;
+  pthread_t handle = (pthread_t)nullptr;
 };
 
 inline auto _threadCallback(void* parameter) -> void* {
@@ -39,11 +53,11 @@ inline auto _threadCallback(void* parameter) -> void* {
   return nullptr;
 }
 
-auto thread::join() -> void {
+inline auto thread::join() -> void {
   pthread_join(handle, nullptr);
 }
 
-auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, uint stacksize) -> thread {
+inline auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, u32 stacksize) -> thread {
   thread instance;
 
   auto context = new thread::context;
@@ -58,11 +72,11 @@ auto thread::create(const function<void (uintptr)>& callback, uintptr parameter,
   return instance;
 }
 
-auto thread::detach() -> void {
+inline auto thread::detach() -> void {
   pthread_detach(pthread_self());
 }
 
-auto thread::exit() -> void {
+inline auto thread::exit() -> void {
   pthread_exit(nullptr);
 }
 
@@ -73,12 +87,27 @@ auto thread::exit() -> void {
 namespace nall {
 
 struct thread {
-  inline ~thread();
-  inline auto join() -> void;
+  thread(const thread&) = delete;
+  auto operator=(const thread&) -> thread& = delete;
 
-  static inline auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, uint stacksize = 0) -> thread;
-  static inline auto detach() -> void;
-  static inline auto exit() -> void;
+  thread() = default;
+  thread(thread&& source) { operator=(move(source)); }
+
+  ~thread() { close(); }
+
+  auto operator=(thread&& source) -> thread& {
+    close();
+    handle = source.handle;
+    source.handle = 0;
+    return *this;
+  }
+
+  auto close() -> void;
+  auto join() -> void;
+
+  static auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, u32 stacksize = 0) -> thread;
+  static auto detach() -> void;
+  static auto exit() -> void;
 
   struct context {
     function<auto (uintptr) -> void> callback;
@@ -96,22 +125,23 @@ inline auto WINAPI _threadCallback(void* parameter) -> DWORD {
   return 0;
 }
 
-thread::~thread() {
+inline auto thread::close() -> void {
   if(handle) {
     CloseHandle(handle);
     handle = 0;
   }
 }
 
-auto thread::join() -> void {
+inline auto thread::join() -> void {
   if(handle) {
+    //wait until the thread has finished executing ...
     WaitForSingleObject(handle, INFINITE);
     CloseHandle(handle);
     handle = 0;
   }
 }
 
-auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, uint stacksize) -> thread {
+inline auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, u32 stacksize) -> thread {
   thread instance;
 
   auto context = new thread::context;
@@ -122,13 +152,13 @@ auto thread::create(const function<void (uintptr)>& callback, uintptr parameter,
   return instance;
 }
 
-auto thread::detach() -> void {
+inline auto thread::detach() -> void {
   //Windows threads do not use this concept:
   //~thread() frees resources via CloseHandle()
   //thread continues to run even after handle is closed
 }
 
-auto thread::exit() -> void {
+inline auto thread::exit() -> void {
   ExitThread(0);
 }
 

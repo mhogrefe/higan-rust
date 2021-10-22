@@ -1,6 +1,6 @@
 #if defined(Hiro_MenuItem)
 
-@interface CocoaMenuItem : NSMenuItem {
+@interface CocoaMenuItem : NSMenuItem<CocoaMenu> {
 @public
   hiro::mMenuItem* menuItem;
 }
@@ -13,7 +13,8 @@ namespace hiro {
 struct pMenuItem : pAction {
   Declare(MenuItem, Action)
 
-  auto setIcon(const image& icon) -> void;
+  auto setIcon(const multiFactorImage& icon, bool force = false) -> void;
+  auto setIconForFile(const string& filename) -> void;
   auto setText(const string& text) -> void;
 
   CocoaMenuItem* cocoaMenuItem = nullptr;

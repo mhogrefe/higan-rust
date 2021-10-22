@@ -12,7 +12,7 @@ auto BrowserWindow::save() -> string {
   return pBrowserWindow::save(state);
 }
 
-auto BrowserWindow::setFilters(const string_vector& filters) -> type& {
+auto BrowserWindow::setFilters(const vector<string>& filters) -> type& {
   state.filters = filters;
   return *this;
 }
@@ -30,6 +30,15 @@ auto BrowserWindow::setPath(const string& path) -> type& {
 auto BrowserWindow::setTitle(const string& title) -> type& {
   state.title = title;
   return *this;
+}
+
+auto BrowserWindow::setAllowsFolders(bool allows) -> type& {
+  state.allowsFolders = allows;
+  return *this;
+}
+
+auto BrowserWindow::allowsFolders() const -> bool {
+  return state.allowsFolders;
 }
 
 #endif

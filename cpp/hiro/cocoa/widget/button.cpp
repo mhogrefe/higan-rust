@@ -22,22 +22,17 @@
 namespace hiro {
 
 auto pButton::construct() -> void {
-  @autoreleasepool {
-    cocoaView = cocoaButton = [[CocoaButton alloc] initWith:self()];
-    pWidget::construct();
+  cocoaView = cocoaButton = [[CocoaButton alloc] initWith:self()];
+  pWidget::construct();
 
-    setBordered(state().bordered);
-    setIcon(state().icon);
-    setOrientation(state().orientation);
-    setText(state().text);
-  }
+  setBordered(state().bordered);
+  setIcon(state().icon);
+  setOrientation(state().orientation);
+  setText(state().text);
 }
 
 auto pButton::destruct() -> void {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+  [cocoaView removeFromSuperview];
 }
 
 auto pButton::minimumSize() const -> Size {
@@ -66,23 +61,17 @@ auto pButton::setGeometry(Geometry geometry) -> void {
   });
 }
 
-auto pButton::setIcon(const image& icon) -> void {
-  @autoreleasepool {
-    [cocoaView setImage:NSMakeImage(icon)];
-  }
+auto pButton::setIcon(const multiFactorImage& icon) -> void {
+  [(CocoaButton*)cocoaView setImage:NSMakeImage(icon)];
 }
 
 auto pButton::setOrientation(Orientation orientation) -> void {
-  @autoreleasepool {
-    if(orientation == Orientation::Horizontal) [cocoaView setImagePosition:NSImageLeft];
-    if(orientation == Orientation::Vertical  ) [cocoaView setImagePosition:NSImageAbove];
-  }
+  if(orientation == Orientation::Horizontal) [(CocoaButton*)cocoaView setImagePosition:NSImageLeft];
+  if(orientation == Orientation::Vertical  ) [(CocoaButton*)cocoaView setImagePosition:NSImageAbove];
 }
 
 auto pButton::setText(const string& text) -> void {
-  @autoreleasepool {
-    [cocoaView setTitle:[NSString stringWithUTF8String:text]];
-  }
+  [(CocoaButton*)cocoaView setTitle:[NSString stringWithUTF8String:text]];
 }
 
 }

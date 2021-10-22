@@ -5,9 +5,9 @@ namespace hiro {
 struct pTableView : pWidget {
   Declare(TableView, Widget)
 
-  auto append(sTableViewHeader header) -> void;
+  auto append(sTableViewColumn column) -> void;
   auto append(sTableViewItem item) -> void;
-  auto remove(sTableViewHeader header) -> void;
+  auto remove(sTableViewColumn column) -> void;
   auto remove(sTableViewItem item) -> void;
   auto resizeColumns() -> void;
   auto setAlignment(Alignment alignment) -> void;
@@ -16,6 +16,8 @@ struct pTableView : pWidget {
   auto setBordered(bool bordered) -> void;
   auto setForegroundColor(Color color) -> void;
   auto setGeometry(Geometry geometry) -> void override;
+  auto setHeadered(bool headered) -> void;
+  auto setSortable(bool sortable) -> void;
 
   auto onActivate(LPARAM lparam) -> void;
   auto onChange(LPARAM lparam) -> void;
@@ -23,17 +25,17 @@ struct pTableView : pWidget {
   auto onCustomDraw(LPARAM lparam) -> LRESULT;
   auto onSort(LPARAM lparam) -> void;
   auto onToggle(LPARAM lparam) -> void;
+  auto windowProc(HWND, UINT, WPARAM, LPARAM) -> maybe<LRESULT> override;
 
-  auto _backgroundColor(unsigned row, unsigned column) -> Color;
-  auto _cellWidth(unsigned row, unsigned column) -> unsigned;
-  auto _columnWidth(unsigned column) -> unsigned;
-  auto _font(unsigned row, unsigned column) -> Font;
-  auto _foregroundColor(unsigned row, unsigned column) -> Color;
+  auto _backgroundColor(u32 row, u32 column) -> Color;
+  auto _cellWidth(u32 row, u32 column) -> u32;
+  auto _columnWidth(u32 column) -> u32;
+  auto _font(u32 row, u32 column) -> Font;
+  auto _foregroundColor(u32 row, u32 column) -> Color;
   auto _setIcons() -> void;
-  auto _setSortable() -> void;
-  auto _width(unsigned column) -> unsigned;
+  auto _width(u32 column) -> u32;
 
-  WindowProc windowProc = nullptr;
+  TableViewCell activateCell;
   HIMAGELIST imageList = 0;
   vector<image> icons;
 };

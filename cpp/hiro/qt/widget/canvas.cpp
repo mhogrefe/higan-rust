@@ -18,8 +18,12 @@ auto pCanvas::destruct() -> void {
 }
 
 auto pCanvas::minimumSize() const -> Size {
-  if(auto& icon = state().icon) return {(int)icon.width(), (int)icon.height()};
+  if(auto& icon = state().icon) return {icon.width(), icon.height()};
   return {0, 0};
+}
+
+auto pCanvas::setAlignment(Alignment) -> void {
+  update();
 }
 
 auto pCanvas::setColor(Color color) -> void {
@@ -28,6 +32,10 @@ auto pCanvas::setColor(Color color) -> void {
 
 auto pCanvas::setDroppable(bool droppable) -> void {
   qtCanvas->setAcceptDrops(droppable);
+}
+
+auto pCanvas::setFocusable(bool focusable) -> void {
+  //TODO
 }
 
 auto pCanvas::setGeometry(Geometry geometry) -> void {
@@ -49,8 +57,8 @@ auto pCanvas::update() -> void {
 }
 
 auto pCanvas::_rasterize() -> void {
-  int width = 0;
-  int height = 0;
+  s32 width = 0;
+  s32 height = 0;
 
   if(auto& icon = state().icon) {
     width = icon.width();
@@ -66,10 +74,10 @@ auto pCanvas::_rasterize() -> void {
   qtImageHeight = height;
 
   if(!qtImage) qtImage = new QImage(width, height, QImage::Format_ARGB32);
-  auto buffer = (uint32_t*)qtImage->bits();
+  auto buffer = (u32*)qtImage->bits();
 
   if(auto& icon = state().icon) {
-    memory::copy(buffer, state().icon.data(), width * height * sizeof(uint32_t));
+    memory::copy<u32>(buffer, state().icon.data(), width * height);
   } else if(auto& gradient = state().gradient) {
     auto& colors = gradient.state.colors;
     image fill;
@@ -77,7 +85,7 @@ auto pCanvas::_rasterize() -> void {
     fill.gradient(colors[0].value(), colors[1].value(), colors[2].value(), colors[3].value());
     memory::copy(buffer, fill.data(), fill.size());
   } else {
-    uint32_t color = state().color.value();
+    u32 color = state().color.value();
     for(auto n : range(width * height)) buffer[n] = color;
   }
 }
@@ -128,25 +136,26 @@ auto QtCanvas::mouseReleaseEvent(QMouseEvent* event) -> void {
 auto QtCanvas::paintEvent(QPaintEvent* event) -> void {
   if(!p.qtImage) return;
 
-  signed sx = 0, sy = 0, dx = 0, dy = 0;
-  signed width = p.qtImageWidth;
-  signed height = p.qtImageHeight;
+  s32 sx = 0, sy = 0, dx = 0, dy = 0;
+  s32 width = p.qtImageWidth;
+  s32 height = p.qtImageHeight;
   auto geometry = p.pSizable::state().geometry;
+  auto alignment = p.state().alignment ? p.state().alignment : Alignment{0.5, 0.5};
 
   if(width <= geometry.width()) {
     sx = 0;
-    dx = (geometry.width() - width) / 2;
+    dx = (geometry.width() - width) * alignment.horizontal();
   } else {
-    sx = (width - geometry.width()) / 2;
+    sx = (width - geometry.width()) * alignment.horizontal();
     dx = 0;
     width = geometry.width();
   }
 
   if(height <= geometry.height()) {
     sy = 0;
-    dy = (geometry.height() - height) / 2;
+    dy = (geometry.height() - height) * alignment.vertical();
   } else {
-    sy = (height - geometry.height()) / 2;
+    sy = (height - geometry.height()) * alignment.vertical();
     dy = 0;
     height = geometry.height();
   }

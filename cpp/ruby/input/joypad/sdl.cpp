@@ -1,5 +1,4 @@
-#ifndef RUBY_INPUT_JOYPAD_SDL
-#define RUBY_INPUT_JOYPAD_SDL
+#pragma once
 
 struct InputJoypadSDL {
   Input& input;
@@ -7,35 +6,49 @@ struct InputJoypadSDL {
 
   struct Joypad {
     shared_pointer<HID::Joypad> hid{new HID::Joypad};
+    vector<bool> axisPolled;
 
-    unsigned id = 0;
+    u32 id = 0;
     SDL_Joystick* handle = nullptr;
   };
   vector<Joypad> joypads;
 
-  auto assign(shared_pointer<HID::Joypad> hid, unsigned groupID, unsigned inputID, int16_t value) -> void {
-    auto& group = hid->group(groupID);
+  auto assign(Joypad& joypad, u32 groupID, u32 inputID, s16 value) -> void {
+    auto& group = joypad.hid->group(groupID);
     if(group.input(inputID).value() == value) return;
-    input.doChange(hid, groupID, inputID, group.input(inputID).value(), value);
+    if(groupID == HID::Joypad::GroupID::Axis && !joypad.axisPolled(inputID)) {
+      //suppress the first axis polling event, because the value can change dramatically.
+      //SDL seems to return 0 for all axes, until the first movement, where it jumps to the real value.
+      //this triggers onChange handlers to instantly bind inputs erroneously if not suppressed.
+      joypad.axisPolled[inputID] = true;
+    } else {
+      input.doChange(joypad.hid, groupID, inputID, group.input(inputID).value(), value);
+    }
     group.input(inputID).setValue(value);
   }
 
   auto poll(vector<shared_pointer<HID::Device>>& devices) -> void {
     SDL_JoystickUpdate();
+    SDL_Event event;
+    while(SDL_PollEvent(&event)) {
+      if(event.type == SDL_JOYDEVICEADDED || event.type == SDL_JOYDEVICEREMOVED) {
+        enumerate();
+      }
+    }
 
     for(auto& jp : joypads) {
-      for(auto n : range(jp.hid->axes())) {
-        assign(jp.hid, HID::Joypad::GroupID::Axis, n, (int16_t)SDL_JoystickGetAxis(jp.handle, n));
+      for(u32 n : range(jp.hid->axes().size())) {
+        assign(jp, HID::Joypad::GroupID::Axis, n, (s16)SDL_JoystickGetAxis(jp.handle, n));
       }
 
-      for(signed n = 0; n < (signed)jp.hid->hats().size() - 1; n += 2) {
-        uint8_t state = SDL_JoystickGetHat(jp.handle, n >> 1);
-        assign(jp.hid, HID::Joypad::GroupID::Hat, n + 0, state & SDL_HAT_LEFT ? -32767 : state & SDL_HAT_RIGHT ? +32767 : 0);
-        assign(jp.hid, HID::Joypad::GroupID::Hat, n + 1, state & SDL_HAT_UP ? -32767 : state & SDL_HAT_DOWN ? +32767 : 0);
+      for(s32 n = 0; n < (s32)jp.hid->hats().size() - 1; n += 2) {
+        u8 state = SDL_JoystickGetHat(jp.handle, n >> 1);
+        assign(jp, HID::Joypad::GroupID::Hat, n + 0, state & SDL_HAT_LEFT ? -32767 : state & SDL_HAT_RIGHT ? +32767 : 0);
+        assign(jp, HID::Joypad::GroupID::Hat, n + 1, state & SDL_HAT_UP   ? -32767 : state & SDL_HAT_DOWN  ? +32767 : 0);
       }
 
-      for(auto n : range(jp.hid->buttons())) {
-        assign(jp.hid, HID::Joypad::GroupID::Button, n, (bool)SDL_JoystickGetButton(jp.handle, n));
+      for(u32 n : range(jp.hid->buttons().size())) {
+        assign(jp, HID::Joypad::GroupID::Button, n, (bool)SDL_JoystickGetButton(jp.handle, n));
       }
 
       devices.append(jp.hid);
@@ -43,27 +56,11 @@ struct InputJoypadSDL {
   }
 
   auto initialize() -> bool {
+    terminate();
+    SDL_Init(SDL_INIT_EVENTS);
     SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-    SDL_JoystickEventState(SDL_IGNORE);
-
-    for(auto id : range(SDL_NumJoysticks())) {
-      Joypad jp;
-      jp.id = id;
-      jp.handle = SDL_JoystickOpen(id);
-
-      unsigned axes = SDL_JoystickNumAxes(jp.handle);
-      unsigned hats = SDL_JoystickNumHats(jp.handle) * 2;
-      unsigned buttons = 32;  //there is no SDL_JoystickNumButtons()
-
-      jp.hid->setID(3 + jp.id);
-      for(auto n : range(axes)) jp.hid->axes().append(n);
-      for(auto n : range(hats)) jp.hid->hats().append(n);
-      for(auto n : range(buttons)) jp.hid->buttons().append(n);
-      jp.hid->setRumble(false);
-
-      joypads.append(jp);
-    }
-
+    SDL_JoystickEventState(SDL_ENABLE);
+    enumerate();
     return true;
   }
 
@@ -74,6 +71,34 @@ struct InputJoypadSDL {
     joypads.reset();
     SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
   }
-};
 
-#endif
+private:
+  auto enumerate() -> void {
+    for(auto& joypad : joypads) {
+      SDL_JoystickClose(joypad.handle);
+    }
+    joypads.reset();
+
+    for(u32 id : range(SDL_NumJoysticks())) {
+      Joypad jp;
+      jp.id = id;
+      jp.handle = SDL_JoystickOpen(jp.id);
+
+      u32 axes = SDL_JoystickNumAxes(jp.handle);
+      u32 hats = SDL_JoystickNumHats(jp.handle) * 2;
+      u32 buttons = SDL_JoystickNumButtons(jp.handle);
+
+      jp.hid->setVendorID(HID::Joypad::GenericVendorID);
+      jp.hid->setProductID(HID::Joypad::GenericProductID);
+      jp.hid->setPathID(jp.id);
+      for(u32 n : range(axes)) jp.hid->axes().append(n);
+      for(u32 n : range(hats)) jp.hid->hats().append(n);
+      for(u32 n : range(buttons)) jp.hid->buttons().append(n);
+      jp.hid->setRumble(false);
+
+      joypads.append(jp);
+    }
+
+    SDL_JoystickUpdate();
+  }
+};

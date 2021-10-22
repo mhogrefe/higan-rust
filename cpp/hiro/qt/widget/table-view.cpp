@@ -8,14 +8,18 @@ auto pTableView::construct() -> void {
   qtTableView->setContextMenuPolicy(Qt::CustomContextMenu);
   qtTableView->setRootIsDecorated(false);
   qtTableView->setHeaderHidden(true);
+  #if HIRO_QT==4
   qtTableView->header()->setMovable(false);
+  #elif HIRO_QT==5
+  qtTableView->header()->setSectionsMovable(false);
+  #endif
 
   qtTableViewDelegate = new QtTableViewDelegate(*this);
   qtTableView->setItemDelegate(qtTableViewDelegate);
 
-  qtTableView->connect(qtTableView, SIGNAL(itemActivated(QTreeWidgetItem*, int)), SLOT(onActivate()));
+  qtTableView->connect(qtTableView, SIGNAL(itemActivated(QTreeWidgetItem*, int)), SLOT(onActivate(QTreeWidgetItem*, int)));
   qtTableView->connect(qtTableView, SIGNAL(itemSelectionChanged()), SLOT(onChange()));
-  qtTableView->connect(qtTableView, SIGNAL(customContextMenuRequested(const QPoint&)), SLOT(onContext()));
+  qtTableView->connect(qtTableView, SIGNAL(customContextMenuRequested(const QPoint&)), SLOT(onContext(const QPoint&)));
   qtTableView->connect(qtTableView->header(), SIGNAL(sectionClicked(int)), SLOT(onSort(int)));
   qtTableView->connect(qtTableView, SIGNAL(itemChanged(QTreeWidgetItem*, int)), SLOT(onToggle(QTreeWidgetItem*, int)));
 
@@ -23,23 +27,21 @@ auto pTableView::construct() -> void {
   setBatchable(state().batchable);
   setBordered(state().bordered);
   setForegroundColor(state().foregroundColor);
+  setHeadered(state().headered);
+  setSortable(state().sortable);
 
   pWidget::construct();
 }
 
 auto pTableView::destruct() -> void {
+if(Application::state().quit) return;  //TODO: hack
   delete qtTableViewDelegate;
   delete qtTableView;
   qtWidget = qtTableView = nullptr;
   qtTableViewDelegate = nullptr;
 }
 
-auto pTableView::append(sTableViewHeader header) -> void {
-  lock();
-  if(auto self = header->self()) {
-    self->_setState();
-  }
-  unlock();
+auto pTableView::append(sTableViewColumn column) -> void {
 }
 
 auto pTableView::append(sTableViewItem item) -> void {
@@ -51,59 +53,53 @@ auto pTableView::append(sTableViewItem item) -> void {
   unlock();
 }
 
-auto pTableView::remove(sTableViewHeader header) -> void {
+auto pTableView::remove(sTableViewColumn column) -> void {
 }
 
 auto pTableView::remove(sTableViewItem item) -> void {
 }
 
 auto pTableView::resizeColumns() -> void {
-  lock();
+  auto lock = acquire();
 
-  if(auto& header = state().header) {
-    vector<signed> widths;
-    signed minimumWidth = 0;
-    signed expandable = 0;
-    for(auto column : range(header->columnCount())) {
-      signed width = _width(column);
-      widths.append(width);
-      minimumWidth += width;
-      if(header->column(column).expandable()) expandable++;
-    }
-
-    signed maximumWidth = self().geometry().width() - 6;
-    if(auto scrollBar = qtTableView->verticalScrollBar()) {
-      if(scrollBar->isVisible()) maximumWidth -= scrollBar->geometry().width();
-    }
-
-    signed expandWidth = 0;
-    if(expandable && maximumWidth > minimumWidth) {
-      expandWidth = (maximumWidth - minimumWidth) / expandable;
-    }
-
-    for(auto column : range(header->columnCount())) {
-      signed width = widths[column];
-      if(header->column(column).expandable()) width += expandWidth;
-      qtTableView->setColumnWidth(column, width);
-    }
+  vector<s32> widths;
+  s32 minimumWidth = 0;
+  s32 expandable = 0;
+  for(auto column : range(self().columnCount())) {
+    s32 width = _width(column);
+    widths.append(width);
+    minimumWidth += width;
+    if(self().column(column).expandable()) expandable++;
   }
 
-  unlock();
+  s32 maximumWidth = self().geometry().width() - 6;
+  if(auto scrollBar = qtTableView->verticalScrollBar()) {
+    if(scrollBar->isVisible()) maximumWidth -= scrollBar->geometry().width();
+  }
+
+  s32 expandWidth = 0;
+  if(expandable && maximumWidth > minimumWidth) {
+    expandWidth = (maximumWidth - minimumWidth) / expandable;
+  }
+
+  for(auto column : range(self().columnCount())) {
+    s32 width = widths[column];
+    if(self().column(column).expandable()) width += expandWidth;
+    qtTableView->setColumnWidth(column, width);
+  }
 }
 
 auto pTableView::setAlignment(Alignment alignment) -> void {
 }
 
 auto pTableView::setBackgroundColor(Color color) -> void {
-  if(color) {
-    QPalette palette = qtTableView->palette();
-    palette.setColor(QPalette::Base, QColor(color.red(), color.green(), color.blue()));
-    palette.setColor(QPalette::AlternateBase, QColor(max(0, (signed)color.red() - 17), max(0, (signed)color.green() - 17), max(0, (signed)color.blue() - 17)));
-    qtTableView->setPalette(palette);
-    qtTableView->setAutoFillBackground(true);
-  } else {
-    //todo: set default color
-  }
+  //note: QPalette::AlternateBase can be used for alternating row colors
+  static auto defaultColor = qtTableView->palette().color(QPalette::Base);
+
+  auto palette = qtTableView->palette();
+  palette.setColor(QPalette::Base, CreateColor(color, defaultColor));
+  qtTableView->setPalette(palette);
+  qtTableView->setAutoFillBackground((bool)color);
 }
 
 auto pTableView::setBatchable(bool batchable) -> void {
@@ -117,56 +113,63 @@ auto pTableView::setBordered(bool bordered) -> void {
 }
 
 auto pTableView::setForegroundColor(Color color) -> void {
-  if(color) {
-    QPalette palette = qtTableView->palette();
-    palette.setColor(QPalette::Text, QColor(color.red(), color.green(), color.blue()));
-    qtTableView->setPalette(palette);
-  } else {
-    //todo: set default color
-  }
+  static auto defaultColor = qtTableView->palette().color(QPalette::Text);
+
+  auto palette = qtTableView->palette();
+  palette.setColor(QPalette::Text, CreateColor(color, defaultColor));
+  qtTableView->setPalette(palette);
+  qtTableView->setAutoFillBackground((bool)color);
+}
+
+auto pTableView::setHeadered(bool headered) -> void {
+  qtTableView->setHeaderHidden(!headered);
+}
+
+auto pTableView::setSortable(bool sortable) -> void {
+  #if HIRO_QT==4
+  qtTableView->header()->setClickable(sortable);
+  #elif HIRO_QT==5
+  qtTableView->header()->setSectionsClickable(sortable);
+  #endif
 }
 
 //called on resize/show events
 auto pTableView::_onSize() -> void {
   //resize columns only if at least one column is expandable
-  if(auto& header = state().header) {
-    for(auto& column : header->state.columns) {
-      if(column->expandable()) return resizeColumns();
-    }
+  for(auto& column : state().columns) {
+    if(column->expandable()) return resizeColumns();
   }
 }
 
-auto pTableView::_width(unsigned column) -> unsigned {
-  if(auto& header = state().header) {
-    if(auto width = header->column(column).width()) return width;
-    unsigned width = 1;
-    if(!header->column(column).visible()) return width;
-    if(header->visible()) width = max(width, _widthOfColumn(column));
-    for(auto row : range(state().items)) {
-      width = max(width, _widthOfCell(row, column));
-    }
-    return width;
+auto pTableView::_width(u32 column) -> u32 {
+  if(auto width = self().column(column).width()) return width;
+  u32 width = 1;
+  if(!self().column(column).visible()) return width;
+  if(state().headered) width = max(width, _widthOfColumn(column));
+  for(auto row : range(state().items.size())) {
+    width = max(width, _widthOfCell(row, column));
   }
-  return 1;
+  return width;
 }
 
-auto pTableView::_widthOfColumn(unsigned _column) -> unsigned {
-  unsigned width = 8;
-  if(auto& header = state().header) {
-    if(auto column = header->column(_column)) {
-      if(auto& icon = column->state.icon) {
-        width += icon.width() + 4;
-      }
-      if(auto& text = column->state.text) {
-        width += pFont::size(column->font(true), text).width();
-      }
+auto pTableView::_widthOfColumn(u32 _column) -> u32 {
+  u32 width = 8;
+  if(auto column = self().column(_column)) {
+    if(auto& icon = column->state.icon) {
+      width += icon.width() + 4;
+    }
+    if(auto& text = column->state.text) {
+      width += pFont::size(column->font(true), text).width();
+    }
+    if(column->state.sorting != Sort::None) {
+      width += 12;
     }
   }
   return width;
 }
 
-auto pTableView::_widthOfCell(unsigned _row, unsigned _column) -> unsigned {
-  unsigned width = 8;
+auto pTableView::_widthOfCell(u32 _row, u32 _column) -> u32 {
+  u32 width = 8;
   if(auto item = self().item(_row)) {
     if(auto cell = item->cell(_column)) {
       if(cell->state.checkable) {
@@ -183,8 +186,20 @@ auto pTableView::_widthOfCell(unsigned _row, unsigned _column) -> unsigned {
   return width;
 }
 
-auto QtTableView::onActivate() -> void {
-  if(!p.locked()) p.self().doActivate();
+auto QtTableView::onActivate(QTreeWidgetItem* qtItem, int column) -> void {
+  if(p.locked()) return;
+
+  for(auto& item : p.state().items) {
+    if(auto self = item->self()) {
+      if(qtItem == self->qtItem) {
+        if(auto cell = item->cell(column)) {
+          return p.self().doActivate(cell);
+        }
+      }
+    }
+  }
+
+  p.self().doActivate({});
 }
 
 auto QtTableView::onChange() -> void {
@@ -197,15 +212,18 @@ auto QtTableView::onChange() -> void {
   if(!p.locked()) p.self().doChange();
 }
 
-auto QtTableView::onContext() -> void {
-  if(!p.locked()) p.self().doContext();
+auto QtTableView::onContext(const QPoint&) -> void {
+  if(p.locked()) return;
+
+  //todo: determine actual cell clicked instead of returning the first cell
+  auto item = p.self().selected();
+  auto cell = item.cell(0);
+  p.self().doContext(cell);
 }
 
 auto QtTableView::onSort(int columnNumber) -> void {
-  if(auto& header = p.state().header) {
-    if(auto column = header->column(columnNumber)) {
-      if(!p.locked() && column.sortable()) p.self().doSort(column);
-    }
+  if(auto column = p.self().column(columnNumber)) {
+    if(!p.locked() && p.state().sortable) p.self().doSort(column);
   }
 }
 

@@ -2,7 +2,7 @@
 
 namespace hiro {
 
-static auto CALLBACK BrowserWindowCallbackProc(HWND hwnd, UINT msg, LPARAM lparam, LPARAM lpdata) -> signed {
+static auto CALLBACK BrowserWindowCallbackProc(HWND hwnd, UINT msg, LPARAM lparam, LPARAM lpdata) -> s32 {
   if(msg == BFFM_INITIALIZED) {
     if(lpdata) {
       auto state = (BrowserWindow::State*)lpdata;
@@ -19,12 +19,9 @@ static auto BrowserWindow_fileDialog(bool save, BrowserWindow::State& state) -> 
 
   string filters;
   for(auto& filter : state.filters) {
-    auto part = filter.split("(");
+    auto part = filter.split("|", 1L);
     if(part.size() != 2) continue;
-    part[1].trimRight(")", 1L);
-    part[1].replace(" ", "");
-    part[1].transform(",", ";");
-    filters.append(filter, "\t", part[1], "\t");
+    filters.append(part[0], "\t", part[1].transform(":", ";"), "\t");
   }
 
   utf16_t wfilters(filters);

@@ -17,7 +17,8 @@
     NSBundle* bundle = [NSBundle mainBundle];
     NSDictionary* dictionary = [bundle infoDictionary];
     NSString* applicationName = [dictionary objectForKey:@"CFBundleDisplayName"];
-    if(applicationName == nil) applicationName = [NSString stringWithUTF8String:hiro::Application::state.name];
+    string hiroName = hiro::Application::state().name ? hiro::Application::state().name : string{"hiro"};
+    if(applicationName == nil) applicationName = [NSString stringWithUTF8String:hiroName];
 
     menuBar = [[NSMenu alloc] init];
 
@@ -25,52 +26,61 @@
     string text;
 
     rootMenu = [[NSMenu alloc] init];
-    item = [[[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
     [item setSubmenu:rootMenu];
     [menuBar addItem:item];
 
-    item = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@ ...", applicationName] action:@selector(menuAbout) keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@…", applicationName] action:@selector(menuAbout) keyEquivalent:@""];
     [item setTarget:self];
     [rootMenu addItem:item];
     [rootMenu addItem:[NSMenuItem separatorItem]];
 
-    item = [[[NSMenuItem alloc] initWithTitle:@"Preferences ..." action:@selector(menuPreferences) keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:@"Preferences…" action:@selector(menuPreferences) keyEquivalent:@""];
     [item setTarget:self];
+    item.keyEquivalentModifierMask = NSCommandKeyMask;
+    item.keyEquivalent = @",";
     [rootMenu addItem:item];
 
-    string result = nall::execute("defaults", "read", "/Library/Preferences/com.apple.security", "GKAutoRearm").output.strip();
-    if(result != "0") {
-      disableGatekeeperAutoRearm = [[[NSMenuItem alloc] initWithTitle:@"Disable Gatekeeper Auto-Rearm" action:@selector(menuDisableGatekeeperAutoRearm) keyEquivalent:@""] autorelease];
-      [disableGatekeeperAutoRearm setTarget:self];
-      [rootMenu addItem:disableGatekeeperAutoRearm];
+    string result = nall::execute("spctl", "--status").output.strip();
+    if(result != "assessments disabled") {
+      disableGatekeeper = [[NSMenuItem alloc] initWithTitle:@"Disable Gatekeeper" action:@selector(menuDisableGatekeeper) keyEquivalent:@""];
+      [disableGatekeeper setTarget:self];
+      [rootMenu addItem:disableGatekeeper];
     }
 
     [rootMenu addItem:[NSMenuItem separatorItem]];
 
-    NSMenu* servicesMenu = [[[NSMenu alloc] initWithTitle:@"Services"] autorelease];
-    item = [[[NSMenuItem alloc] initWithTitle:@"Services" action:nil keyEquivalent:@""] autorelease];
+    NSMenu* servicesMenu = [[NSMenu alloc] initWithTitle:@"Services"];
+    item = [[NSMenuItem alloc] initWithTitle:@"Services" action:nil keyEquivalent:@""];
     [item setTarget:self];
     [item setSubmenu:servicesMenu];
     [rootMenu addItem:item];
     [rootMenu addItem:[NSMenuItem separatorItem]];
     [NSApp setServicesMenu:servicesMenu];
 
-    item = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", applicationName] action:@selector(hide:) keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", applicationName] action:@selector(hide:) keyEquivalent:@""];
     [item setTarget:NSApp];
+    item.keyEquivalentModifierMask = NSCommandKeyMask;
+    item.keyEquivalent = @"h";
     [rootMenu addItem:item];
 
-    item = [[[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@""];
     [item setTarget:NSApp];
+    [item setTarget:NSApp];
+    item.keyEquivalentModifierMask = NSCommandKeyMask | NSAlternateKeyMask;
+    item.keyEquivalent = @"h";
     [rootMenu addItem:item];
 
-    item = [[[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
     [item setTarget:NSApp];
     [rootMenu addItem:item];
 
     [rootMenu addItem:[NSMenuItem separatorItem]];
 
-    item = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", applicationName] action:@selector(menuQuit) keyEquivalent:@""] autorelease];
+    item = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", applicationName] action:@selector(menuQuit) keyEquivalent:@""];
     [item setTarget:self];
+    item.keyEquivalentModifierMask = NSCommandKeyMask;
+    item.keyEquivalent = @"q";
     [rootMenu addItem:item];
 
     statusBar = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 0, 0)];
@@ -139,18 +149,44 @@
   hiro::Application::Cocoa::doPreferences();
 }
 
--(void) menuDisableGatekeeperAutoRearm {
-  NSAlert* alert = [[[NSAlert alloc] init] autorelease];
-  [alert setMessageText:@"Disable Gatekeeper Auto-Rearm"];
+//to hell with gatekeepers
+-(void) menuDisableGatekeeper {
+  NSAlert* alert = [[NSAlert alloc] init];
+  [alert setMessageText:@"Disable Gatekeeper"];
 
-  nall::execute("sudo", "defaults", "write", "/Library/Preferences/com.apple.security", "GKAutoRearm", "-bool", "NO");
-  if(nall::execute("defaults", "read", "/Library/Preferences/com.apple.security", "GKAutoRearm").output.strip() == "0") {
+  AuthorizationRef authorization;
+  OSStatus status = AuthorizationCreate(nullptr, kAuthorizationEmptyEnvironment, kAuthorizationFlagDefaults, &authorization);
+  if(status == errAuthorizationSuccess) {
+    AuthorizationItem items = {kAuthorizationRightExecute, 0, nullptr, 0};
+    AuthorizationRights rights = {1, &items};
+    status = AuthorizationCopyRights(authorization, &rights, nullptr,
+      kAuthorizationFlagDefaults
+    | kAuthorizationFlagInteractionAllowed
+    | kAuthorizationFlagPreAuthorize
+    | kAuthorizationFlagExtendRights, nullptr);
+    if(status == errAuthorizationSuccess) {
+      { char program[] = "/usr/sbin/spctl";
+        char* arguments[] = {"--master-disable", nullptr};
+        FILE* pipe = nullptr;
+        AuthorizationExecuteWithPrivileges(authorization, program, kAuthorizationFlagDefaults, arguments, &pipe);
+      }
+      { char program[] = "/usr/bin/defaults";
+        char* arguments[] = {"write /Library/Preferences/com.apple.security GKAutoRearm -bool NO"};
+        FILE* pipe = nullptr;
+        AuthorizationExecuteWithPrivileges(authorization, program, kAuthorizationFlagDefaults, arguments, &pipe);
+      }
+    }
+    AuthorizationFree(authorization, kAuthorizationFlagDefaults);
+  }
+
+  string result = nall::execute("spctl", "--status").output.strip();
+  if(result == "assessments disabled") {
     [alert setAlertStyle:NSInformationalAlertStyle];
-    [alert setInformativeText:@"Gatekeeper's automatic 30-day rearm behavior has been disabled successfully."];
-    [disableGatekeeperAutoRearm setHidden:YES];
+    [alert setInformativeText:@"Gatekeeper has been successfully disabled."];
+    [disableGatekeeper setHidden:YES];
   } else {
     [alert setAlertStyle:NSWarningAlertStyle];
-    [alert setInformativeText:@"Error: failed to disable Gatekeeper's automatic rearm behavior."];
+    [alert setInformativeText:@"Error: failed to disable Gatekeeper."];
   }
 
   [alert addButtonWithTitle:@"Ok"];
@@ -165,34 +201,37 @@
   return statusBar;
 }
 
+-(void)windowDidEnterFullScreen:(NSNotification *)notification {
+  window->state.fullScreen = true;
+}
+
+-(void)windowDidExitFullScreen:(NSNotification *)notification {
+  window->state.fullScreen = false;
+}
+
 @end
 
 namespace hiro {
 
 auto pWindow::construct() -> void {
-  @autoreleasepool {
-    cocoaWindow = [[CocoaWindow alloc] initWith:self()];
+  cocoaWindow = [[CocoaWindow alloc] initWith:self()];
 
-    static bool once = true;
-    if(once) {
-      once = false;
-      [NSApp setMainMenu:[cocoaWindow menuBar]];
-    }
+  static bool once = true;
+  if(once) {
+    once = false;
+    [NSApp setMainMenu:[cocoaWindow menuBar]];
   }
 }
 
 auto pWindow::destruct() -> void {
-  @autoreleasepool {
-    [cocoaWindow release];
-  }
-}
-
-auto pWindow::append(sLayout layout) -> void {
-  layout->setGeometry(self().geometry().setPosition(0, 0));
-  statusBarReposition();
 }
 
 auto pWindow::append(sMenuBar menuBar) -> void {
+}
+
+auto pWindow::append(sSizable sizable) -> void {
+  sizable->setGeometry(self().geometry().setPosition());
+  statusBarReposition();
 }
 
 auto pWindow::append(sStatusBar statusBar) -> void {
@@ -203,44 +242,45 @@ auto pWindow::append(sStatusBar statusBar) -> void {
 }
 
 auto pWindow::focused() const -> bool {
-  @autoreleasepool {
-    return [cocoaWindow isMainWindow] == YES;
-  }
+  return [cocoaWindow isMainWindow] == YES;
 }
 
 auto pWindow::frameMargin() const -> Geometry {
-  @autoreleasepool {
-    NSRect frame = [cocoaWindow frameRectForContentRect:NSMakeRect(0, 0, 640, 480)];
-    return {abs(frame.origin.x), (int)(frame.size.height - 480), (int)(frame.size.width - 640), abs(frame.origin.y)};
-  }
+  NSRect frame = [cocoaWindow frameRectForContentRect:NSMakeRect(0, 0, 640, 480)];
+  return {abs(frame.origin.x), (s32)(frame.size.height - 480), (s32)(frame.size.width - 640), abs(frame.origin.y)};
 }
 
-auto pWindow::remove(sLayout layout) -> void {
-  @autoreleasepool {
-    [[cocoaWindow contentView] setNeedsDisplay:YES];
-  }
+auto pWindow::handle() const -> uintptr_t {
+  return (uintptr_t)cocoaWindow;
+}
+
+auto pWindow::monitor() const -> u32 {
+  //TODO
+  return 0;
 }
 
 auto pWindow::remove(sMenuBar menuBar) -> void {
 }
 
+auto pWindow::remove(sSizable sizable) -> void {
+  [[cocoaWindow contentView] setNeedsDisplay:YES];
+}
+
 auto pWindow::remove(sStatusBar statusBar) -> void {
-  @autoreleasepool {
-    [[cocoaWindow statusBar] setHidden:YES];
-  }
+  [[cocoaWindow statusBar] setHidden:YES];
 }
 
 auto pWindow::setBackgroundColor(Color color) -> void {
-  @autoreleasepool {
-    [cocoaWindow
-      setBackgroundColor:[NSColor
-        colorWithCalibratedRed:color.red() / 255.0
-        green:color.green() / 255.0
-        blue:color.blue() / 255.0
-        alpha:color.alpha() / 255.0
-      ]
-    ];
-  }
+  NSView* view = cocoaWindow.contentView;
+  view.wantsLayer = YES;
+  [view.layer
+    setBackgroundColor:[[NSColor
+      colorWithCalibratedRed:color.red() / 255.0
+      green:color.green() / 255.0
+      blue:color.blue() / 255.0
+      alpha:color.alpha() / 255.0
+    ] CGColor]
+  ];
 }
 
 auto pWindow::setDismissable(bool dismissable) -> void {
@@ -248,103 +288,105 @@ auto pWindow::setDismissable(bool dismissable) -> void {
 }
 
 auto pWindow::setDroppable(bool droppable) -> void {
-  @autoreleasepool {
-    if(droppable) {
-      [cocoaWindow registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
-    } else {
-      [cocoaWindow unregisterDraggedTypes];
-    }
+  if(droppable) {
+    [cocoaWindow registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
+  } else {
+    [cocoaWindow unregisterDraggedTypes];
   }
 }
 
 auto pWindow::setFocused() -> void {
-  @autoreleasepool {
-    [cocoaWindow makeKeyAndOrderFront:nil];
-  }
+  [cocoaWindow makeKeyAndOrderFront:nil];
 }
 
 auto pWindow::setFullScreen(bool fullScreen) -> void {
-  @autoreleasepool {
-    if(fullScreen) {
-      windowedGeometry = state().geometry;
-      [NSApp setPresentationOptions:NSApplicationPresentationFullScreen];
-      [cocoaWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-      [cocoaWindow toggleFullScreen:nil];
-      state().geometry = _geometry();
-    } else {
-      [cocoaWindow toggleFullScreen:nil];
-      [cocoaWindow setCollectionBehavior:NSWindowCollectionBehaviorDefault];
-      [NSApp setPresentationOptions:NSApplicationPresentationDefault];
-      state().geometry = windowedGeometry;
-    }
+  if(fullScreen) {
+    windowedGeometry = state().geometry;
+    [NSApp setPresentationOptions:NSApplicationPresentationFullScreen];
+    [cocoaWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    [cocoaWindow toggleFullScreen:nil];
+    state().geometry = _geometry();
+  } else {
+    [cocoaWindow toggleFullScreen:nil];
+    [cocoaWindow setCollectionBehavior:NSWindowCollectionBehaviorDefault];
+    [NSApp setPresentationOptions:NSApplicationPresentationDefault];
+    state().geometry = windowedGeometry;
   }
 }
 
 auto pWindow::setGeometry(Geometry geometry) -> void {
   lock();
 
-  @autoreleasepool {
-    [cocoaWindow
-      setFrame:[cocoaWindow
-        frameRectForContentRect:NSMakeRect(
-          geometry.x(), Desktop::size().height() - geometry.y() - geometry.height(),
-          geometry.width(), geometry.height() + statusBarHeight()
-        )
-      ]
-      display:YES
-    ];
+  [cocoaWindow
+    setFrame:[cocoaWindow
+      frameRectForContentRect:NSMakeRect(
+        geometry.x(), Desktop::size().height() - geometry.y() - geometry.height(),
+        geometry.width(), geometry.height() + statusBarHeight()
+      )
+    ]
+    display:YES
+  ];
 
-    if(auto& layout = state().layout) {
-      layout->setGeometry(self().geometry().setPosition(0, 0));
-    }
-
-    statusBarReposition();
+  if(auto& sizable = state().sizable) {
+    sizable->setGeometry(self().geometry().setPosition());
   }
+
+  statusBarReposition();
 
   unlock();
 }
 
+auto pWindow::setMaximized(bool maximized) -> void {
+  //todo
+}
+
+auto pWindow::setMaximumSize(Size size) -> void {
+  [cocoaWindow setContentMaxSize:NSMakeSize(size.width(), size.height())];
+}
+
+auto pWindow::setMinimized(bool minimized) -> void {
+  [cocoaWindow setIsMiniaturized:minimized];
+}
+
+auto pWindow::setMinimumSize(Size size) -> void {
+  [cocoaWindow setContentMinSize:NSMakeSize(size.width(), size.height())];
+}
+
 auto pWindow::setModal(bool modal) -> void {
-  @autoreleasepool {
-    if(modal == true) {
-      [NSApp runModalForWindow:cocoaWindow];
-    } else {
-      [NSApp stopModal];
-      NSEvent* event = [NSEvent otherEventWithType:NSApplicationDefined location:NSMakePoint(0, 0) modifierFlags:0 timestamp:0.0 windowNumber:0 context:nil subtype:0 data1:0 data2:0];
-      [NSApp postEvent:event atStart:true];
-    }
+  if(modal == true) {
+    [NSApp runModalForWindow:cocoaWindow];
+  } else {
+    [NSApp stopModal];
+    NSEvent* event = [NSEvent otherEventWithType:NSApplicationDefined location:NSMakePoint(0, 0) modifierFlags:0 timestamp:0.0 windowNumber:0 context:nil subtype:0 data1:0 data2:0];
+    [NSApp postEvent:event atStart:true];
   }
 }
 
 auto pWindow::setResizable(bool resizable) -> void {
-  @autoreleasepool {
-    NSUInteger style = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
-    if(resizable) style |= NSResizableWindowMask;
-    [cocoaWindow setStyleMask:style];
-  }
+  NSUInteger style = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
+  if(resizable) style |= NSResizableWindowMask;
+  [cocoaWindow setStyleMask:style];
 }
 
 auto pWindow::setTitle(const string& text) -> void {
-  @autoreleasepool {
-    [cocoaWindow setTitle:[NSString stringWithUTF8String:text]];
-  }
+  [cocoaWindow setTitle:[NSString stringWithUTF8String:text]];
+}
+
+auto pWindow::setAssociatedFile(const string& filename) -> void {
+  [cocoaWindow setRepresentedFilename:[NSString stringWithUTF8String:filename]];
 }
 
 auto pWindow::setVisible(bool visible) -> void {
-  @autoreleasepool {
-    if(visible) [cocoaWindow makeKeyAndOrderFront:nil];
-    else [cocoaWindow orderOut:nil];
-  }
+  if(visible) [cocoaWindow makeKeyAndOrderFront:nil];
+  else [cocoaWindow orderOut:nil];
 }
 
 auto pWindow::moveEvent() -> void {
   if(!locked() && !self().fullScreen() && self().visible()) {
-    @autoreleasepool {
-      NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
-      area.size.height -= statusBarHeight();
-      state().geometry.setX(area.origin.x);
-      state().geometry.setY(Desktop::size().height() - area.origin.y - area.size.height);
-    }
+    NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
+    area.size.height -= statusBarHeight();
+    state().geometry.setX(area.origin.x);
+    state().geometry.setY(Desktop::size().height() - area.origin.y - area.size.height);
   }
 
   if(!locked()) self().doMove();
@@ -352,16 +394,14 @@ auto pWindow::moveEvent() -> void {
 
 auto pWindow::sizeEvent() -> void {
   if(!locked() && !self().fullScreen() && self().visible()) {
-    @autoreleasepool {
-      NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
-      area.size.height -= statusBarHeight();
-      state().geometry.setWidth(area.size.width);
-      state().geometry.setHeight(area.size.height);
-    }
+    NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
+    area.size.height -= statusBarHeight();
+    state().geometry.setWidth(area.size.width);
+    state().geometry.setHeight(area.size.height);
   }
 
-  if(auto& layout = state().layout) {
-    layout->setGeometry(self().geometry().setPosition(0, 0));
+  if(auto& sizable = state().sizable) {
+    sizable->setGeometry(self().geometry().setPosition());
   }
 
   statusBarReposition();
@@ -369,7 +409,7 @@ auto pWindow::sizeEvent() -> void {
   if(!locked()) self().doSize();
 }
 
-auto pWindow::statusBarHeight() -> uint {
+auto pWindow::statusBarHeight() -> u32 {
   if(auto& statusBar = state().statusBar) {
     if(statusBar->visible()) {
       return pFont::size(statusBar->font(true), " ").height() + 6;
@@ -379,33 +419,27 @@ auto pWindow::statusBarHeight() -> uint {
 }
 
 auto pWindow::statusBarReposition() -> void {
-  @autoreleasepool {
-    NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
-    [[cocoaWindow statusBar] setFrame:NSMakeRect(0, 0, area.size.width, statusBarHeight())];
+  NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
+  [[cocoaWindow statusBar] setFrame:NSMakeRect(0, 0, area.size.width, statusBarHeight())];
+  [[cocoaWindow contentView] setNeedsDisplay:YES];
+}
+
+auto pWindow::_append(mWidget& widget) -> void {
+  if(auto pWidget = widget.self()) {
+    [pWidget->cocoaView removeFromSuperview];
+    [[cocoaWindow contentView] addSubview:pWidget->cocoaView positioned:NSWindowAbove relativeTo:nil];
+    pWidget->setGeometry(widget.geometry());
     [[cocoaWindow contentView] setNeedsDisplay:YES];
   }
 }
 
-auto pWindow::_append(mWidget& widget) -> void {
-  @autoreleasepool {
-    if(auto pWidget = widget.self()) {
-      [pWidget->cocoaView removeFromSuperview];
-      [[cocoaWindow contentView] addSubview:pWidget->cocoaView positioned:NSWindowAbove relativeTo:nil];
-      pWidget->setGeometry(widget.geometry());
-      [[cocoaWindow contentView] setNeedsDisplay:YES];
-    }
-  }
-}
-
 auto pWindow::_geometry() -> Geometry {
-  @autoreleasepool {
-    NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
-    area.size.height -= statusBarHeight();
-    return {
-      (int)area.origin.x, (int)(Monitor::geometry(Monitor::primary()).height() - area.origin.y - area.size.height),
-      (int)area.size.width, (int)area.size.height
-    };
-  }
+  NSRect area = [cocoaWindow contentRectForFrameRect:[cocoaWindow frame]];
+  area.size.height -= statusBarHeight();
+  return {
+    (s32)area.origin.x, (s32)(Monitor::geometry(Monitor::primary()).height() - area.origin.y - area.size.height),
+    (s32)area.size.width, (s32)area.size.height
+  };
 }
 
 }

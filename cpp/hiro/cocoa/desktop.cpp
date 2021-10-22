@@ -3,18 +3,22 @@
 namespace hiro {
 
 auto pDesktop::size() -> Size {
-  @autoreleasepool {
-    NSRect primary = [[[NSScreen screens] objectAtIndex:0] frame];
-    return {(int)primary.size.width, (int)primary.size.height};
-  }
+  NSRect primary = [[[NSScreen screens] objectAtIndex:0] frame];
+  return {
+    (s32)primary.size.width,
+    (s32)primary.size.height
+  };
 }
 
 auto pDesktop::workspace() -> Geometry {
-  @autoreleasepool {
-    auto screen = Desktop::size();
-    NSRect area = [[[NSScreen screens] objectAtIndex:0] visibleFrame];
-    return {(int)area.origin.x, (int)(screen.height() - area.size.height - area.origin.y), (int)area.size.width, (int)area.size.height};
-  }
+  auto screen = Desktop::size();
+  NSRect area = [[[NSScreen screens] objectAtIndex:0] visibleFrame];
+  return {
+    (s32)area.origin.x,
+    (s32)area.origin.y,
+    (s32)area.size.width,
+    (s32)area.size.height
+  };
 }
 
 }

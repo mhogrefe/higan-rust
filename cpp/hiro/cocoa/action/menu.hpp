@@ -1,6 +1,6 @@
 #if defined(Hiro_Menu)
 
-@interface CocoaMenu : NSMenuItem {
+@interface CocoaMenu : NSMenuItem<CocoaMenu> {
 @public
   hiro::mMenu* menu;
   NSMenu* cocoaMenu;
@@ -16,7 +16,8 @@ struct pMenu : pAction {
 
   auto append(sAction action) -> void;
   auto remove(sAction action) -> void;
-  auto setIcon(const image& icon) -> void;
+  auto setIcon(const multiFactorImage& icon, bool force = false) -> void;
+  auto setIconForFile(const string& filename) -> void;
   auto setText(const string& text) -> void;
 
   CocoaMenu* cocoaMenu = nullptr;

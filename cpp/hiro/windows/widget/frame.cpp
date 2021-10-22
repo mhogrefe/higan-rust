@@ -3,11 +3,12 @@
 namespace hiro {
 
 auto pFrame::construct() -> void {
-  hwnd = CreateWindow(L"BUTTON", L"",
+  hwnd = CreateWindowEx(
+    //WS_EX_TRANSPARENT fixes rendering issues caused by Windows using WS_CLIPCHILDREN
+    WS_EX_TRANSPARENT, L"BUTTON", L"",
     WS_CHILD | BS_GROUPBOX,
     0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0);
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  pWidget::_setState();
+  pWidget::construct();
   setText(state().text);
 }
 
@@ -15,33 +16,33 @@ auto pFrame::destruct() -> void {
   DestroyWindow(hwnd);
 }
 
-auto pFrame::append(sLayout layout) -> void {
+auto pFrame::append(sSizable sizable) -> void {
 }
 
-auto pFrame::remove(sLayout layout) -> void {
+auto pFrame::remove(sSizable sizable) -> void {
 }
 
 auto pFrame::setEnabled(bool enabled) -> void {
-  if(auto layout = state().layout) layout->setEnabled(layout->enabled());
+  if(auto& sizable = state().sizable) sizable->setEnabled(sizable->enabled());
   pWidget::setEnabled(enabled);
 }
 
 auto pFrame::setGeometry(Geometry geometry) -> void {
   bool empty = !state().text;
   auto size = pFont::size(hfont, state().text);
+  //offsets are based on the default Windows 10 theme
   pWidget::setGeometry({
     geometry.x(),
-    geometry.y() - (empty ? size.height() / 2 : 0),
+    geometry.y() - (empty ? 6_sy : 3_sy),
     geometry.width(),
-    geometry.height() + (empty ? size.height() / 2 : 0)
+    geometry.height() + (empty ? 7_sy : 4_sy)
   });
-  if(auto layout = state().layout) {
-    if(empty) size.setHeight(1);
-    layout->setGeometry({
-      geometry.x() + 1,
-      geometry.y() + size.height(),
-      geometry.width() - 2,
-      geometry.height() - (size.height() + 2)
+  if(auto& sizable = state().sizable) {
+    sizable->setGeometry({
+      geometry.x() + 5_sx,
+      geometry.y() + (empty ? 5_sy : size.height()),
+      geometry.width() - 10_sx,
+      geometry.height() - (empty ? 10_sy : size.height() + 5_sy)
     });
   }
 }
@@ -51,7 +52,7 @@ auto pFrame::setText(const string& text) -> void {
 }
 
 auto pFrame::setVisible(bool visible) -> void {
-  if(auto layout = state().layout) layout->setVisible(layout->visible());
+  if(auto& sizable = state().sizable) sizable->setVisible(sizable->visible());
   pWidget::setVisible(visible);
 }
 

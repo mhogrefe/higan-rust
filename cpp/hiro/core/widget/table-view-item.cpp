@@ -4,6 +4,11 @@ auto mTableViewItem::allocate() -> pObject* {
   return new pTableViewItem(*this);
 }
 
+auto mTableViewItem::destruct() -> void {
+  for(auto& cell : state.cells) cell->destruct();
+  mObject::destruct();
+}
+
 //
 
 auto mTableViewItem::alignment() const -> Alignment {
@@ -21,12 +26,12 @@ auto mTableViewItem::backgroundColor() const -> Color {
   return state.backgroundColor;
 }
 
-auto mTableViewItem::cell(unsigned position) const -> TableViewCell {
+auto mTableViewItem::cell(u32 position) const -> TableViewCell {
   if(position < cellCount()) return state.cells[position];
   return {};
 }
 
-auto mTableViewItem::cellCount() const -> unsigned {
+auto mTableViewItem::cellCount() const -> u32 {
   return state.cells.size();
 }
 
@@ -56,7 +61,7 @@ auto mTableViewItem::remove(sTableViewCell cell) -> type& {
 }
 
 auto mTableViewItem::reset() -> type& {
-  for(auto n : rrange(state.cells)) remove(state.cells[n]);
+  while(state.cells) remove(state.cells.right());
   return *this;
 }
 
@@ -87,7 +92,7 @@ auto mTableViewItem::setForegroundColor(Color color) -> type& {
   return *this;
 }
 
-auto mTableViewItem::setParent(mObject* parent, signed offset) -> type& {
+auto mTableViewItem::setParent(mObject* parent, s32 offset) -> type& {
   for(auto& cell : state.cells) cell->destruct();
   mObject::setParent(parent, offset);
   for(auto& cell : state.cells) cell->setParent(this, cell->offset());
@@ -95,6 +100,12 @@ auto mTableViewItem::setParent(mObject* parent, signed offset) -> type& {
 }
 
 auto mTableViewItem::setSelected(bool selected) -> type& {
+  //if in single-selection mode, selecting one item must deselect all other items in the TableView
+  if(auto parent = parentTableView()) {
+    if(!parent->state.batchable && selected) {
+      for(auto& item : parent->state.items) item->state.selected = false;
+    }
+  }
   state.selected = selected;
   signal(setSelected, selected);
   return *this;

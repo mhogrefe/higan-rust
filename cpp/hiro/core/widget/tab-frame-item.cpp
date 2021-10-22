@@ -5,17 +5,17 @@ auto mTabFrameItem::allocate() -> pObject* {
 }
 
 auto mTabFrameItem::destruct() -> void {
-  if(auto& layout = state.layout) layout->destruct();
+  if(auto& sizable = state.sizable) sizable->destruct();
   mObject::destruct();
 }
 
 //
 
-auto mTabFrameItem::append(sLayout layout) -> type& {
-  if(auto& layout = state.layout) remove(layout);
-  state.layout = layout;
-  layout->setParent(this, 0);
-  signal(append, layout);
+auto mTabFrameItem::append(sSizable sizable) -> type& {
+  if(auto& sizable = state.sizable) remove(sizable);
+  state.sizable = sizable;
+  sizable->setParent(this, 0);
+  signal(append, sizable);
   return *this;
 }
 
@@ -23,12 +23,8 @@ auto mTabFrameItem::closable() const -> bool {
   return state.closable;
 }
 
-auto mTabFrameItem::icon() const -> image {
+auto mTabFrameItem::icon() const -> multiFactorImage {
   return state.icon;
-}
-
-auto mTabFrameItem::layout() const -> Layout {
-  return state.layout;
 }
 
 auto mTabFrameItem::movable() const -> bool {
@@ -40,15 +36,15 @@ auto mTabFrameItem::remove() -> type& {
   return *this;
 }
 
-auto mTabFrameItem::remove(sLayout layout) -> type& {
-  signal(remove, layout);
-  state.layout.reset();
-  layout->setParent();
+auto mTabFrameItem::remove(sSizable sizable) -> type& {
+  signal(remove, sizable);
+  state.sizable.reset();
+  sizable->setParent();
   return *this;
 }
 
 auto mTabFrameItem::reset() -> type& {
-  if(auto layout = state.layout) remove(layout);
+  if(auto& sizable = state.sizable) remove(sizable);
   return *this;
 }
 
@@ -62,7 +58,19 @@ auto mTabFrameItem::setClosable(bool closable) -> type& {
   return *this;
 }
 
-auto mTabFrameItem::setIcon(const image& icon) -> type& {
+auto mTabFrameItem::setEnabled(bool enabled) -> type& {
+  mObject::setEnabled(enabled);
+  if(auto& sizable = state.sizable) sizable->setEnabled(sizable->enabled());
+  return *this;
+}
+
+auto mTabFrameItem::setFont(const Font& font) -> type& {
+  mObject::setFont(font);
+  if(auto& sizable = state.sizable) sizable->setFont(sizable->font());
+  return *this;
+}
+
+auto mTabFrameItem::setIcon(const multiFactorImage& icon) -> type& {
   state.icon = icon;
   signal(setIcon, icon);
   return *this;
@@ -74,10 +82,10 @@ auto mTabFrameItem::setMovable(bool movable) -> type& {
   return *this;
 }
 
-auto mTabFrameItem::setParent(mObject* parent, signed offset) -> type& {
-  if(auto layout = state.layout) layout->destruct();
+auto mTabFrameItem::setParent(mObject* parent, s32 offset) -> type& {
+  if(auto& sizable = state.sizable) sizable->destruct();
   mObject::setParent(parent, offset);
-  if(auto layout = state.layout) layout->setParent(this, layout->offset());
+  if(auto& sizable = state.sizable) sizable->setParent(this, sizable->offset());
   return *this;
 }
 
@@ -94,6 +102,16 @@ auto mTabFrameItem::setText(const string& text) -> type& {
   state.text = text;
   signal(setText, text);
   return *this;
+}
+
+auto mTabFrameItem::setVisible(bool visible) -> type& {
+  mObject::setVisible(visible);
+  if(auto& sizable = state.sizable) sizable->setVisible(sizable->visible());
+  return *this;
+}
+
+auto mTabFrameItem::sizable() const -> Sizable {
+  return state.sizable;
 }
 
 auto mTabFrameItem::text() const -> string {

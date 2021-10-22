@@ -2,7 +2,7 @@ extern crate fixed_width;
 extern crate malachite_base;
 extern crate rand;
 
-pub mod higan {
+pub mod ares {
     pub mod emulator {
         pub mod types;
     }

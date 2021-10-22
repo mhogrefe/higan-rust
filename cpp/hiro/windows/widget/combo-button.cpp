@@ -9,8 +9,7 @@ auto pComboButton::construct() -> void {
     0, 0, 0, 0,
     _parentHandle(), nullptr, GetModuleHandle(0), 0
   );
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  pWidget::_setState();
+  pWidget::construct();
   for(auto& item : state().items) append(item);
 }
 
@@ -27,11 +26,11 @@ auto pComboButton::append(sComboButtonItem item) -> void {
 }
 
 auto pComboButton::minimumSize() const -> Size {
-  signed width = 0;
+  s32 width = 0;
   for(auto& item : state().items) {
     width = max(width, pFont::size(hfont, item->state.text).width());
   }
-  return {width + 24, pFont::size(hfont, " ").height() + 10};
+  return {width + 24_sx, pFont::size(hfont, " ").height() + 10_sy};
 }
 
 auto pComboButton::remove(sComboButtonItem item) -> void {
@@ -45,17 +44,21 @@ auto pComboButton::reset() -> void {
   SendMessage(hwnd, CB_RESETCONTENT, 0, 0);
 }
 
+//Windows overrides the height parameter for a ComboButton's SetWindowPos to be the drop-down list height.
+//the canonical way to set the actual height is through CB_SETITEMHEIGHT. However, doing so is bugged.
+//the ComboButton will end up not being painted for ~500ms after calling ShowWindow(hwnd, SW_NORMAL) on it.
+//thus, implementing windows that use multiple pages of controls via toggling visibility will flicker heavily.
+//as a result, the best we can do is center the actual widget within the requested space.
 auto pComboButton::setGeometry(Geometry geometry) -> void {
-  //height = minimum drop-down list height; use CB_SETITEMHEIGHT to control actual widget height
-  pWidget::setGeometry({geometry.x(), geometry.y(), geometry.width(), 1});
+  //since the ComboButton has a fixed height, it will always be the same, even before calling setGeometry() once.
   RECT rc;
   GetWindowRect(hwnd, &rc);
-  unsigned adjustedHeight = geometry.height() - ((rc.bottom - rc.top) - SendMessage(hwnd, CB_GETITEMHEIGHT, (WPARAM)-1, 0));
-  SendMessage(hwnd, CB_SETITEMHEIGHT, (WPARAM)-1, adjustedHeight);
+  geometry.setY(geometry.y() + (geometry.height() - (rc.bottom - rc.top)));
+  pWidget::setGeometry({geometry.x(), geometry.y(), geometry.width(), 1});
 }
 
 auto pComboButton::onChange() -> void {
-  signed offset = SendMessage(hwnd, CB_GETCURSEL, 0, 0);
+  s32 offset = SendMessage(hwnd, CB_GETCURSEL, 0, 0);
   if(offset == CB_ERR) return;
   for(auto& item : state().items) item->state.selected = false;
   if(auto item = self().item(offset)) item->setSelected();

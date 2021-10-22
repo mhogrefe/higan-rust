@@ -2,8 +2,39 @@
 
 namespace hiro {
 
-static const unsigned FixedStyle = WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX | WS_BORDER | WS_CLIPCHILDREN;
-static const unsigned ResizableStyle = WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME | WS_CLIPCHILDREN;
+static auto CALLBACK Window_windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
+  if(Application::state().quit) return DefWindowProc(hwnd, msg, wparam, lparam);
+
+  if(auto window = (mWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA)) {
+    if(auto self = window->self()) {
+      if(auto result = self->windowProc(hwnd, msg, wparam, lparam)) {
+        return result();
+      }
+    }
+  }
+
+  return Shared_windowProc(DefWindowProc, hwnd, msg, wparam, lparam);
+}
+
+static constexpr u32 PopupStyle = WS_POPUP | WS_CLIPCHILDREN;
+static constexpr u32 FixedStyle = WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX | WS_BORDER | WS_CLIPCHILDREN;
+static constexpr u32 ResizableStyle = WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME | WS_CLIPCHILDREN;
+
+u32 pWindow::minimumStatusHeight = 0;
+
+auto pWindow::initialize() -> void {
+  pApplication::state().modalTimer.setInterval(1);
+  pApplication::state().modalTimer.onActivate([] { Application::doMain(); });
+
+  HWND hwnd = CreateWindow(L"hiroWindow", L"", ResizableStyle, 128, 128, 256, 256, 0, 0, GetModuleHandle(0), 0);
+  HWND hstatus = CreateWindow(STATUSCLASSNAME, L"", WS_CHILD, 0, 0, 0, 0, hwnd, nullptr, GetModuleHandle(0), 0);
+  SetWindowPos(hstatus, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED);
+  RECT rc;
+  GetWindowRect(hstatus, &rc);
+  minimumStatusHeight = rc.bottom - rc.top;
+  DestroyWindow(hstatus);
+  DestroyWindow(hwnd);
+}
 
 auto pWindow::construct() -> void {
   hwnd = CreateWindow(L"hiroWindow", L"", ResizableStyle, 128, 128, 256, 256, 0, 0, GetModuleHandle(0), 0);
@@ -21,10 +52,10 @@ auto pWindow::destruct() -> void {
   DestroyWindow(hwnd);
 }
 
-auto pWindow::append(sLayout layout) -> void {
+auto pWindow::append(sMenuBar menuBar) -> void {
 }
 
-auto pWindow::append(sMenuBar menuBar) -> void {
+auto pWindow::append(sSizable sizable) -> void {
 }
 
 auto pWindow::append(sStatusBar statusBar) -> void {
@@ -35,27 +66,32 @@ auto pWindow::focused() const -> bool {
 }
 
 auto pWindow::frameMargin() const -> Geometry {
-  unsigned style = state().resizable ? ResizableStyle : FixedStyle;
-  if(state().fullScreen) style = 0;
   RECT rc{0, 0, 640, 480};
-  AdjustWindowRect(&rc, style, (bool)GetMenu(hwnd));
-  signed statusHeight = 0;
-  if(auto statusBar = state().statusBar) {
-    if(auto self = statusBar->self()) {
-      if(statusBar->visible()) {
-        RECT src;
-        GetClientRect(self->hwnd, &src);
-        statusHeight = src.bottom - src.top;
-      }
-    }
-  }
-  return {abs(rc.left), abs(rc.top), (rc.right - rc.left) - 640, (rc.bottom - rc.top) + statusHeight - 480};
+  u32 style = state().fullScreen ? 0 : state().resizable ? ResizableStyle : FixedStyle;
+  bool menuVisible = state().menuBar && state().menuBar->visible();
+  AdjustWindowRect(&rc, style, menuVisible);
+  auto& efb = state().fullScreen ? settings.efbPopup : !state().resizable ? settings.efbFixed : settings.efbResizable;
+  return {
+    abs(rc.left) - efb.x,
+    abs(rc.top) - efb.y,
+    (rc.right - rc.left) - 640 - efb.width,
+    (rc.bottom - rc.top) + _statusHeight() - 480 - efb.height
+  };
 }
 
-auto pWindow::remove(sLayout layout) -> void {
+auto pWindow::handle() const -> uintptr_t {
+  return (uintptr_t)hwnd;
+}
+
+auto pWindow::monitor() const -> u32 {
+  //TODO
+  return 0;
 }
 
 auto pWindow::remove(sMenuBar menuBar) -> void {
+}
+
+auto pWindow::remove(sSizable sizable) -> void {
 }
 
 auto pWindow::remove(sStatusBar statusBar) -> void {
@@ -75,8 +111,8 @@ auto pWindow::setDroppable(bool droppable) -> void {
 }
 
 auto pWindow::setEnabled(bool enabled) -> void {
-  if(auto layout = state().layout) {
-    if(auto self = layout->self()) self->setEnabled(layout->enabled(true));
+  if(auto& sizable = state().sizable) {
+    if(auto self = sizable->self()) self->setEnabled(sizable->enabled(true));
   }
 }
 
@@ -86,14 +122,14 @@ auto pWindow::setFocused() -> void {
 }
 
 auto pWindow::setFont(const Font& font) -> void {
-  if(auto layout = state().layout) {
-    if(auto self = layout->self()) self->setFont(layout->font(true));
+  if(auto& sizable = state().sizable) {
+    if(auto self = sizable->self()) self->setFont(sizable->font(true));
   }
 }
 
 auto pWindow::setFullScreen(bool fullScreen) -> void {
+  auto lock = acquire();
   auto style = GetWindowLongPtr(hwnd, GWL_STYLE) & WS_VISIBLE;
-  lock();
   if(fullScreen) {
     windowedGeometry = self().geometry();
     HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -113,41 +149,64 @@ auto pWindow::setFullScreen(bool fullScreen) -> void {
     SetWindowLongPtr(hwnd, GWL_STYLE, style | (state().resizable ? ResizableStyle : FixedStyle));
     self().setGeometry(windowedGeometry);
   }
-  unlock();
 }
 
 auto pWindow::setGeometry(Geometry geometry) -> void {
-  lock();
+  auto lock = acquire();
   Geometry margin = frameMargin();
+  auto& efb = state().fullScreen ? settings.efbPopup : !state().resizable ? settings.efbFixed : settings.efbResizable;
   SetWindowPos(
     hwnd, nullptr,
-    geometry.x() - margin.x(), geometry.y() - margin.y(),
-    geometry.width() + margin.width(), geometry.height() + margin.height(),
+    geometry.x() - margin.x() - efb.x,
+    geometry.y() - margin.y() - efb.y,
+    geometry.width() + margin.width() + efb.width,
+    geometry.height() + margin.height() + efb.height,
     SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED
   );
-  if(auto statusBar = state().statusBar) {
+  if(auto& statusBar = state().statusBar) {
     if(auto self = statusBar->self()) {
       SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED);
     }
   }
-  if(auto layout = state().layout) {
-    layout->setGeometry(geometry.setPosition(0, 0));
+  if(auto& sizable = state().sizable) {
+    sizable->setGeometry(geometry.setPosition());
   }
-  unlock();
 }
 
+auto pWindow::setMaximized(bool maximized) -> void {
+  if(state().minimized) return;
+  auto lock = acquire();
+  ShowWindow(hwnd, maximized ? SW_MAXIMIZE : SW_SHOWNOACTIVATE);
+}
+
+auto pWindow::setMaximumSize(Size size) -> void {
+}
+
+auto pWindow::setMinimized(bool minimized) -> void {
+  auto lock = acquire();
+  ShowWindow(hwnd, minimized ? SW_MINIMIZE : state().maximized ? SW_MAXIMIZE : SW_SHOWNOACTIVATE);
+}
+
+auto pWindow::setMinimumSize(Size size) -> void {
+}
+
+//never call this directly: use Window::setModal() instead
+//this function does not confirm the modality has actually changed before adjusting modalCount
 auto pWindow::setModal(bool modality) -> void {
   if(modality) {
+    modalIncrement();
     _modalityUpdate();
-    while(state().modal) {
-      Application::processEvents();
-      if(Application::state.onMain) {
+    while(!Application::state().quit && state().modal) {
+      if(Application::state().onMain) {
         Application::doMain();
       } else {
         usleep(20 * 1000);
       }
+      Application::processEvents();
     }
     _modalityUpdate();
+  } else {
+    modalDecrement();
   }
 }
 
@@ -162,66 +221,115 @@ auto pWindow::setTitle(string text) -> void {
 }
 
 auto pWindow::setVisible(bool visible) -> void {
-  lock();
+  auto lock = acquire();
   ShowWindow(hwnd, visible ? SW_SHOWNORMAL : SW_HIDE);
-  if(!visible) setModal(false);
-
-  if(auto layout = state().layout) {
-    if(auto self = layout->self()) self->setVisible(layout->visible(true));
+  if(auto& sizable = state().sizable) {
+    sizable->setGeometry(self().geometry().setPosition());
   }
-  unlock();
+  if(!visible) self().setModal(false);
+
+  //calculate window extended frame bounds: DwmGetWindowAttributes is only valid after the window is visible
+  //by then, it's too late to position the window correctly, but we can cache the results here for next time
+  //because GetWindowRect and DwmGetWindowAttribute returns different unit types, the hiro application *must* be DPI aware
+  if(visible) {
+    //in logical units
+    RECT rc;
+    GetWindowRect(hwnd, &rc);
+
+    //in physical units
+    RECT fc;
+    DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &fc, sizeof(RECT));
+
+    //convert to offsets useful to hiro
+    auto& efb = state().fullScreen ? settings.efbPopup : !state().resizable ? settings.efbFixed : settings.efbResizable;
+    efb.x = fc.left - rc.left;
+    efb.y = fc.top - rc.top;
+    efb.width = efb.x + (rc.right - fc.right);
+    efb.height = efb.y + (rc.bottom - fc.bottom);
+
+    //sanitize inputs: if the bounds are obviously nonsense, give up on trying to compensate for them
+    if(efb.x > 100 || efb.y > 100 || efb.width > 100 || efb.height > 100) efb = {};
+  }
 }
 
 //
 
-auto pWindow::onClose() -> void {
-  if(state().onClose) self().doClose();
-  else self().setVisible(false);
-  if(state().modal && !self().visible()) self().setModal(false);
+auto pWindow::modalIncrement() -> void {
+  if(pApplication::state().modalCount++ == 0) {
+    pApplication::state().modalTimer.setEnabled(true);
+  }
 }
 
-auto pWindow::onDrop(WPARAM wparam) -> void {
-  auto paths = DropPaths(wparam);
-  if(paths) self().doDrop(paths);
+auto pWindow::modalDecrement() -> void {
+  if(--pApplication::state().modalCount == 0) {
+    pApplication::state().modalTimer.setEnabled(false);
+  }
 }
 
-auto pWindow::onEraseBackground() -> bool {
-  if(hbrush == 0) return false;
-  RECT rc;
-  GetClientRect(hwnd, &rc);
-  PAINTSTRUCT ps;
-  BeginPaint(hwnd, &ps);
-  FillRect(ps.hdc, &rc, hbrush);
-  EndPaint(hwnd, &ps);
-  return true;
-}
+auto pWindow::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  if(msg == WM_CLOSE || (msg == WM_KEYDOWN && wparam == VK_ESCAPE && state().dismissable)) {
+    if(state().onClose) {
+      self().doClose();
+      //doClose() may end up destroying the window when terminating the application ...
+      //forcefully return early in said case, so that the modal check below doesn't access the destroyed pWindow object
+      if(Application::state().quit) return true;
+    } else {
+      self().setVisible(false);
+    }
+    if(state().modal && !self().visible()) self().setModal(false);
+    return true;
+  }
 
-auto pWindow::onModalBegin() -> void {
-  Application::Windows::doModalChange(true);
-}
+  if(msg == WM_MOVE && !locked()) {
+    state().geometry.setPosition(_geometry().position());
+    self().doMove();
+  }
 
-auto pWindow::onModalEnd() -> void {
-  Application::Windows::doModalChange(false);
-}
+  if(msg == WM_SIZE && !locked()) {
+    if(auto statusBar = state().statusBar) {
+      if(auto self = statusBar->self()) {
+        SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED);
+      }
+    }
+    state().geometry.setSize(_geometry().size());
+    if(auto& sizable = state().sizable) {
+      sizable->setGeometry(_geometry().setPosition());
+    }
+    self().doSize();
+  }
 
-auto pWindow::onMove() -> void {
-  if(locked()) return;
-  state().geometry.setPosition(_geometry().position());
-  self().doMove();
-}
+  if(msg == WM_DROPFILES) {
+    if(auto paths = DropPaths(wparam)) self().doDrop(paths);
+    return false;
+  }
 
-auto pWindow::onSize() -> void {
-  if(locked()) return;
-  if(auto statusBar = state().statusBar) {
-    if(auto self = statusBar->self()) {
-      SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED);
+  if(msg == WM_ERASEBKGND && hbrush) {
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    PAINTSTRUCT ps;
+    BeginPaint(hwnd, &ps);
+    FillRect(ps.hdc, &rc, hbrush);
+    EndPaint(hwnd, &ps);
+    return true;
+  }
+
+  if(msg == WM_ENTERMENULOOP || msg == WM_ENTERSIZEMOVE) {
+    modalIncrement();
+    return false;
+  }
+
+  if(msg == WM_EXITMENULOOP || msg == WM_EXITSIZEMOVE) {
+    modalDecrement();
+    return false;
+  }
+
+  if(msg == WM_SYSCOMMAND) {
+    if(wparam == SC_SCREENSAVE || wparam == SC_MONITORPOWER) {
+      if(!Application::screenSaver()) return 0;
     }
   }
-  state().geometry.setSize(_geometry().size());
-  if(auto layout = state().layout) {
-    layout->setGeometry(_geometry().setPosition(0, 0));
-  }
-  self().doSize();
+
+  return {};
 }
 
 //
@@ -231,7 +339,7 @@ auto pWindow::_geometry() -> Geometry {
 
   RECT rc;
   if(IsIconic(hwnd)) {
-    //GetWindowRect returns -32000(x),-32000(y) when window is minimized
+    //GetWindowRect returns x=-32000,y=-32000 when window is minimized
     WINDOWPLACEMENT wp;
     GetWindowPlacement(hwnd, &wp);
     rc = wp.rcNormalPosition;
@@ -239,16 +347,17 @@ auto pWindow::_geometry() -> Geometry {
     GetWindowRect(hwnd, &rc);
   }
 
-  signed x = rc.left + margin.x();
-  signed y = rc.top + margin.y();
-  signed width = (rc.right - rc.left) - margin.width();
-  signed height = (rc.bottom - rc.top) - margin.height();
+  auto& efb = state().fullScreen ? settings.efbPopup : !state().resizable ? settings.efbFixed : settings.efbResizable;
+  auto x = rc.left + margin.x() + efb.x;
+  auto y = rc.top + margin.y() + efb.y;
+  auto width = (rc.right - rc.left) - margin.width() - efb.width;
+  auto height = (rc.bottom - rc.top) - margin.height() - efb.height;
 
   return {x, y, width, height};
 }
 
-auto pWindow::_modalityCount() -> unsigned {
-  unsigned modalWindows = 0;
+auto pWindow::_modalityCount() -> u32 {
+  u32 modalWindows = 0;
   for(auto& weak : windows) {
     if(auto object = weak.acquire()) {
       if(auto window = dynamic_cast<mWindow*>(object.data())) {
@@ -265,7 +374,7 @@ auto pWindow::_modalityDisabled() -> bool {
 }
 
 auto pWindow::_modalityUpdate() -> void {
-  unsigned modalWindows = _modalityCount();
+  u32 modalWindows = _modalityCount();
   for(auto& weak : windows) {
     if(auto object = weak.acquire()) {
       if(auto window = dynamic_cast<mWindow*>(object.data())) {
@@ -278,6 +387,18 @@ auto pWindow::_modalityUpdate() -> void {
       }
     }
   }
+}
+
+auto pWindow::_statusHeight() const -> s32 {
+  s32 height = 0;
+  if(auto& statusBar = state().statusBar) {
+    if(statusBar->visible()) {
+      auto& text = statusBar->state.text;
+      height = statusBar->font(true).size(text ? text : " ").height();
+      height = max(height, minimumStatusHeight);
+    }
+  }
+  return height;
 }
 
 }

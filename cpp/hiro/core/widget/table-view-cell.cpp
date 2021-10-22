@@ -12,11 +12,9 @@ auto mTableViewCell::alignment(bool recursive) const -> Alignment {
     if(auto parent = parentTableViewItem()) {
       if(auto alignment = parent->state.alignment) return alignment;
       if(auto grandparent = parent->parentTableView()) {
-        if(auto header = grandparent->state.header) {
-          if(offset() < header->columnCount()) {
-            if(auto column = header->state.columns[offset()]) {
-              if(auto alignment = column->state.alignment) return alignment;
-            }
+        if(offset() < grandparent->columnCount()) {
+          if(auto column = grandparent->state.columns[offset()]) {
+            if(auto alignment = column->state.alignment) return alignment;
           }
         }
         if(auto alignment = grandparent->state.alignment) return alignment;
@@ -32,11 +30,9 @@ auto mTableViewCell::backgroundColor(bool recursive) const -> Color {
     if(auto parent = parentTableViewItem()) {
       if(auto color = parent->state.backgroundColor) return color;
       if(auto grandparent = parent->parentTableView()) {
-        if(auto header = grandparent->state.header) {
-          if(offset() < header->columnCount()) {
-            if(auto column = header->state.columns[offset()]) {
-              if(auto color = column->state.backgroundColor) return color;
-            }
+        if(offset() < grandparent->columnCount()) {
+          if(auto column = grandparent->state.columns[offset()]) {
+            if(auto color = column->state.backgroundColor) return color;
           }
         }
         if(auto color = grandparent->state.backgroundColor) return color;
@@ -60,11 +56,9 @@ auto mTableViewCell::font(bool recursive) const -> Font {
     if(auto parent = parentTableViewItem()) {
       if(auto font = parent->font()) return font;
       if(auto grandparent = parent->parentTableView()) {
-        if(auto header = grandparent->state.header) {
-          if(offset() < header->columnCount()) {
-            if(auto column = header->state.columns[offset()]) {
-              if(auto font = column->font()) return font;
-            }
+        if(offset() < grandparent->columnCount()) {
+          if(auto column = grandparent->state.columns[offset()]) {
+            if(auto font = column->font()) return font;
           }
         }
         if(auto font = grandparent->font(true)) return font;
@@ -80,11 +74,9 @@ auto mTableViewCell::foregroundColor(bool recursive) const -> Color {
     if(auto parent = parentTableViewItem()) {
       if(auto color = parent->state.foregroundColor) return color;
       if(auto grandparent = parent->parentTableView()) {
-        if(auto header = grandparent->state.header) {
-          if(offset() < header->columnCount()) {
-            if(auto column = header->state.columns[offset()]) {
-              if(auto color = column->state.foregroundColor) return color;
-            }
+        if(offset() < grandparent->columnCount()) {
+          if(auto column = grandparent->state.columns[offset()]) {
+            if(auto color = column->state.foregroundColor) return color;
           }
         }
         if(auto color = grandparent->state.foregroundColor) return color;
@@ -94,7 +86,7 @@ auto mTableViewCell::foregroundColor(bool recursive) const -> Color {
   return state.foregroundColor;
 }
 
-auto mTableViewCell::icon() const -> image {
+auto mTableViewCell::icon() const -> multiFactorImage {
   return state.icon;
 }
 
@@ -125,11 +117,19 @@ auto mTableViewCell::setChecked(bool checked) -> type& {
 
 auto mTableViewCell::setForegroundColor(Color color) -> type& {
   state.foregroundColor = color;
+  state.foregroundSystemColor = SystemColor::None;
   signal(setForegroundColor, color);
   return *this;
 }
 
-auto mTableViewCell::setIcon(const image& icon) -> type& {
+auto mTableViewCell::setForegroundColor(SystemColor color) -> type& {
+    state.foregroundColor = color;
+    state.foregroundSystemColor = color;
+    signal(setForegroundColor, color);
+    return *this;
+}
+
+auto mTableViewCell::setIcon(const multiFactorImage& icon) -> type& {
   state.icon = icon;
   signal(setIcon, icon);
   return *this;

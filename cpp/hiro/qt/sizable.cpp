@@ -12,7 +12,11 @@ auto pSizable::minimumSize() const -> Size {
   return {0, 0};
 }
 
+auto pSizable::setCollapsible(bool collapsible) -> void {
+}
+
 auto pSizable::setGeometry(Geometry geometry) -> void {
+  self().doSize();
 }
 
 }

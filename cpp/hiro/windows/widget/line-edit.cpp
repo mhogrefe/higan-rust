@@ -8,8 +8,7 @@ auto pLineEdit::construct() -> void {
     WS_CHILD | WS_TABSTOP | ES_AUTOHSCROLL | ES_AUTOVSCROLL,
     0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0
   );
-  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&reference);
-  pWidget::_setState();
+  pWidget::construct();
   setBackgroundColor(state().backgroundColor);
   setEditable(state().editable);
   setText(state().text);
@@ -28,6 +27,7 @@ auto pLineEdit::minimumSize() const -> Size {
 auto pLineEdit::setBackgroundColor(Color color) -> void {
   if(backgroundBrush) { DeleteObject(backgroundBrush); backgroundBrush = 0; }
   backgroundBrush = CreateSolidBrush(color ? CreateRGB(color) : GetSysColor(COLOR_WINDOW));
+  InvalidateRect(hwnd, 0, true);
 }
 
 auto pLineEdit::setEditable(bool editable) -> void {
@@ -35,21 +35,32 @@ auto pLineEdit::setEditable(bool editable) -> void {
 }
 
 auto pLineEdit::setForegroundColor(Color color) -> void {
+  InvalidateRect(hwnd, 0, true);
 }
 
 auto pLineEdit::setText(const string& text) -> void {
-  lock();
+  auto lock = acquire();
   SetWindowText(hwnd, utf16_t(text));
-  unlock();
 }
+
+//
 
 auto pLineEdit::onChange() -> void {
   state().text = _text();
   if(!locked()) self().doChange();
 }
 
+auto pLineEdit::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  if(msg == WM_KEYDOWN && wparam == VK_RETURN) {
+    self().doActivate();
+  }
+  return pWidget::windowProc(hwnd, msg, wparam, lparam);
+}
+
+//
+
 auto pLineEdit::_text() -> string {
-  unsigned length = GetWindowTextLength(hwnd);
+  u32 length = GetWindowTextLength(hwnd);
   wchar_t text[length + 1];
   GetWindowText(hwnd, text, length + 1);
   text[length] = 0;

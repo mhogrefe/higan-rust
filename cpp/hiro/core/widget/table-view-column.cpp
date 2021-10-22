@@ -6,8 +6,10 @@ auto mTableViewColumn::allocate() -> pObject* {
 
 //
 
+//TODO: active(), setActive() ... is this the best way to do this?
+
 auto mTableViewColumn::active() const -> bool {
-  if(auto tableView = parentTableView()) return tableView->state.activeColumn == offset();
+  if(auto tableView = parentTableView(true)) return tableView->state.activeColumn == offset();
   return false;
 }
 
@@ -31,16 +33,16 @@ auto mTableViewColumn::foregroundColor() const -> Color {
   return state.foregroundColor;
 }
 
-auto mTableViewColumn::horizontalAlignment() const -> float {
+auto mTableViewColumn::horizontalAlignment() const -> f32 {
   return state.horizontalAlignment;
 }
 
-auto mTableViewColumn::icon() const -> image {
+auto mTableViewColumn::icon() const -> multiFactorImage {
   return state.icon;
 }
 
 auto mTableViewColumn::remove() -> type& {
-  if(auto tableView = parentTableViewHeader()) tableView->remove(*this);
+  if(auto tableView = parentTableView()) tableView->remove(*this);
   return *this;
 }
 
@@ -49,7 +51,7 @@ auto mTableViewColumn::resizable() const -> bool {
 }
 
 auto mTableViewColumn::setActive() -> type& {
-  if(auto tableView = parentTableView()) tableView->state.activeColumn = offset();
+  if(auto tableView = parentTableView(true)) tableView->state.activeColumn = offset();
   signal(setActive);
   return *this;
 }
@@ -84,14 +86,14 @@ auto mTableViewColumn::setForegroundColor(Color color) -> type& {
   return *this;
 }
 
-auto mTableViewColumn::setHorizontalAlignment(float alignment) -> type& {
+auto mTableViewColumn::setHorizontalAlignment(f32 alignment) -> type& {
   alignment = max(0.0, min(1.0, alignment));
   state.horizontalAlignment = alignment;
   signal(setHorizontalAlignment, alignment);
   return *this;
 }
 
-auto mTableViewColumn::setIcon(const image& icon) -> type& {
+auto mTableViewColumn::setIcon(const multiFactorImage& icon) -> type& {
   state.icon = icon;
   signal(setIcon, icon);
   return *this;
@@ -103,9 +105,15 @@ auto mTableViewColumn::setResizable(bool resizable) -> type& {
   return *this;
 }
 
-auto mTableViewColumn::setSortable(bool sortable) -> type& {
-  state.sortable = sortable;
-  signal(setSortable, sortable);
+auto mTableViewColumn::setSorting(Sort sorting) -> type& {
+  if(auto tableView = parentTableView()) {
+    for(auto& column : tableView->state.columns) {
+      column->state.sorting = Sort::None;
+      signalex(column, setSorting, Sort::None);
+    }
+  }
+  state.sorting = sorting;
+  signal(setSorting, sorting);
   return *this;
 }
 
@@ -115,7 +123,7 @@ auto mTableViewColumn::setText(const string& text) -> type& {
   return *this;
 }
 
-auto mTableViewColumn::setVerticalAlignment(float alignment) -> type& {
+auto mTableViewColumn::setVerticalAlignment(f32 alignment) -> type& {
   alignment = max(0.0, min(1.0, alignment));
   state.verticalAlignment = alignment;
   signal(setVerticalAlignment, alignment);
@@ -128,25 +136,25 @@ auto mTableViewColumn::setVisible(bool visible) -> type& {
   return *this;
 }
 
-auto mTableViewColumn::setWidth(float width) -> type& {
+auto mTableViewColumn::setWidth(f32 width) -> type& {
   state.width = max(0, width);
   signal(setWidth, width);
   return *this;
 }
 
-auto mTableViewColumn::sortable() const -> bool {
-  return state.sortable;
+auto mTableViewColumn::sorting() const -> Sort {
+  return state.sorting;
 }
 
 auto mTableViewColumn::text() const -> string {
   return state.text;
 }
 
-auto mTableViewColumn::verticalAlignment() const -> float {
+auto mTableViewColumn::verticalAlignment() const -> f32 {
   return state.verticalAlignment;
 }
 
-auto mTableViewColumn::width() const -> float {
+auto mTableViewColumn::width() const -> f32 {
   return state.width;
 }
 

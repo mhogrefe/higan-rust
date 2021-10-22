@@ -5,7 +5,7 @@
   hiro::mWindow* window;
   NSMenu* menuBar;
   NSMenu* rootMenu;
-  NSMenuItem* disableGatekeeperAutoRearm;
+  NSMenuItem* disableGatekeeper;
   NSTextField* statusBar;
 }
 -(id) initWith:(hiro::mWindow&)window;
@@ -20,7 +20,7 @@
 -(NSMenu*) menuBar;
 -(void) menuAbout;
 -(void) menuPreferences;
--(void) menuDisableGatekeeperAutoRearm;
+-(void) menuDisableGatekeeper;
 -(void) menuQuit;
 -(NSTextField*) statusBar;
 @end
@@ -30,13 +30,15 @@ namespace hiro {
 struct pWindow : pObject {
   Declare(Window, Object)
 
-  auto append(sLayout layout) -> void;
   auto append(sMenuBar menuBar) -> void;
+  auto append(sSizable sizable) -> void;
   auto append(sStatusBar statusBar) -> void;
   auto focused() const -> bool override;
   auto frameMargin() const -> Geometry;
-  auto remove(sLayout layout) -> void;
+  auto handle() const -> uintptr_t;
+  auto monitor() const -> u32;
   auto remove(sMenuBar menuBar) -> void;
+  auto remove(sSizable sizable) -> void;
   auto remove(sStatusBar statusBar) -> void;
   auto setBackgroundColor(Color color) -> void;
   auto setDismissable(bool dismissable) -> void;
@@ -44,14 +46,19 @@ struct pWindow : pObject {
   auto setFocused() -> void override;
   auto setFullScreen(bool fullScreen) -> void;
   auto setGeometry(Geometry geometry) -> void;
+  auto setMaximized(bool maximized) -> void;
+  auto setMaximumSize(Size size) -> void;
+  auto setMinimized(bool minimized) -> void;
+  auto setMinimumSize(Size size) -> void;
   auto setModal(bool modal) -> void;
   auto setResizable(bool resizable) -> void;
   auto setTitle(const string& text) -> void;
+  auto setAssociatedFile(const string& filename) -> void;
   auto setVisible(bool visible) -> void;
 
   auto moveEvent() -> void;
   auto sizeEvent() -> void;
-  auto statusBarHeight() -> uint;
+  auto statusBarHeight() -> u32;
   auto statusBarReposition() -> void;
 
   auto _append(mWidget& widget) -> void;

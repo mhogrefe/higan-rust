@@ -5,15 +5,15 @@ namespace hiro {
 struct pAction : pObject {
   Declare(Action, Object)
 
-  auto setEnabled(bool enabled) -> void;
-  auto setVisible(bool visible) -> void;
+  auto setEnabled(bool enabled) -> void override;
+  auto setVisible(bool visible) -> void override;
 
   auto _parentMenu() -> maybe<pMenu&>;
   auto _parentMenuBar() -> maybe<pMenuBar&>;
   auto _parentPopupMenu() -> maybe<pPopupMenu&>;
   auto _synchronize() -> void;
 
-  unsigned position = 0;
+  u32 position = 0;
 };
 
 }

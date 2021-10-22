@@ -6,16 +6,24 @@ auto mSourceEdit::allocate() -> pObject* {
 
 //
 
-auto mSourceEdit::cursor() const -> Cursor {
-  return state.cursor;
-}
-
 auto mSourceEdit::doChange() const -> void {
   if(state.onChange) return state.onChange();
 }
 
 auto mSourceEdit::doMove() const -> void {
   if(state.onMove) return state.onMove();
+}
+
+auto mSourceEdit::editable() const -> bool {
+  return state.editable;
+}
+
+auto mSourceEdit::language() const -> string {
+  return state.language;
+}
+
+auto mSourceEdit::numbered() const -> bool {
+  return state.numbered;
 }
 
 auto mSourceEdit::onChange(const function<void ()>& callback) -> type& {
@@ -28,9 +36,31 @@ auto mSourceEdit::onMove(const function<void ()>& callback) -> type& {
   return *this;
 }
 
-auto mSourceEdit::setCursor(Cursor cursor) -> type& {
-  state.cursor = cursor;
-  signal(setCursor, cursor);
+auto mSourceEdit::scheme() const -> string {
+  return state.scheme;
+}
+
+auto mSourceEdit::setEditable(bool editable) -> type& {
+  state.editable = editable;
+  signal(setEditable, editable);
+  return *this;
+}
+
+auto mSourceEdit::setLanguage(const string& language) -> type& {
+  state.language = language;
+  signal(setLanguage, language);
+  return *this;
+}
+
+auto mSourceEdit::setNumbered(bool numbered) -> type& {
+  state.numbered = numbered;
+  signal(setNumbered, numbered);
+  return *this;
+}
+
+auto mSourceEdit::setScheme(const string& scheme) -> type& {
+  state.scheme = scheme;
+  signal(setScheme, scheme);
   return *this;
 }
 
@@ -40,8 +70,28 @@ auto mSourceEdit::setText(const string& text) -> type& {
   return *this;
 }
 
+auto mSourceEdit::setTextCursor(TextCursor textCursor) -> type& {
+  state.textCursor = textCursor;
+  signal(setTextCursor, textCursor);
+  return *this;
+}
+
+auto mSourceEdit::setWordWrap(bool wordWrap) -> type& {
+  state.wordWrap = wordWrap;
+  signal(setWordWrap, wordWrap);
+  return *this;
+}
+
 auto mSourceEdit::text() const -> string {
   return signal(text);
+}
+
+auto mSourceEdit::textCursor() const -> TextCursor {
+  return signal(textCursor);
+}
+
+auto mSourceEdit::wordWrap() const -> bool {
+  return state.wordWrap;
 }
 
 #endif

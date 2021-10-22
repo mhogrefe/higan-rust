@@ -1,65 +1,52 @@
 #include <pulse/pulseaudio.h>
 
-struct AudioPulseAudio : Audio {
-  AudioPulseAudio() { initialize(); }
+struct AudioPulseAudio : AudioDriver {
+  AudioPulseAudio& self = *this;
+  AudioPulseAudio(Audio& super) : AudioDriver(super) {}
   ~AudioPulseAudio() { terminate(); }
 
-  auto availableDevices() -> string_vector {
-    return {"Default"};
+  auto create() -> bool override {
+    super.setChannels(2);
+    super.setFrequency(48000);
+    super.setLatency(40);
+    return initialize();
   }
 
-  auto availableFrequencies() -> vector<double> {
-    return {44100.0, 48000.0, 96000.0};
+  auto driver() -> string override { return "PulseAudio"; }
+  auto ready() -> bool override { return _ready; }
+
+  auto hasBlocking() -> bool override { return true; }
+  auto hasDynamic() -> bool override { return true; }
+
+  auto hasFrequencies() -> vector<u32> override {
+    return {44100, 48000, 96000};
   }
 
-  auto availableLatencies() -> vector<uint> {
+  auto hasLatencies() -> vector<u32> override {
     return {20, 40, 60, 80, 100};
   }
 
-  auto availableChannels() -> vector<uint> {
-    return {2};
+  auto setBlocking(bool blocking) -> bool override { return true; }
+  auto setFrequency(u32 frequency) -> bool override { return initialize(); }
+  auto setLatency(u32 latency) -> bool override { return initialize(); }
+
+  auto level() -> double override {
+    pa_mainloop_iterate(_mainLoop, 0, nullptr);
+    auto length = pa_stream_writable_size(_stream);
+    return (double)(_bufferSize - length) / _bufferSize;
   }
 
-  auto ready() -> bool { return _ready; }
-  auto blocking() -> bool { return _blocking; }
-  auto channels() -> uint { return 2; }
-  auto frequency() -> double { return _frequency; }
-  auto latency() -> uint { return _latency; }
-
-  auto setBlocking(bool blocking) -> bool {
-    if(_blocking == blocking) return true;
-    _blocking = blocking;
-    return true;
-  }
-
-  auto setFrequency(double frequency) -> bool {
-    if(_frequency == frequency) return true;
-    _frequency = frequency;
-    return initialize();
-  }
-
-  auto setLatency(uint latency) -> bool {
-    if(_latency == latency) return true;
-    _latency = latency;
-    return initialize();
-  }
-
-  auto output(const double samples[]) -> void {
+  auto output(const double samples[]) -> void override {
     pa_stream_begin_write(_stream, (void**)&_buffer, &_period);
-    _buffer[_offset]  = (uint16_t)sclamp<16>(samples[0] * 32767.0) <<  0;
-    _buffer[_offset] |= (uint16_t)sclamp<16>(samples[1] * 32767.0) << 16;
+    _buffer[_offset]  = (u16)sclamp<16>(samples[0] * 32767.0) <<  0;
+    _buffer[_offset] |= (u16)sclamp<16>(samples[1] * 32767.0) << 16;
     if((++_offset + 1) * pa_frame_size(&_specification) <= _period) return;
 
     while(true) {
-      if(_first) {
-        _first = false;
-        pa_mainloop_iterate(_mainLoop, 0, nullptr);
-      } else {
-        pa_mainloop_iterate(_mainLoop, 1, nullptr);
-      }
-      uint length = pa_stream_writable_size(_stream);
+      pa_mainloop_iterate(_mainLoop, 0, nullptr);
+      auto length = pa_stream_writable_size(_stream);
       if(length >= _offset * pa_frame_size(&_specification)) break;
-      if(!_blocking) {
+      if(!self.blocking) {
         _offset = 0;
         return;
       }
@@ -87,12 +74,12 @@ private:
 
     _specification.format = PA_SAMPLE_S16LE;
     _specification.channels = 2;
-    _specification.rate = (uint)_frequency;
+    _specification.rate = self.frequency;
     _stream = pa_stream_new(_context, "audio", &_specification, nullptr);
 
     pa_buffer_attr bufferAttributes;
     bufferAttributes.maxlength = -1;
-    bufferAttributes.tlength = pa_usec_to_bytes(_latency * PA_USEC_PER_MSEC, &_specification);
+    bufferAttributes.tlength = pa_usec_to_bytes(self.latency * PA_USEC_PER_MSEC, &_specification);
     bufferAttributes.prebuf = -1;
     bufferAttributes.minreq = -1;
     bufferAttributes.fragsize = -1;
@@ -107,9 +94,10 @@ private:
       if(!PA_STREAM_IS_GOOD(streamState)) return false;
     } while(streamState != PA_STREAM_READY);
 
-    _period = 960;
+    const pa_buffer_attr* attributes = pa_stream_get_buffer_attr(_stream);
+    _period = attributes->minreq;
+    _bufferSize = attributes->tlength;
     _offset = 0;
-    _first = true;
     return _ready = true;
   }
 
@@ -140,17 +128,14 @@ private:
   }
 
   bool _ready = false;
-  bool _blocking = true;
-  double _frequency = 48000.0;
-  uint _latency = 40;
 
-  uint32_t* _buffer = nullptr;
+  u32* _buffer = nullptr;
   size_t _period = 0;
-  uint _offset = 0;
+  size_t _bufferSize = 0;
+  u32 _offset = 0;
 
   pa_mainloop* _mainLoop = nullptr;
   pa_context* _context = nullptr;
   pa_stream* _stream = nullptr;
   pa_sample_spec _specification;
-  bool _first = true;
 };

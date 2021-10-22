@@ -23,8 +23,8 @@ auto pComboEdit::construct() -> void {
   //however, this API call throws a Gtk-CRITICAL assertion that column 1 is not a cell renderer
   //this is, however, incorrect. it *is* a renderer, and the API call works as expected
   //so in order to suppress the error message, we redirect stderr to /dev/null temporarily
-  int stdErr = dup(STDERR_FILENO);
-  int devNull = open("/dev/null", 0);
+  s32 stdErr = dup(STDERR_FILENO);
+  s32 devNull = open("/dev/null", 0);
   dup2(devNull, STDERR_FILENO);
   gtk_combo_box_set_entry_text_column(gtkComboBox, 1);
   dup2(stdErr, STDERR_FILENO);
@@ -32,6 +32,7 @@ auto pComboEdit::construct() -> void {
   close(stdErr);
 
   setBackgroundColor(state().backgroundColor);
+  setEditable(state().editable);
   setForegroundColor(state().foregroundColor);
   for(auto& item : state().items) append(item);
 
@@ -57,7 +58,7 @@ auto pComboEdit::append(sComboEditItem item) -> void {
 
 auto pComboEdit::minimumSize() const -> Size {
   auto font = self().font(true);
-  int maximumWidth = 0;
+  s32 maximumWidth = 0;
   for(auto& item : state().items) {
     maximumWidth = max(maximumWidth,
       (item->state.icon ? pFont::size(font, " ").height() + 2 : 0)
@@ -84,6 +85,10 @@ auto pComboEdit::reset() -> void {
 auto pComboEdit::setBackgroundColor(Color color) -> void {
   GdkColor gdkColor = CreateColor(color);
   gtk_widget_modify_base(gtk_bin_get_child(GTK_BIN(gtkComboBox)), GTK_STATE_NORMAL, color ? &gdkColor : nullptr);
+}
+
+auto pComboEdit::setEditable(bool editable) -> void {
+  gtk_editable_set_editable(GTK_EDITABLE(gtk_bin_get_child(GTK_BIN(gtkComboBox))), editable);
 }
 
 auto pComboEdit::setForegroundColor(Color color) -> void {

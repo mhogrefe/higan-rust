@@ -28,6 +28,8 @@
 }
 
 -(void) run:(NSTimer*)instance {
+  if(hiro::Application::state().quit) return;
+
   if(timer->enabled()) {
     timer->doActivate();
   }
@@ -38,28 +40,19 @@
 namespace hiro {
 
 auto pTimer::construct() -> void {
-  @autoreleasepool {
-    cocoaTimer = [[CocoaTimer alloc] initWith:self()];
-  }
+  cocoaTimer = [[CocoaTimer alloc] initWith:self()];
 }
 
 auto pTimer::destruct() -> void {
-  @autoreleasepool {
-    if([cocoaTimer instance]) [[cocoaTimer instance] invalidate];
-    [cocoaTimer release];
-  }
+  if([cocoaTimer instance]) [[cocoaTimer instance] invalidate];
 }
 
 auto pTimer::setEnabled(bool enabled) -> void {
-  @autoreleasepool {
-    [cocoaTimer update];
-  }
+  [cocoaTimer update];
 }
 
-auto pTimer::setInterval(uint interval) -> void {
-  @autoreleasepool {
-    [cocoaTimer update];
-  }
+auto pTimer::setInterval(u32 interval) -> void {
+  [cocoaTimer update];
 }
 
 }

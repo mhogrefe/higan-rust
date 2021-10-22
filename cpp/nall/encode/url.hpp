@@ -1,8 +1,8 @@
 #pragma once
 
-namespace nall { namespace Encode {
+namespace nall::Encode {
 
-inline auto URL(const string& input) -> string {
+inline auto URL(string_view input) -> string {
   string output;
   for(auto c : input) {
     //unreserved characters
@@ -15,8 +15,8 @@ inline auto URL(const string& input) -> string {
     if(c == ' ') { output.append('+'); continue; }
 
     //reserved characters
-    uint hi = (c >> 4) & 15;
-    uint lo = (c >> 0) & 15;
+    u32 hi = (c >> 4) & 15;
+    u32 lo = (c >> 0) & 15;
     output.append('%');
     output.append((char)(hi < 10 ? ('0' + hi) : ('a' + hi - 10)));
     output.append((char)(lo < 10 ? ('0' + lo) : ('a' + lo - 10)));
@@ -24,4 +24,4 @@ inline auto URL(const string& input) -> string {
   return output;
 }
 
-}}
+}

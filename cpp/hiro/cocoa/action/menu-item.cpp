@@ -20,32 +20,30 @@
 namespace hiro {
 
 auto pMenuItem::construct() -> void {
-  @autoreleasepool {
-    cocoaAction = cocoaMenuItem = [[CocoaMenuItem alloc] initWith:self()];
-    pAction::construct();
+  cocoaAction = cocoaMenuItem = [[CocoaMenuItem alloc] initWith:self()];
+  pAction::construct();
 
-    setIcon(state().icon);
-    setText(state().text);
-  }
+  setIcon(state().icon);
+  setText(state().text);
 }
 
 auto pMenuItem::destruct() -> void {
-  @autoreleasepool {
-    [cocoaAction release];
-  }
 }
 
-auto pMenuItem::setIcon(const image& icon) -> void {
-  @autoreleasepool {
-    uint size = 15;  //there is no API to retrieve the optimal size
-    [cocoaAction setImage:NSMakeImage(icon, size, size)];
-  }
+auto pMenuItem::setIcon(const multiFactorImage& icon, bool force) -> void {
+  if(!force) return;
+  u32 size = 16;  //there is no API to retrieve the optimal size
+  [cocoaAction setImage:NSMakeImage(icon, size, size)];
+}
+
+auto pMenuItem::setIconForFile(const string& filename) -> void {
+  NSImage* icon = [[NSWorkspace sharedWorkspace] iconForFile:@((const char*)filename)];
+  icon.size = NSMakeSize(16, 16);
+  [cocoaAction setImage:icon];
 }
 
 auto pMenuItem::setText(const string& text) -> void {
-  @autoreleasepool {
-    [cocoaAction setTitle:[NSString stringWithUTF8String:text]];
-  }
+  [cocoaAction setTitle:[NSString stringWithUTF8String:text]];
 }
 
 }

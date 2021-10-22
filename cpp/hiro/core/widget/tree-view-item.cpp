@@ -39,6 +39,22 @@ auto mTreeViewItem::checked() const -> bool {
   return state.checked;
 }
 
+auto mTreeViewItem::collapse(bool recursive) -> type& {
+  if(recursive) for(auto& item : state.items) item->collapse(recursive);
+  setExpanded(false);
+  return *this;
+}
+
+auto mTreeViewItem::expand(bool recursive) -> type& {
+  setExpanded(true);
+  if(recursive) for(auto& item : state.items) item->expand(recursive);
+  return *this;
+}
+
+auto mTreeViewItem::expanded() const -> bool {
+  return state.expanded;
+}
+
 auto mTreeViewItem::foregroundColor(bool recursive) const -> Color {
   if(auto color = state.foregroundColor) return color;
   if(recursive) {
@@ -52,20 +68,20 @@ auto mTreeViewItem::foregroundColor(bool recursive) const -> Color {
   return {};
 }
 
-auto mTreeViewItem::icon() const -> image {
+auto mTreeViewItem::icon() const -> multiFactorImage {
   return state.icon;
 }
 
 auto mTreeViewItem::item(const string& path) const -> TreeViewItem {
   if(!path) return {};
   auto paths = path.split("/");
-  unsigned position = paths.takeLeft().natural();
+  u32 position = paths.takeLeft().natural();
   if(position >= itemCount()) return {};
   if(!paths) return state.items[position];
   return state.items[position]->item(paths.merge("/"));
 }
 
-auto mTreeViewItem::itemCount() const -> unsigned {
+auto mTreeViewItem::itemCount() const -> u32 {
   return state.items.size();
 }
 
@@ -122,6 +138,7 @@ auto mTreeViewItem::setChecked(bool checked) -> type& {
 }
 
 auto mTreeViewItem::setExpanded(bool expanded) -> type& {
+  state.expanded = expanded;
   signal(setExpanded, expanded);
   return *this;
 }
@@ -137,16 +154,17 @@ auto mTreeViewItem::setForegroundColor(Color color) -> type& {
   return *this;
 }
 
-auto mTreeViewItem::setIcon(const image& icon) -> type& {
+auto mTreeViewItem::setIcon(const multiFactorImage& icon) -> type& {
   state.icon = icon;
   signal(setIcon, icon);
   return *this;
 }
 
-auto mTreeViewItem::setParent(mObject* parent, signed offset) -> type& {
-  for(auto n : rrange(state.items)) state.items[n]->destruct();
+auto mTreeViewItem::setParent(mObject* parent, s32 offset) -> type& {
+  for(auto& item : reverse(state.items)) item->destruct();
   mObject::setParent(parent, offset);
   for(auto& item : state.items) item->setParent(this, item->offset());
+  return *this;
 }
 
 auto mTreeViewItem::setSelected() -> type& {

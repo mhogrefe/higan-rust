@@ -19,8 +19,8 @@
 }
 
 -(void) update {
-  double d = 1.0 / horizontalScrollBar->state.length;
-  double f = d * horizontalScrollBar->state.position;
+  f64 d = 1.0 / horizontalScrollBar->state.length;
+  f64 f = d * horizontalScrollBar->state.position;
 
   [self setDoubleValue:f];
   [self setKnobProportion:d];
@@ -55,38 +55,27 @@
 namespace hiro {
 
 auto pHorizontalScrollBar::construct() -> void {
-  @autoreleasepool {
-    cocoaView = cocoaHorizontalScrollBar = [[CocoaHorizontalScrollBar alloc] initWith:self()];
-    pWidget::construct();
+  cocoaView = cocoaHorizontalScrollBar = [[CocoaHorizontalScrollBar alloc] initWith:self()];
+  pWidget::construct();
 
-    setLength(state().length);
-    setPosition(state().position);
-  }
+  setLength(state().length);
+  setPosition(state().position);
 }
 
 auto pHorizontalScrollBar::destruct() -> void {
-  @autoreleasepool {
-    [cocoaView removeFromSuperview];
-    [cocoaView release];
-  }
+  [cocoaView removeFromSuperview];
 }
 
 auto pHorizontalScrollBar::minimumSize() const -> Size {
-  @autoreleasepool {
-    return {32, (int)[NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy]};
-  }
+  return {32, (s32)[NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy]};
 }
 
-auto pHorizontalScrollBar::setLength(uint length) -> void {
-  @autoreleasepool {
-    [cocoaView update];
-  }
+auto pHorizontalScrollBar::setLength(u32 length) -> void {
+  [(CocoaHorizontalScrollBar*)cocoaView update];
 }
 
-auto pHorizontalScrollBar::setPosition(uint position) -> void {
-  @autoreleasepool {
-    [cocoaView update];
-  }
+auto pHorizontalScrollBar::setPosition(u32 position) -> void {
+  [(CocoaHorizontalScrollBar*)cocoaView update];
 }
 
 }

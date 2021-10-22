@@ -1,4 +1,4 @@
-#define ConcatenateType(Size) uint##Size##_t
+#define ConcatenateType(Size) u##Size
 #define DeclareType(Size) ConcatenateType(Size)
 
 #define Pair DeclareType(PairBits)
@@ -20,14 +20,16 @@ struct Pair {
   explicit operator bool() const { return hi | lo; }
   template<typename T> operator T() const { T value; _get(*this, value); return value; }
 
+  auto operator+() const -> Pair { return *this; }
+  auto operator-() const -> Pair { return Pair(0) - *this; }
   auto operator~() const -> Pair { return {~hi, ~lo}; }
   auto operator!() const -> bool { return !(hi || lo); }
 
   auto operator++() -> Pair& { lo++; hi += lo == 0; return *this; }
   auto operator--() -> Pair& { hi -= lo == 0; lo--; return *this; }
 
-  auto operator++(int) -> Pair { Pair r = *this; lo++; hi += lo == 0; return r; }
-  auto operator--(int) -> Pair { Pair r = *this; hi -= lo == 0; lo--; return r; }
+  auto operator++(s32) -> Pair { Pair r = *this; lo++; hi += lo == 0; return r; }
+  auto operator--(s32) -> Pair { Pair r = *this; hi -= lo == 0; lo--; return r; }
 
   auto operator* (const Pair& rhs) const -> Pair { return mul(*this, rhs); }
   auto operator/ (const Pair& rhs) const -> Pair { Pair q, r; div(*this, rhs, q, r); return q; }
@@ -75,20 +77,13 @@ struct Pair {
   template<typename T> auto operator> (const T& rhs) const -> bool { return Cast(*this) >  Cast(rhs); }
   template<typename T> auto operator< (const T& rhs) const -> bool { return Cast(*this) <  Cast(rhs); }
 
-  explicit Pair(const vector<uint8_t>& value) : hi(0), lo(0) {
-    for(auto n : rrange(value)) {
-      operator<<=(8);
-      operator|=(value[n]);
-    }
-  }
-
 private:
   Type lo;
   Type hi;
 
   friend auto upper(const Pair&) -> Type;
   friend auto lower(const Pair&) -> Type;
-  friend auto bits(Pair) -> uint;
+  friend auto bits(Pair) -> u32;
   friend auto square(const Pair&) -> Pair;
   friend auto square(const Pair&, Pair&, Pair&) -> void;
   friend auto mul(const Pair&, const Pair&) -> Pair;
@@ -96,6 +91,10 @@ private:
   friend auto div(const Pair&, const Pair&, Pair&, Pair&) -> void;
   template<typename T> friend auto shl(const Pair&, const T&) -> Pair;
   template<typename T> friend auto shr(const Pair&, const T&) -> Pair;
+};
+
+template<> struct ArithmeticNatural<PairBits> {
+  using type = Pair;
 };
 
 #define ConcatenateUDL(Size) _u##Size
@@ -154,13 +153,13 @@ template<typename T> alwaysinline auto _get(const Pair& lhs, T& rhs) -> enable_i
 alwaysinline auto upper(const Pair& value) -> Type { return value.hi; }
 alwaysinline auto lower(const Pair& value) -> Type { return value.lo; }
 
-alwaysinline auto bits(Pair value) -> uint {
+alwaysinline auto bits(Pair value) -> u32 {
   if(value.hi) {
-    uint bits = TypeBits;
+    u32 bits = TypeBits;
     while(value.hi) value.hi >>= 1, bits++;
     return bits;
   } else {
-    uint bits = 0;
+    u32 bits = 0;
     while(value.lo) value.lo >>= 1, bits++;
     return bits;
   }
@@ -253,7 +252,7 @@ alwaysinline auto div(const Pair& lhs, const Pair& rhs, Pair& quotient, Pair& re
 
 template<typename T> alwaysinline auto shl(const Pair& lhs, const T& rhs) -> Pair {
   if(!rhs) return lhs;
-  auto shift = (uint)rhs;
+  auto shift = (u32)rhs;
   if(shift < TypeBits) {
     return {lhs.hi << shift | lhs.lo >> (TypeBits - shift), lhs.lo << shift};
   } else {
@@ -263,7 +262,7 @@ template<typename T> alwaysinline auto shl(const Pair& lhs, const T& rhs) -> Pai
 
 template<typename T> alwaysinline auto shr(const Pair& lhs, const T& rhs) -> Pair {
   if(!rhs) return lhs;
-  auto shift = (uint)rhs;
+  auto shift = (u32)rhs;
   if(shift < TypeBits) {
     return {lhs.hi >> shift, lhs.hi << (TypeBits - shift) | lhs.lo >> shift};
   } else {
@@ -324,37 +323,14 @@ template<> struct stringify<Pair> {
     } while(source);
     _size = p - _output;
     *p = 0;
-    for(int x = _size - 1, y = 0; x >= 0 && y < _size; x--, y++) _data[x] = _output[y];
+    for(s32 x = _size - 1, y = 0; x >= 0 && y < _size; x--, y++) _data[x] = _output[y];
   }
 
   auto data() const -> const char* { return _data; }
-  auto size() const -> uint { return _size; }
+  auto size() const -> u32 { return _size; }
   char _data[1 + sizeof(Pair) * 3];
-  uint _size;
+  u32  _size;
 };
-
-inline auto to_vector(Pair value) -> vector<uint8_t> {
-  vector<uint8_t> result;
-  result.resize(PairBits / 8);
-  for(auto& byte : result) {
-    byte = value;
-    value >>= 8;
-  }
-  return result;
-}
-
-/*
-inline auto hex(const Pair& value, long precision = 0, char padchar = '0') -> string {
-  string text;
-  if(!upper(value)) {
-    text.append(hex(lower(value)));
-  } else {
-    text.append(hex(upper(value)));
-    text.append(hex(lower(value), TypeBits / 4, '0'));
-  }
-  return pad(text, precision, padchar);
-}
-*/
 
 }
 

@@ -23,6 +23,7 @@ auto pMenu::construct() -> void {
 }
 
 auto pMenu::destruct() -> void {
+if(Application::state().quit) return;  //TODO: hack
   delete qtMenu;
   qtMenu = nullptr;
 }
@@ -33,7 +34,7 @@ auto pMenu::append(sAction action) -> void {
 auto pMenu::remove(sAction action) -> void {
 }
 
-auto pMenu::setIcon(const image& icon) -> void {
+auto pMenu::setIcon(const image& icon, bool force) -> void {
   _setState();
 }
 

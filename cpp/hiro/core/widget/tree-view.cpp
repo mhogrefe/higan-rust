@@ -11,6 +11,10 @@ auto mTreeView::destruct() -> void {
 
 //
 
+auto mTreeView::activation() const -> Mouse::Click {
+  return state.activation;
+}
+
 auto mTreeView::append(sTreeViewItem item) -> type& {
   state.items.append(item);
   item->setParent(this, itemCount() - 1);
@@ -20,6 +24,11 @@ auto mTreeView::append(sTreeViewItem item) -> type& {
 
 auto mTreeView::backgroundColor() const -> Color {
   return state.backgroundColor;
+}
+
+auto mTreeView::collapse(bool recursive) -> type& {
+  for(auto& item : state.items) item->collapse(recursive);
+  return *this;
 }
 
 auto mTreeView::doActivate() const -> void {
@@ -38,6 +47,11 @@ auto mTreeView::doToggle(sTreeViewItem item) const -> void {
   if(state.onToggle) return state.onToggle(item);
 }
 
+auto mTreeView::expand(bool recursive) -> type& {
+  for(auto& item : state.items) item->expand(recursive);
+  return *this;
+}
+
 auto mTreeView::foregroundColor() const -> Color {
   return state.foregroundColor;
 }
@@ -45,13 +59,13 @@ auto mTreeView::foregroundColor() const -> Color {
 auto mTreeView::item(const string& path) const -> TreeViewItem {
   if(!path) return {};
   auto paths = path.split("/");
-  unsigned position = paths.takeLeft().natural();
+  u32 position = paths.takeLeft().natural();
   if(position >= itemCount()) return {};
   if(!paths) return state.items[position];
   return state.items[position]->item(paths.merge("/"));
 }
 
-auto mTreeView::itemCount() const -> unsigned {
+auto mTreeView::itemCount() const -> u32 {
   return state.items.size();
 }
 
@@ -93,12 +107,26 @@ auto mTreeView::remove(sTreeViewItem item) -> type& {
 
 auto mTreeView::reset() -> type& {
   state.selectedPath.reset();
-  for(auto n : rrange(state.items)) remove(state.items[n]);
+  while(state.items) remove(state.items.right());
+  return *this;
+}
+
+auto mTreeView::selectNone() -> type& {
+  if(auto item = selected()) {
+  //TODO
+  //item->setSelected(false);
+  }
   return *this;
 }
 
 auto mTreeView::selected() const -> TreeViewItem {
   return item(state.selectedPath);
+}
+
+auto mTreeView::setActivation(Mouse::Click activation) -> type& {
+  state.activation = activation;
+  signal(setActivation, activation);
+  return *this;
 }
 
 auto mTreeView::setBackgroundColor(Color color) -> type& {
@@ -113,8 +141,8 @@ auto mTreeView::setForegroundColor(Color color) -> type& {
   return *this;
 }
 
-auto mTreeView::setParent(mObject* object, signed offset) -> type& {
-  for(auto n : rrange(state.items)) state.items[n]->destruct();
+auto mTreeView::setParent(mObject* object, s32 offset) -> type& {
+  for(auto& item : reverse(state.items)) item->destruct();
   mObject::setParent(object, offset);
   for(auto& item : state.items) item->setParent(this, item->offset());
   return *this;

@@ -1,17 +1,22 @@
 #pragma once
 
-namespace nall { namespace HID {
+#include <nall/maybe.hpp>
+#include <nall/range.hpp>
+#include <nall/string.hpp>
+#include <nall/vector.hpp>
+
+namespace nall::HID {
 
 struct Input {
   Input(const string& name) : _name(name) {}
 
   auto name() const -> string { return _name; }
-  auto value() const -> int16_t { return _value; }
-  auto setValue(int16_t value) -> void { _value = value; }
+  auto value() const -> s16 { return _value; }
+  auto setValue(s16 value) -> void { _value = value; }
 
 private:
   string _name;
-  int16_t _value = 0;
+  s16 _value = 0;
   friend class Group;
 };
 
@@ -19,10 +24,10 @@ struct Group : vector<Input> {
   Group(const string& name) : _name(name) {}
 
   auto name() const -> string { return _name; }
-  auto input(uint id) -> Input& { return operator[](id); }
+  auto input(u32 id) -> Input& { return operator[](id); }
   auto append(const string& name) -> void { vector::append(Input{name}); }
 
-  auto find(const string& name) const -> maybe<uint> {
+  auto find(const string& name) const -> maybe<u32> {
     for(auto id : range(size())) {
       if(operator[](id)._name == name) return id;
     }
@@ -36,11 +41,16 @@ private:
 
 struct Device : vector<Group> {
   Device(const string& name) : _name(name) {}
+  virtual ~Device() = default;
 
-  auto pathID() const -> uint32_t { return (uint32_t)(_id >> 32); }
-  auto deviceID() const -> uint32_t { return (uint32_t)(_id >> 0); }
-  auto vendorID() const -> uint16_t  { return (uint16_t)(_id >> 16); }
-  auto productID() const -> uint16_t { return (uint16_t)(_id >> 0); }
+  //id => {pathID}-{vendorID}-{productID}
+  auto pathID()    const -> u32 { return (u32)(_id >> 32); }  //32-63
+  auto vendorID()  const -> u16 { return (u16)(_id >> 16); }  //16-31
+  auto productID() const -> u16 { return (u16)(_id >>  0); }  // 0-15
+
+  auto setPathID   (u32 pathID   ) -> void { _id = (u64)pathID   << 32 | vendorID() << 16 | productID() << 0; }
+  auto setVendorID (u16 vendorID ) -> void { _id = (u64)pathID() << 32 | vendorID   << 16 | productID() << 0; }
+  auto setProductID(u16 productID) -> void { _id = (u64)pathID() << 32 | vendorID() << 16 | productID   << 0; }
 
   virtual auto isNull() const -> bool { return false; }
   virtual auto isKeyboard() const -> bool { return false; }
@@ -48,12 +58,12 @@ struct Device : vector<Group> {
   virtual auto isJoypad() const -> bool { return false; }
 
   auto name() const -> string { return _name; }
-  auto id() const -> uint64_t { return _id; }
-  auto setID(uint64_t id) -> void { _id = id; }
-  auto group(uint id) -> Group& { return operator[](id); }
+  auto id() const -> u64 { return _id; }
+  auto setID(u64 id) -> void { _id = id; }
+  auto group(u32 id) -> Group& { return operator[](id); }
   auto append(const string& name) -> void { vector::append(Group{name}); }
 
-  auto find(const string& name) const -> maybe<uint> {
+  auto find(const string& name) const -> maybe<u32> {
     for(auto id : range(size())) {
       if(operator[](id)._name == name) return id;
     }
@@ -62,16 +72,19 @@ struct Device : vector<Group> {
 
 private:
   string _name;
-  uint64_t _id = 0;
+  u64 _id = 0;
 };
 
 struct Null : Device {
+  enum : u16 { GenericVendorID = 0x0000, GenericProductID = 0x0000 };
+
   Null() : Device("Null") {}
   auto isNull() const -> bool { return true; }
 };
 
 struct Keyboard : Device {
-  enum GroupID : uint { Button };
+  enum : u16 { GenericVendorID = 0x0000, GenericProductID = 0x0001 };
+  enum GroupID : u32 { Button };
 
   Keyboard() : Device("Keyboard") { append("Button"); }
   auto isKeyboard() const -> bool { return true; }
@@ -79,7 +92,8 @@ struct Keyboard : Device {
 };
 
 struct Mouse : Device {
-  enum GroupID : uint { Axis, Button };
+  enum : u16 { GenericVendorID = 0x0000, GenericProductID = 0x0002 };
+  enum GroupID : u32 { Axis, Button };
 
   Mouse() : Device("Mouse") { append("Axis"), append("Button"); }
   auto isMouse() const -> bool { return true; }
@@ -88,7 +102,8 @@ struct Mouse : Device {
 };
 
 struct Joypad : Device {
-  enum GroupID : uint { Axis, Hat, Trigger, Button };
+  enum : u16 { GenericVendorID = 0x0000, GenericProductID = 0x0003 };
+  enum GroupID : u32 { Axis, Hat, Trigger, Button };
 
   Joypad() : Device("Joypad") { append("Axis"), append("Hat"), append("Trigger"), append("Button"); }
   auto isJoypad() const -> bool { return true; }
@@ -104,4 +119,4 @@ private:
   bool _rumble = false;
 };
 
-}}
+}

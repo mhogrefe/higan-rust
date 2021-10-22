@@ -1,9 +1,9 @@
 #pragma once
 
-namespace nall { namespace Eval {
+namespace nall::Eval {
 
 struct Node {
-  enum class Type : uint {
+  enum class Type : u32 {
     Null,
     Literal,
     Function, Subscript, Member, SuffixIncrement, SuffixDecrement,
@@ -34,4 +34,4 @@ struct Node {
   ~Node() { for(auto& node : link) delete node; }
 };
 
-}}
+}

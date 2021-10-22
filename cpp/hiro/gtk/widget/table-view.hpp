@@ -5,10 +5,10 @@ namespace hiro {
 struct pTableView : pWidget {
   Declare(TableView, Widget)
 
-  auto append(sTableViewHeader column) -> void;
+  auto append(sTableViewColumn column) -> void;
   auto append(sTableViewItem item) -> void;
   auto focused() const -> bool override;
-  auto remove(sTableViewHeader column) -> void;
+  auto remove(sTableViewColumn column) -> void;
   auto remove(sTableViewItem item) -> void;
   auto resizeColumns() -> void;
   auto setAlignment(Alignment alignment) -> void;
@@ -19,21 +19,25 @@ struct pTableView : pWidget {
   auto setFont(const Font& font) -> void override;
   auto setForegroundColor(Color color) -> void;
   auto setGeometry(Geometry geometry) -> void override;
+  auto setHeadered(bool headered) -> void;
+  auto setSortable(bool sortable) -> void;
 
-  auto _cellWidth(unsigned row, unsigned column) -> unsigned;
-  auto _columnWidth(unsigned column) -> unsigned;
+  auto _cellWidth(u32 row, u32 column) -> u32;
+  auto _columnWidth(u32 column) -> u32;
   auto _createModel() -> void;
-  auto _doActivate() -> void;
+  auto _doActivate(GtkTreePath* = nullptr, GtkTreeViewColumn* = nullptr) -> void;
   auto _doChange() -> void;
   auto _doContext() -> void;
   auto _doDataFunc(GtkTreeViewColumn* column, GtkCellRenderer* renderer, GtkTreeIter* iter) -> void;
   auto _doEdit(GtkCellRendererText* gtkCellRendererText, const char* path, const char* text) -> void;
-  auto _doEvent(GdkEventButton* event) -> signed;
+  auto _doEvent(GdkEventButton* event) -> s32;
   auto _doHeaderActivate(GtkTreeViewColumn* column) -> void;
-  auto _doMouseMove() -> signed;
+  auto _doKeyPress(GdkEventKey* event) -> bool;
+  auto _doMouseMove() -> s32;
   auto _doToggle(GtkCellRendererToggle* gtkCellRendererToggle, const char* path) -> void;
+  auto _updateRulesHint() -> void;
   auto _updateSelected() -> void;
-  auto _width(unsigned column) -> unsigned;
+  auto _width(u32 column) -> u32;
 
   GtkScrolledWindow* gtkScrolledWindow = nullptr;
   GtkWidget* gtkWidgetChild = nullptr;
@@ -41,7 +45,9 @@ struct pTableView : pWidget {
   GtkTreeSelection* gtkTreeSelection = nullptr;
   GtkListStore* gtkListStore = nullptr;
   GtkTreeModel* gtkTreeModel = nullptr;
-  vector<unsigned> currentSelection;
+  GtkEntry* gtkEntry = nullptr;
+  vector<u32> currentSelection;
+  bool suppressChange = false;
 };
 
 }

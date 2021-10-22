@@ -1,57 +1,42 @@
 #include <dsound.h>
 
-struct AudioDirectSound : Audio {
-  AudioDirectSound() { initialize(); }
+struct AudioDirectSound : AudioDriver {
+  AudioDirectSound& self = *this;
+  AudioDirectSound(Audio& super) : AudioDriver(super) {}
   ~AudioDirectSound() { terminate(); }
 
-  auto availableDevices() -> string_vector {
-    return {"Default"};
+  auto create() -> bool override {
+    super.setChannels(2);
+    super.setFrequency(48000);
+    super.setLatency(40);
+    return initialize();
   }
 
-  auto availableFrequencies() -> vector<double> {
-    return {44100.0, 48000.0, 96000.0};
+  auto driver() -> string override { return "DirectSound 7.0"; }
+  auto ready() -> bool override { return _ready; }
+
+  auto hasBlocking() -> bool override { return true; }
+
+  auto hasFrequencies() -> vector<u32> override {
+    return {44100, 48000, 96000};
   }
 
-  auto availableLatencies() -> vector<uint> {
+  auto hasLatencies() -> vector<u32> override {
     return {40, 60, 80, 100};
   }
 
-  auto availableChannels() -> vector<uint> {
-    return {2};
-  }
+  auto setBlocking(bool blocking) -> bool override { return true; }
+  auto setFrequency(u32 frequency) -> bool override { return initialize(); }
+  auto setLatency(u32 latency) -> bool override { return initialize(); }
 
-  auto ready() -> bool { return _ready; }
-  auto blocking() -> bool { return _blocking; }
-  auto channels() -> uint { return _channels; }
-  auto frequency() -> double { return _frequency; }
-  auto latency() -> uint { return _latency; }
-
-  auto setBlocking(bool blocking) -> bool {
-    if(_blocking == blocking) return true;
-    _blocking = blocking;
-    return true;
-  }
-
-  auto setFrequency(double frequency) -> bool {
-    if(_frequency == frequency) return true;
-    _frequency = frequency;
-    return initialize();
-  }
-
-  auto setLatency(uint latency) -> bool {
-    if(_latency == latency) return true;
-    _latency = latency;
-    return initialize();
-  }
-
-  auto clear() -> void {
+  auto clear() -> void override {
     if(!ready()) return;
 
     _ringRead = 0;
     _ringWrite = _rings - 1;
     _ringDistance = _rings - 1;
 
-    if(_buffer) memory::fill(_buffer, _period * _rings * 4);
+    if(_buffer) memory::fill<u32>(_buffer, _period * _rings);
     _offset = 0;
 
     if(!_secondary) return;
@@ -61,26 +46,26 @@ struct AudioDirectSound : Audio {
     void* output;
     DWORD size;
     _secondary->Lock(0, _period * _rings * 4, &output, &size, 0, 0, 0);
-    memory::fill(output, size);
+    memory::fill<u8>(output, size);
     _secondary->Unlock(output, size, 0, 0);
 
     _secondary->Play(0, 0, DSBPLAY_LOOPING);
   }
 
-  auto output(const double samples[]) -> void {
+  auto output(const f64 samples[]) -> void override {
     if(!ready()) return;
 
-    _buffer[_offset]  = (uint16_t)sclamp<16>(samples[0] * 32767.0) <<  0;
-    _buffer[_offset] |= (uint16_t)sclamp<16>(samples[1] * 32767.0) << 16;
+    _buffer[_offset]  = (u16)sclamp<16>(samples[0] * 32767.0) <<  0;
+    _buffer[_offset] |= (u16)sclamp<16>(samples[1] * 32767.0) << 16;
     if(++_offset < _period) return;
     _offset = 0;
 
-    if(_blocking) {
+    if(self.blocking) {
       //wait until playback buffer has an empty ring to write new audio data to
       while(_ringDistance >= _rings - 1) {
         DWORD position;
         _secondary->GetCurrentPosition(&position, 0);
-        uint ringActive = position / (_period * 4);
+        u32 ringActive = position / (_period * 4);
         if(ringActive == _ringRead) continue;
 
         //subtract number of played rings from ring distance counter
@@ -102,7 +87,7 @@ struct AudioDirectSound : Audio {
     void* output;
     DWORD size;
     if(_secondary->Lock(_ringWrite * _period * 4, _period * 4, &output, &size, 0, 0, 0) == DS_OK) {
-      memory::copy(output, _buffer, _period * 4);
+      memory::copy<u32>(output, _buffer, _period);
       _secondary->Unlock(output, size, 0, 0);
     }
   }
@@ -112,8 +97,8 @@ private:
     terminate();
 
     _rings = 8;
-    _period = _frequency * _latency / _rings / 1000.0 + 0.5;
-    _buffer = new uint32_t[_period * _rings];
+    _period = self.frequency * self.latency / _rings / 1000.0 + 0.5;
+    _buffer = new u32[_period * _rings];
     _offset = 0;
 
     if(DirectSoundCreate(0, &_interface, 0) != DS_OK) return terminate(), false;
@@ -128,8 +113,8 @@ private:
 
     WAVEFORMATEX waveFormat = {};
     waveFormat.wFormatTag = WAVE_FORMAT_PCM;
-    waveFormat.nChannels = _channels;
-    waveFormat.nSamplesPerSec = (uint)_frequency;
+    waveFormat.nChannels = self.channels;
+    waveFormat.nSamplesPerSec = self.frequency;
     waveFormat.wBitsPerSample = 16;
     waveFormat.nBlockAlign = waveFormat.nChannels * waveFormat.wBitsPerSample / 8;
     waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
@@ -142,7 +127,7 @@ private:
     secondaryDescription.guid3DAlgorithm = GUID_NULL;
     secondaryDescription.lpwfxFormat = &waveFormat;
     _interface->CreateSoundBuffer(&secondaryDescription, &_secondary, 0);
-    _secondary->SetFrequency((uint)_frequency);
+    _secondary->SetFrequency(self.frequency);
     _secondary->SetCurrentPosition(0);
 
     _ready = true;
@@ -159,21 +144,17 @@ private:
   }
 
   bool _ready = false;
-  bool _blocking = true;
-  uint _channels = 2;
-  double _frequency = 48000.0;
-  uint _latency = 40;
 
   LPDIRECTSOUND _interface = nullptr;
   LPDIRECTSOUNDBUFFER _primary = nullptr;
   LPDIRECTSOUNDBUFFER _secondary = nullptr;
 
-  uint32_t* _buffer = nullptr;
-  uint _offset = 0;
+  u32* _buffer = nullptr;
+  u32 _offset = 0;
 
-  uint _period = 0;
-  uint _rings = 0;
-  uint _ringRead = 0;
-  uint _ringWrite = 0;
-  int _ringDistance = 0;
+  u32 _period = 0;
+  u32 _rings = 0;
+  u32 _ringRead = 0;
+  u32 _ringWrite = 0;
+  s32 _ringDistance = 0;
 };

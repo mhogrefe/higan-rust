@@ -2,7 +2,7 @@
 
 namespace hiro {
 
-struct pObject {
+struct pObject : Lock {
   pObject(mObject& reference) : reference(reference) {}
   virtual ~pObject() = default;
   virtual auto construct() -> void;
@@ -18,12 +18,7 @@ struct pObject {
   virtual auto setGroup(sGroup group) -> void;
   virtual auto setVisible(bool visible) -> void;
 
-  auto locked() const -> bool { return locks != 0; }
-  auto lock() -> void { ++locks; }
-  auto unlock() -> void { --locks; }
-
   mObject& reference;
-  signed locks = 0;
 };
 
 }

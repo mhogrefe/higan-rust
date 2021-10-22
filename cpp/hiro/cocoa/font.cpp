@@ -3,28 +3,23 @@
 namespace hiro {
 
 auto pFont::size(const Font& font, const string& text) -> Size {
-  @autoreleasepool {
-    if(NSFont* nsFont = create(font)) {
-      return size(nsFont, text);
-    }
+  if(NSFont* nsFont = create(font)) {
+    return size(nsFont, text);
   }
   return {0, 0};
 }
 
 auto pFont::size(NSFont* font, const string& text) -> Size {
-  @autoreleasepool {
-    NSString* cocoaText = [NSString stringWithUTF8String:text];
-    NSDictionary* fontAttributes = [NSDictionary dictionaryWithObjectsAndKeys:font, NSFontAttributeName, nil];
-    NSSize size = [cocoaText sizeWithAttributes:fontAttributes];
-    return {(int)size.width, (int)size.height};
-  }
+  NSString* cocoaText = [NSString stringWithUTF8String:text];
+  NSDictionary* fontAttributes = [NSDictionary dictionaryWithObjectsAndKeys:font, NSFontAttributeName, nil];
+  NSSize size = [cocoaText sizeWithAttributes:fontAttributes];
+  return {(s32)ceil(size.width), (s32)ceil(size.height)};
 }
 
 auto pFont::family(const string& family) -> string {
-  if(family == Font::Sans ) return "Lucida Grande";
-  if(family == Font::Serif) return "Georgia";
+  if(family == Font::Serif) return "Baskerville";
   if(family == Font::Mono ) return "Menlo";
-  return "Lucida Grande";
+  return [[[NSFont systemFontOfSize:0] familyName] UTF8String];
 }
 
 auto pFont::create(const Font& font) -> NSFont* {
