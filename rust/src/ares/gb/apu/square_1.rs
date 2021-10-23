@@ -1,5 +1,7 @@
 use ares::emulator::types::{U11, U2, U3, U4};
-use malachite_base::num::arithmetic::traits::{WrappingAddAssign, WrappingSubAssign};
+use malachite_base::num::arithmetic::traits::{
+    NegAssign, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingSubAssign,
+};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
@@ -43,13 +45,14 @@ impl Square1 {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = 2 * (2_048 - u32::wrapping_from(self.frequency.x()));
+                self.period = (2_048 - u32::wrapping_from(self.frequency)) << 1;
                 self.phase.wrapping_add_assign(U3::ONE);
+                let x = self.phase.x();
                 self.duty_output = match self.duty.x() {
-                    0 => self.phase.x() == 6, //______-_
-                    1 => self.phase.x() >= 6, //______--
-                    2 => self.phase.x() >= 4, //____----
-                    3 => self.phase.x() <= 5, //------__
+                    0 => x == 6, //______-_
+                    1 => x >= 6, //______--
+                    2 => x >= 4, //____----
+                    3 => x <= 5, //------__
                     _ => unreachable!(),
                 };
             }
@@ -62,7 +65,7 @@ impl Square1 {
         if !self.enable {
             sample = U4::ZERO;
         }
-        self.output = i16::from(sample.x());
+        self.output = i16::from(sample);
     }
 
     /// See cpp/ares/gb/apu/square1.cpp
@@ -71,31 +74,26 @@ impl Square1 {
             return;
         }
         self.sweep_negate = self.sweep_direction;
-        let delta = u32::wrapping_from(self.frequency_shadow >> self.sweep_shift.x());
-        let freq = self.frequency_shadow
-            + if self.sweep_negate {
-                -i32::wrapping_from(delta)
-            } else {
-                i32::wrapping_from(delta)
-            };
-
+        let mut delta = i32::wrapping_from(self.frequency_shadow >> self.sweep_shift.x());
+        if self.sweep_negate {
+            delta.neg_assign();
+        }
+        let freq = self.frequency_shadow + delta;
         if freq > 2_047 {
             self.enable = false;
         } else if self.sweep_shift.x() != 0 && update {
             self.frequency_shadow = freq;
-            self.frequency = U11::wrapping_from(freq & 2_047);
-            self.period = 2 * (2_048 - u32::from(self.frequency.x()));
+            self.frequency = U11::wrapping_from(freq);
+            self.period = (2_048 - u32::from(self.frequency)) << 1;
         }
     }
 
     /// See cpp/ares/gb/apu/square1.cpp
     pub fn clock_length(&mut self) {
-        if self.counter {
-            if self.length != 0 {
-                self.length -= 1;
-                if self.length == 0 {
-                    self.enable = false;
-                }
+        if self.counter && self.length != 0 {
+            self.length -= 1;
+            if self.length == 0 {
+                self.enable = false;
             }
         }
     }
@@ -104,11 +102,7 @@ impl Square1 {
     pub fn clock_sweep(&mut self) {
         self.sweep_period.wrapping_sub_assign(U3::ONE);
         if self.sweep_period.x() == 0 {
-            self.sweep_period = if self.sweep_frequency.x() != 0 {
-                self.sweep_frequency
-            } else {
-                U3::ZERO
-            };
+            self.sweep_period = self.sweep_frequency;
             if self.sweep_enable && self.sweep_frequency.x() != 0 {
                 self.sweep(true);
                 self.sweep(false);
@@ -122,16 +116,16 @@ impl Square1 {
             self.envelope_period.wrapping_sub_assign(U3::ONE);
             if self.envelope_period.x() == 0 {
                 self.envelope_period = self.envelope_frequency;
-                if !self.envelope_direction && self.volume.x() > 0 {
-                    self.volume -= U4::ONE;
-                }
-                if self.envelope_direction && self.volume.x() < 15 {
-                    self.volume += U4::ONE;
+                if self.envelope_direction {
+                    self.volume.saturating_add_assign(U4::ONE);
+                } else {
+                    self.volume.saturating_sub_assign(U4::ONE);
                 }
             }
         }
     }
 
+    //TODO test
     /// See cpp/ares/gb/apu/square1.cpp
     pub fn trigger(&mut self, apu_phase: U3) {
         self.enable = self.dac_enable();

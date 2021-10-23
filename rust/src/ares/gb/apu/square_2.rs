@@ -60,12 +60,10 @@ impl Square2 {
 
     /// See cpp/ares/gb/apu/square2.cpp
     pub fn clock_length(&mut self) {
-        if self.counter {
-            if self.length != 0 {
-                self.length -= 1;
-                if self.length == 0 {
-                    self.enable = false;
-                }
+        if self.counter && self.length != 0 {
+            self.length -= 1;
+            if self.length == 0 {
+                self.enable = false;
             }
         }
     }

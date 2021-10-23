@@ -26,7 +26,7 @@ impl CPUIO {
                 //TODO joypPoll();
                 0xc0 | (if self.status.p15 { 1 } else { 0 } << 5)
                     | (if self.status.p14 { 1 } else { 0 } << 4)
-                    | (self.status.joyp << 0)
+                    | self.status.joyp
             }
 
             //SB
@@ -36,7 +36,7 @@ impl CPUIO {
             0xff02 => {
                 (if self.status.serial_transfer { 1 } else { 0 } << 7)
                     | 0x7e
-                    | (if self.status.serial_clock { 1 } else { 0 } << 0)
+                    | if self.status.serial_clock { 1 } else { 0 }
             }
 
             //DIV
@@ -51,7 +51,7 @@ impl CPUIO {
             //TAC
             0xff07 => {
                 0xf8 | (if self.status.timer_enable { 1 } else { 0 } << 2)
-                    | (u8::wrapping_from(self.status.timer_clock << 0))
+                    | (u8::wrapping_from(self.status.timer_clock))
             }
 
             //IF
@@ -76,11 +76,11 @@ impl CPUIO {
                     } else {
                         0
                     } << 1)
-                    | (if self.status.interrupt_request_vblank {
+                    | if self.status.interrupt_request_vblank {
                         1
                     } else {
                         0
-                    } << 0)
+                    }
             }
 
             //KEY1
@@ -141,11 +141,11 @@ impl CPUIO {
                     } else {
                         0
                     } << 1)
-                    | (if self.status.interrupt_enable_vblank {
+                    | if self.status.interrupt_enable_vblank {
                         1
                     } else {
                         0
-                    } << 0)
+                    }
             }
 
             _ => 0xff,

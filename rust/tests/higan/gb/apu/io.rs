@@ -1,14 +1,12 @@
-use higan_rust::ares::emulator::types::{U2, U3, U4, U5};
+use higan_rust::ares::emulator::types::{U15, U2, U3, U4, U5};
 use higan_rust::ares::gb::apu::apu::APU;
 use higan_rust::ares::gb::apu::wave::Wave;
+use higan_rust::ares::gb::memory::memory::Bus;
+use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 
 fn read_helper(apu: &APU, address: u16) -> u8 {
-    apu.read_io(2, address, 0xff, false)
-}
-
-fn read_helper_gbc(apu: &APU, address: u16) -> u8 {
-    apu.read_io(2, address, 0xff, true)
+    apu.read_io(2, address, 0xff)
 }
 
 fn power_and_zero_pattern_wave(wave: &mut Wave) {
@@ -19,7 +17,7 @@ fn power_and_zero_pattern_wave(wave: &mut Wave) {
 }
 
 #[test]
-fn test_read() {
+fn test_read_io() {
     let mut apu = APU::default();
 
     // Noise
@@ -170,18 +168,227 @@ fn test_read() {
     assert_eq!(read_helper(&apu, 0xff3a), 0xab);
 
     // Model::GameBoyColor() is true, pattern_hold is zero
+    apu.model_is_game_boy_color = true;
     power_and_zero_pattern_wave(&mut apu.wave);
     apu.wave.enable = true;
     apu.wave.pattern_hold = 0;
     apu.wave.pattern_offset = U5::wrapping_from(3);
     apu.wave.pattern[1] = 0xab;
-    assert_eq!(read_helper_gbc(&apu, 0xff3a), 0xab);
+    assert_eq!(read_helper(&apu, 0xff3a), 0xab);
 
     // enable is false
+    apu.model_is_game_boy_color = false;
     power_and_zero_pattern_wave(&mut apu.wave);
     apu.wave.enable = false;
     apu.wave.pattern_hold = 0;
     apu.wave.pattern_offset = U5::wrapping_from(3);
     apu.wave.pattern[5] = 0xab;
     assert_eq!(read_helper(&apu, 0xff35), 0xab);
+}
+
+fn write_helper(apu: &mut APU, address: u16, data: u8) {
+    apu.write_io(2, address, data);
+}
+
+fn write_helper_with_cycle(apu: &mut APU, cycle: u32, address: u16, data: u8) {
+    apu.write_io(cycle, address, data);
+}
+
+#[test]
+fn test_write_io() {
+    // Noise
+    let mut bus = Bus::default();
+    bus.power_apu();
+    bus.apu.sequencer.enable = true;
+
+    bus.apu.noise.power(true);
+    write_helper(&mut bus.apu, 0xff20, 0b10110100);
+    assert_eq!(bus.apu.noise.length, 12);
+
+    bus.apu.noise.power(true);
+    bus.apu.noise.enable = true;
+    write_helper(&mut bus.apu, 0xff21, 0b10111010);
+    assert_eq!(bus.apu.noise.envelope_volume, U4::wrapping_from(0b1011));
+    assert!(bus.apu.noise.envelope_direction);
+    assert_eq!(bus.apu.noise.envelope_frequency, U3::wrapping_from(0b010));
+    assert!(bus.apu.noise.enable);
+
+    bus.apu.noise.power(true);
+    bus.apu.noise.enable = true;
+    write_helper(&mut bus.apu, 0xff21, 0);
+    assert_eq!(bus.apu.noise.envelope_volume, U4::ZERO);
+    assert!(!bus.apu.noise.envelope_direction);
+    assert_eq!(bus.apu.noise.envelope_frequency, U3::ZERO);
+    assert!(!bus.apu.noise.enable);
+
+    bus.apu.noise.power(true);
+    bus.apu.noise.enable = true;
+    write_helper(&mut bus.apu, 0xff22, 0b10111010);
+    assert_eq!(bus.apu.noise.frequency, U4::wrapping_from(0b1011));
+    assert!(bus.apu.noise.narrow);
+    assert_eq!(bus.apu.noise.divisor, U3::wrapping_from(0b010));
+
+    // data.bit(6) is false, data.bit(7) is true
+    bus.apu.noise.power(true);
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b10110011);
+    assert!(!bus.apu.noise.enable);
+    assert!(!bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.envelope_period, U3::ZERO);
+    assert_eq!(bus.apu.noise.lfsr, U15::wrapping_from(0x7fff));
+    assert_eq!(bus.apu.noise.volume, U4::ZERO);
+    assert_eq!(bus.apu.noise.length, 64);
+
+    // data.bit(6) is false, data.bit(7) is false. Length stays 0
+    bus.apu.noise.power(true);
+    bus.apu.noise.enable = true;
+    bus.apu.noise.length = 0;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b00110011);
+    assert!(bus.apu.noise.enable);
+    assert!(!bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.length, 0);
+
+    // data.bit(6) is true, data.bit(7) is true, enable stays true
+    bus.apu.noise.power(true);
+    bus.apu.noise.length = 1;
+    bus.apu.noise.enable = true;
+    bus.apu.noise.envelope_volume = U4::wrapping_from(5);
+    bus.apu.noise.envelope_direction = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b11110011);
+    assert!(bus.apu.noise.enable);
+    assert!(bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.envelope_period, U3::ZERO);
+    assert_eq!(bus.apu.noise.lfsr, U15::wrapping_from(0x7fff));
+    assert_eq!(bus.apu.noise.volume, U4::wrapping_from(5));
+    assert_eq!(bus.apu.noise.length, 1);
+
+    // same as previous, but length is initially 0 and becomes 64
+    bus.apu.noise.power(true);
+    bus.apu.noise.enable = true;
+    bus.apu.noise.envelope_volume = U4::wrapping_from(5);
+    bus.apu.noise.length = 0;
+    bus.apu.noise.envelope_direction = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b11110011);
+    assert!(bus.apu.noise.enable);
+    assert!(bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.envelope_period, U3::ZERO);
+    assert_eq!(bus.apu.noise.lfsr, U15::wrapping_from(0x7fff));
+    assert_eq!(bus.apu.noise.volume, U4::wrapping_from(5));
+    assert_eq!(bus.apu.noise.length, 64);
+
+    // same as previous, but length is initially 0 and becomes 63 because of
+    // apu.phase
+    bus.power_apu();
+    bus.apu.sequencer.enable = true;
+    bus.apu.noise.power(true);
+    bus.apu.phase = U3::ONE;
+    bus.apu.noise.enable = true;
+    bus.apu.noise.envelope_volume = U4::wrapping_from(5);
+    bus.apu.noise.length = 0;
+    bus.apu.noise.envelope_direction = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b11110011);
+    assert!(bus.apu.noise.enable);
+    assert!(bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.envelope_period, U3::ZERO);
+    assert_eq!(bus.apu.noise.lfsr, U15::wrapping_from(0x7fff));
+    assert_eq!(bus.apu.noise.volume, U4::wrapping_from(5));
+    assert_eq!(bus.apu.noise.length, 63);
+    // clear phase
+    bus.power_apu();
+
+    // data.bit(6) is true, data.bit(7) is false, enable stays true
+    bus.apu.noise.power(true);
+    bus.apu.sequencer.enable = true;
+    bus.apu.noise.length = 1;
+    bus.apu.noise.enable = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b01110011);
+    assert!(bus.apu.noise.enable);
+    assert!(bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.length, 1);
+
+    // same as previous, but apu.phase = 1, so enable becomes false
+    bus.power_apu();
+    bus.apu.noise.power(true);
+    bus.apu.sequencer.enable = true;
+    bus.apu.phase = U3::ONE;
+    bus.apu.noise.length = 1;
+    bus.apu.noise.enable = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff23, 0b01110011);
+
+    assert!(!bus.apu.noise.enable);
+    assert!(bus.apu.noise.counter);
+    assert_eq!(bus.apu.noise.length, 0);
+    // clear phase
+    bus.power_apu();
+
+    // Sequencer
+    bus.apu.sequencer.power();
+    bus.apu.sequencer.enable = true;
+    write_helper(&mut bus.apu, 0xff24, 0b10100101);
+    assert!(bus.apu.sequencer.left_enable);
+    assert_eq!(bus.apu.sequencer.left_volume, U3::wrapping_from(0b010));
+    assert!(!bus.apu.sequencer.right_enable);
+    assert_eq!(bus.apu.sequencer.right_volume, U3::wrapping_from(0b101));
+
+    bus.apu.sequencer.power();
+    bus.apu.sequencer.enable = true;
+    write_helper(&mut bus.apu, 0xff25, 0b10100101);
+    assert!(bus.apu.sequencer.noise.left_enable);
+    assert!(!bus.apu.sequencer.wave.left_enable);
+    assert!(bus.apu.sequencer.square_2.left_enable);
+    assert!(!bus.apu.sequencer.square_1.left_enable);
+    assert!(!bus.apu.sequencer.noise.right_enable);
+    assert!(bus.apu.sequencer.wave.right_enable);
+    assert!(!bus.apu.sequencer.square_2.right_enable);
+    assert!(bus.apu.sequencer.square_1.right_enable);
+
+    // enable and data.bit(7) both false, so nothing happens
+    bus.apu.sequencer.power();
+    bus.apu.square_1.power(true);
+    bus.apu.square_1.period = 5;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff26, 0);
+    assert_eq!(bus.apu.square_1.period, 5);
+    bus.apu.square_1.power(true);
+
+    // enable and data.bit(7) both true, so nothing happens
+    bus.apu.sequencer.power();
+    bus.apu.square_1.power(true);
+    bus.apu.square_1.period = 5;
+    bus.apu.sequencer.enable = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff26, 0b10000000);
+    assert_eq!(bus.apu.square_1.period, 5);
+    bus.apu.square_1.power(true);
+
+    // enable is false and data.bit(7) is true, so bus.apu phase is set to 0
+    bus.power_apu();
+    bus.apu.sequencer.power();
+    bus.apu.phase = U3::wrapping_from(5);
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff26, 0b10000000);
+    assert_eq!(bus.apu.phase, U3::ZERO);
+    // clear phase
+    bus.power_apu();
+
+    // enable is true, data.bit(7) is false, and model is not GBC, so bus.apu
+    // components are powered without initializing length
+    bus.apu.sequencer.power();
+    bus.apu.square_1.power(true);
+    bus.apu.square_1.period = 5;
+    bus.apu.square_1.length = 5;
+    bus.apu.sequencer.enable = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff26, 0);
+    assert_eq!(bus.apu.square_1.period, 0);
+    assert_eq!(bus.apu.square_1.length, 5);
+    bus.apu.square_1.power(true);
+
+    // enable is true, data.bit(7) is false, and model is GBC, so bus.apu components
+    // are powered, initializing length
+    bus.apu.sequencer.power();
+    bus.apu.model_is_game_boy_color = true;
+    bus.apu.square_1.power(true);
+    bus.apu.square_1.period = 5;
+    bus.apu.square_1.length = 5;
+    bus.apu.sequencer.enable = true;
+    write_helper_with_cycle(&mut bus.apu, 4, 0xff26, 0);
+    assert_eq!(bus.apu.square_1.period, 0);
+    assert_eq!(bus.apu.square_1.length, 64);
+    bus.apu.square_1.power(true);
 }

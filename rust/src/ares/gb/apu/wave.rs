@@ -57,12 +57,10 @@ impl Wave {
 
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn clock_length(&mut self) {
-        if self.counter {
-            if self.length != 0 {
-                self.length -= 1;
-                if self.length == 0 {
-                    self.enable = false;
-                }
+        if self.counter && self.length != 0 {
+            self.length -= 1;
+            if self.length == 0 {
+                self.enable = false;
             }
         }
     }
@@ -78,7 +76,7 @@ impl Wave {
             } else {
                 //if current pattern is within 4-15; pattern&~3 is copied to pattern[0-3]
                 let index = usize::from((self.pattern_offset >> 1u32).x() & !3);
-                self.pattern[0] = self.pattern[index + 0];
+                self.pattern[0] = self.pattern[index];
                 self.pattern[1] = self.pattern[index + 1];
                 self.pattern[2] = self.pattern[index + 2];
                 self.pattern[3] = self.pattern[index + 3];
@@ -213,7 +211,7 @@ impl Wave {
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn power(&mut self, initialize_length: bool) {
         let old_length = self.length;
-        let old_pattern = self.pattern.clone();
+        let old_pattern = self.pattern;
         *self = Wave::default();
         if initialize_length {
             self.length = 256;

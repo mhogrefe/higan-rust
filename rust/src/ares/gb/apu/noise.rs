@@ -63,12 +63,10 @@ impl Noise {
 
     /// See higan-rust/cpp/ares/gb/apu/noise.cpp
     pub fn clock_length(&mut self) {
-        if self.counter {
-            if self.length != 0 {
-                self.length -= 1;
-                if self.length == 0 {
-                    self.enable = false;
-                }
+        if self.counter && self.length != 0 {
+            self.length -= 1;
+            if self.length == 0 {
+                self.enable = false;
             }
         }
     }
@@ -102,60 +100,6 @@ impl Noise {
             };
         }
     }
-
-    /*
-    pub fn write(&mut self, apu_phase: U3, addr: u16, data: u8) {
-        match addr {
-            //NR41
-            0xff20 => {
-                self.length = u32::from(64 - (data & 0x3f));
-            }
-            //NR42
-            0xff21 => {
-                self.envelope_volume = U4::wrapping_from(data.get_bits(4, 8));
-                self.envelope_direction = data.get_bit(3);
-                self.envelope_frequency = U3::wrapping_from(data.get_bits(0, 3));
-                if !self.dac_enable() {
-                    self.enable = false;
-                }
-            }
-            //NR43
-            0xff22 => {
-                self.frequency = U4::wrapping_from(data.get_bits(4, 8));
-                self.narrow = data.get_bit(3);
-                self.divisor = U3::wrapping_from(data.get_bits(0, 3));
-                self.period = self.get_period();
-            }
-            //NR44
-            0xff23 => {
-                if apu_phase.get_bit(0) && !self.counter && (data & 0x40) != 0 {
-                    if self.length != 0 {
-                        self.length -= 1;
-                        if self.length == 0 {
-                            self.enable = false;
-                        }
-                    }
-                }
-
-                self.counter = data.get_bit(6);
-
-                if data.get_bit(7) {
-                    self.enable = self.dac_enable();
-                    self.lfsr = U15::MAX;
-                    self.envelope_period = self.envelope_frequency;
-                    self.volume = self.envelope_volume;
-
-                    if self.length == 0 {
-                        self.length = 64;
-                        if apu_phase.get_bit(0) && self.counter {
-                            self.length -= 1;
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-    }*/
 
     /// See higan-rust/cpp/ares/gb/apu/noise.cpp
     pub fn power(&mut self, initialize_length: bool) {

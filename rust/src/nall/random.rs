@@ -53,7 +53,6 @@ impl Rng for Pcg {
             .wrapping_add(self.increment);
         let xorshift = u32::wrapping_from(((state >> 18) ^ state) >> 27);
         let rotate = u32::wrapping_from(state >> 59);
-        return (u64::from(xorshift) >> rotate)
-            | (u64::from(xorshift) << (rotate.wrapping_neg() & 31));
+        (u64::from(xorshift) >> rotate) | (u64::from(xorshift) << (rotate.wrapping_neg() & 31))
     }
 }

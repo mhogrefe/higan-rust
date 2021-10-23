@@ -83,6 +83,6 @@ impl LR35902 {
         self.set_hf(false);
         self.set_nf(false);
         self.set_zf(target == 0);
-        return target;
+        target
     }
 }

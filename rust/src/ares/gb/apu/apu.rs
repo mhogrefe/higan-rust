@@ -154,18 +154,6 @@ impl Bus {
 
 /*
 impl MMIO for APU {
-    fn read_io(&self, addr: u16) -> u8 {
-        match addr {
-            0xff10..=0xff14 => self.square_1.read(addr),
-            0xff15..=0xff19 => self.square_2.read(addr),
-            0xff1a..=0xff1e => self.wave.read(self.model_is_game_boy_color, addr),
-            0xff1f..=0xff23 => self.noise.read(addr),
-            0xff24..=0xff26 => self.sequencer.read(addr),
-            0xff30..=0xff3f => self.wave.read(self.model_is_game_boy_color, addr),
-            _ => 0xff,
-        }
-    }
-
     fn write_io(&mut self, addr: u16, mut data: u8) {
         if !self.sequencer.enable {
             let mut valid = addr == 0xff26; //NR52
