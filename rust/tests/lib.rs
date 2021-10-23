@@ -4,6 +4,7 @@ extern crate malachite_base;
 pub mod higan {
     pub mod gb {
         pub mod apu {
+            pub mod apu;
             pub mod io;
             pub mod noise;
             pub mod sequencer;

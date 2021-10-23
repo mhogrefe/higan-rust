@@ -29,6 +29,7 @@ pub struct Sequencer {
 
 impl Sequencer {
     /// See higan-rust/cpp/ares/gb/apu/sequencer.cpp
+    #[inline]
     pub fn power(&mut self) {
         *self = Sequencer::default();
     }

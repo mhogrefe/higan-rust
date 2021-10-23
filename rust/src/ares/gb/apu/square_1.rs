@@ -2,7 +2,7 @@ use ares::emulator::types::{U11, U2, U3, U4};
 use malachite_base::num::arithmetic::traits::{
     NegAssign, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingSubAssign,
 };
-use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::basic::traits::One;
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
 
@@ -57,15 +57,11 @@ impl Square1 {
                 };
             }
         }
-        let mut sample = if self.duty_output {
-            self.volume
+        self.output = if self.enable && self.duty_output {
+            i16::from(self.volume)
         } else {
-            U4::ZERO
+            0
         };
-        if !self.enable {
-            sample = U4::ZERO;
-        }
-        self.output = i16::from(sample);
     }
 
     /// See cpp/ares/gb/apu/square1.cpp
@@ -148,77 +144,6 @@ impl Square1 {
             self.sweep(false)
         };
     }
-
-    /*
-    pub fn write(&mut self, apu_phase: U3, addr: u16, data: u8) {
-        match addr {
-            //NR10
-            0xff10 => {
-                if self.sweep_enable && self.sweep_negate && !data.get_bit(3) {
-                    self.enable = false;
-                }
-                self.sweep_frequency = U3::wrapping_from(data.get_bits(4, 7));
-                self.sweep_direction = data.get_bit(3);
-                self.sweep_shift = U3::wrapping_from(data.get_bits(0, 3));
-            }
-            //NR11
-            0xff11 => {
-                self.duty = U2::wrapping_from(data.get_bits(6, 8));
-                self.length = 64 - u32::from(data.get_bits(0, 6));
-            }
-            //NR12
-            0xff12 => {
-                self.envelope_volume = U4::wrapping_from(data.get_bits(4, 8));
-                self.envelope_direction = data.get_bit(3);
-                self.envelope_frequency = U3::wrapping_from(data.get_bits(0, 3));
-                if !self.dac_enable() {
-                    self.enable = false;
-                }
-            }
-            //NR13
-            0xff13 => {
-                self.frequency.assign_bits(0, 8, &U11::wrapping_from(data));
-            }
-            //NR14
-            0xff14 => {
-                if apu_phase.get_bit(0) && !self.counter && data.get_bit(6) {
-                    if self.length != 0 {
-                        self.length -= 1;
-                        if self.length == 0 {
-                            self.enable = false;
-                        }
-                    }
-                }
-
-                self.counter = data.get_bit(6);
-                self.frequency
-                    .assign_bits(8, 11, &U11::wrapping_from(data.get_bits(0, 3)));
-
-                if data.get_bit(7) {
-                    self.enable = self.dac_enable();
-                    self.period = u32::from(2 * (2_048 - self.frequency.x()));
-                    self.envelope_period = self.envelope_frequency;
-                    self.volume = self.envelope_volume;
-
-                    if self.length == 0 {
-                        self.length = 64;
-                        if apu_phase.get_bit(0) && self.counter {
-                            self.length -= 1;
-                        }
-                    }
-
-                    self.frequency_shadow = i32::wrapping_from(self.frequency.x());
-                    self.sweep_negate = false;
-                    self.sweep_period = self.sweep_frequency;
-                    self.sweep_enable = self.sweep_period.x() != 0 || self.sweep_shift.x() != 0;
-                    if self.sweep_shift.x() != 0 {
-                        self.sweep(false);
-                    }
-                }
-            }
-            _ => {}
-        }
-    }*/
 
     /// See cpp/ares/gb/apu/square1.cpp
     pub fn power(&mut self, initialize_length: bool) {

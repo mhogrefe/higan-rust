@@ -1,5 +1,5 @@
 use ares::emulator::types::{U11, U2, U3, U4, U5};
-use malachite_base::num::arithmetic::traits::WrappingAddAssign;
+use malachite_base::num::arithmetic::traits::{Parity, WrappingAddAssign};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
@@ -26,9 +26,11 @@ pub struct Wave {
 impl Wave {
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn get_pattern(&self, offset: U5) -> U4 {
-        U4::wrapping_from(
-            self.pattern[(offset.x() >> 1) as usize] >> (if offset.get_bit(0) { 0 } else { 4 }),
-        )
+        let mut p = self.pattern[(offset.x() >> 1) as usize];
+        if offset.even() {
+            p >>= 4;
+        }
+        U4::wrapping_from(p)
     }
 
     /// See cpp/ares/gb/apu/wave.cpp
@@ -36,23 +38,21 @@ impl Wave {
         if self.pattern_hold != 0 {
             self.pattern_hold -= 1;
         }
-
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = u32::from(2_048 - self.frequency.x());
+                self.period = 2_048 - u32::from(self.frequency);
                 self.pattern_offset.wrapping_add_assign(U5::ONE);
                 self.pattern_sample = self.get_pattern(self.pattern_offset);
                 self.pattern_hold = 1;
             }
         }
-
         const SHIFT: [u32; 4] = [4, 0, 1, 2]; // 0%, 100%, 50%, 25%
-        let mut sample: U4 = self.pattern_sample >> SHIFT[self.volume.x() as usize];
-        if !self.enable {
-            sample = U4::ZERO;
-        }
-        self.output = i16::from(sample.x());
+        self.output = if self.enable {
+            i16::from(self.pattern_sample >> SHIFT[self.volume.x() as usize])
+        } else {
+            0
+        };
     }
 
     /// See cpp/ares/gb/apu/wave.cpp
@@ -65,6 +65,7 @@ impl Wave {
         }
     }
 
+    //TODO test
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn trigger(&mut self, model_is_game_boy_color: bool, apu_phase: U3) {
         if !model_is_game_boy_color && self.pattern_hold != 0 {
@@ -97,92 +98,7 @@ impl Wave {
         }
     }
 
-    /*
-    pub fn write(&mut self, model_is_game_boy_color: bool, apu_phase: U3, addr: u16, data: u8) {
-        match addr {
-            //NR30
-            0xff1a => {
-                self.dac_enable = data.get_bit(7);
-                if !self.dac_enable {
-                    self.enable = false;
-                }
-            }
-            //NR31
-            0xff1b => {
-                self.length = 256 - u32::from(data);
-            }
-            //NR32
-            0xff1c => {
-                self.volume = U2::wrapping_from(data.get_bits(5, 7));
-            }
-            //NR33
-            0xff1d => {
-                self.frequency.assign_bits(0, 8, &U11::wrapping_from(data));
-            }
-            //NR34
-            0xff1e => {
-                if apu_phase.get_bit(0) && !self.counter && data.get_bit(6) {
-                    if self.length != 0 {
-                        self.length -= 1;
-                        if self.length == 0 {
-                            self.enable = false;
-                        }
-                    }
-                }
-
-                self.counter = data.get_bit(6);
-                self.frequency
-                    .assign_bits(8, 11, &U11::wrapping_from(data.get_bits(0, 3)));
-
-                if data.get_bit(7) {
-                    if !model_is_game_boy_color && self.pattern_hold != 0 {
-                        //DMG,SGB trigger while channel is being read corrupts wave RAM
-                        if (self.pattern_offset.x() >> 1) <= 3 {
-                            //if current pattern is with 0-3; only byte 0 is corrupted
-                            self.pattern[0] = self.pattern[(self.pattern_offset.x() >> 1) as usize];
-                        } else {
-                            //if current pattern is within 4-15; pattern&~3 is copied to
-                            // pattern[0-3]
-                            self.pattern[0] =
-                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 0];
-                            self.pattern[1] =
-                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 1];
-                            self.pattern[2] =
-                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 2];
-                            self.pattern[3] =
-                                self.pattern[((self.pattern_offset.x() >> 1) & !3) as usize + 3];
-                        }
-                    }
-
-                    self.enable = self.dac_enable;
-                    self.period = u32::from(1 * (2_048 - self.frequency.x()));
-                    self.pattern_offset = U5::ZERO;
-                    self.pattern_sample = U4::ZERO;
-                    self.pattern_hold = 0;
-
-                    if self.length == 0 {
-                        self.length = 256;
-                        if apu_phase.get_bit(0) && self.counter {
-                            self.length -= 1;
-                        }
-                    }
-                }
-            }
-
-            0xff30..=0xff3f => {
-                if self.enable {
-                    if !model_is_game_boy_color && self.pattern_hold == 0 {
-                        return;
-                    }
-                    self.pattern[(self.pattern_offset.x() >> 1) as usize] = data;
-                } else {
-                    self.pattern[(addr & 15) as usize] = data;
-                }
-            }
-            _ => {}
-        }
-    }*/
-
+    //TODO test
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn read_ram(&self, address: U4, data: u8, model_is_game_boy_color: bool) -> u8 {
         if self.enable {
@@ -196,6 +112,7 @@ impl Wave {
         }
     }
 
+    //TODO test
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn write_ram(&mut self, address: U4, data: u8, model_is_game_boy_color: bool) {
         if self.enable {

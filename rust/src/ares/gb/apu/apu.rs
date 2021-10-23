@@ -30,6 +30,7 @@ pub struct APU {
 }
 
 impl APU {
+    //TODO test
     /// See higan-rust/cpp/ares/gb/apu/apu.cpp
     pub fn main(&mut self) {
         self.square_1.run();
@@ -78,52 +79,46 @@ impl APU {
             self.sequencer.right = 0;
             return;
         }
+        let sample = i32::from(self.square_1.output)
+            + i32::from(self.square_2.output)
+            + i32::from(self.wave.output)
+            + i32::from(self.noise.output);
+        self.sequencer.center = (i16::wrapping_from(sample) << 9).wrapping_sub(16_384);
 
-        let mut sample: i32 = 0;
-        sample.wrapping_add_assign(i32::from(self.square_1.output));
-        sample.wrapping_add_assign(i32::from(self.square_2.output));
-        sample.wrapping_add_assign(i32::from(self.wave.output));
-        sample.wrapping_add_assign(i32::from(self.noise.output));
-        self.sequencer.center = i16::wrapping_from(sample)
-            .wrapping_mul(512)
-            .wrapping_sub(16_384);
-
-        sample = 0;
+        let mut sample = 0;
         if self.sequencer.square_1.left_enable {
-            sample.wrapping_add_assign(i32::from(self.square_1.output));
+            sample += i32::from(self.square_1.output);
         }
         if self.sequencer.square_2.left_enable {
-            sample.wrapping_add_assign(i32::from(self.square_2.output));
+            sample += i32::from(self.square_2.output);
         }
         if self.sequencer.wave.left_enable {
-            sample.wrapping_add_assign(i32::from(self.wave.output));
+            sample += i32::from(self.wave.output);
         }
         if self.sequencer.noise.left_enable {
-            sample.wrapping_add_assign(i32::from(self.noise.output));
+            sample += i32::from(self.noise.output);
         }
-        sample = sample.wrapping_mul(512).wrapping_sub(16_384);
-        sample = sample.wrapping_mul(i32::from(
-            self.sequencer.left_volume.wrapping_add(U3::ONE).x(),
-        )) / 8;
+        sample = (sample << 9).wrapping_sub(16_384);
+        sample =
+            sample.wrapping_mul(i32::from(self.sequencer.left_volume.wrapping_add(U3::ONE))) >> 3;
         self.sequencer.left = i16::wrapping_from(sample);
 
-        sample = 0;
+        let mut sample = 0;
         if self.sequencer.square_1.right_enable {
-            sample.wrapping_add_assign(i32::from(self.square_1.output));
+            sample += i32::from(self.square_1.output);
         }
         if self.sequencer.square_2.right_enable {
-            sample.wrapping_add_assign(i32::from(self.square_2.output));
+            sample += i32::from(self.square_2.output);
         }
         if self.sequencer.wave.right_enable {
-            sample.wrapping_add_assign(i32::from(self.wave.output));
+            sample += i32::from(self.wave.output);
         }
         if self.sequencer.noise.right_enable {
-            sample.wrapping_add_assign(i32::from(self.noise.output));
+            sample += i32::from(self.noise.output);
         }
-        sample = sample.wrapping_mul(512).wrapping_sub(16_384);
-        sample = sample.wrapping_mul(i32::from(
-            self.sequencer.right_volume.wrapping_add(U3::ONE).x(),
-        )) / 8;
+        sample = (sample << 9).wrapping_sub(16_384);
+        sample =
+            sample.wrapping_mul(i32::from(self.sequencer.right_volume.wrapping_add(U3::ONE))) >> 3;
         self.sequencer.right = i16::wrapping_from(sample);
 
         //reduce audio volume
@@ -134,6 +129,7 @@ impl APU {
 }
 
 impl Bus {
+    //TODO test
     pub fn power_apu(&mut self) {
         //TODO Thread::create(2 * 1024 * 1024, {&APU::main, this});
 

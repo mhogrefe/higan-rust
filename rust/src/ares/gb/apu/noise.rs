@@ -1,6 +1,8 @@
 use ares::emulator::types::{U15, U3, U4};
-use malachite_base::num::arithmetic::traits::WrappingSubAssign;
-use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::arithmetic::traits::{
+    Parity, SaturatingAddAssign, SaturatingSubAssign, WrappingSubAssign,
+};
+use malachite_base::num::basic::traits::One;
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
 
@@ -44,21 +46,19 @@ impl Noise {
             if self.period == 0 {
                 self.period = self.get_period();
                 if self.frequency.x() < 14 {
-                    let bit = (self.lfsr ^ (self.lfsr >> 1)) & U15::ONE;
-                    self.lfsr = (self.lfsr >> 1) ^ (bit << (if self.narrow { 6 } else { 14 }));
+                    let bit = (self.lfsr ^ (self.lfsr >> 1)).odd();
+                    self.lfsr >>= 1;
+                    if bit {
+                        self.lfsr.flip_bit(if self.narrow { 6 } else { 14 });
+                    }
                 }
             }
         }
-
-        let mut sample: U4 = if self.lfsr.get_bit(0) {
-            U4::ZERO
+        self.output = if self.enable && self.lfsr.even() {
+            i16::from(self.volume)
         } else {
-            self.volume
+            0
         };
-        if !self.enable {
-            sample = U4::ZERO;
-        }
-        self.output = i16::from(sample.x());
     }
 
     /// See higan-rust/cpp/ares/gb/apu/noise.cpp
@@ -77,16 +77,16 @@ impl Noise {
             self.envelope_period.wrapping_sub_assign(U3::ONE);
             if self.envelope_period.x() == 0 {
                 self.envelope_period = self.envelope_frequency;
-                if !self.envelope_direction && self.volume.x() > 0 {
-                    self.volume -= U4::ONE;
-                }
-                if self.envelope_direction && self.volume.x() < 15 {
-                    self.volume += U4::ONE;
+                if self.envelope_direction {
+                    self.volume.saturating_add_assign(U4::ONE);
+                } else {
+                    self.volume.saturating_sub_assign(U4::ONE);
                 }
             }
         }
     }
 
+    //TODO test
     /// See higan-rust/cpp/ares/gb/apu/noise.cpp
     pub fn trigger(&mut self, apu_phase: U3) {
         self.enable = self.dac_enable();
