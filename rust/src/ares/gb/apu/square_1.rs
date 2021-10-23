@@ -156,30 +156,6 @@ impl Square1 {
     }
 
     /*
-    pub fn read(&self, addr: u16) -> u8 {
-        match addr {
-            //NR10
-            0xff10 => {
-                0x80 | self.sweep_frequency.x() << 4
-                    | (if self.sweep_direction { 1 } else { 0 } << 3)
-                    | self.sweep_shift.x()
-            }
-            //NR11
-            0xff11 => self.duty.x() << 6 | 0x3f,
-            //NR12
-            0xff12 => {
-                self.envelope_volume.x() << 4
-                    | (if self.envelope_direction { 1 } else { 0 } << 3)
-                    | self.envelope_frequency.x()
-            }
-            //NR13
-            0xff13 => 0xff,
-            //NR14
-            0xff14 => 0x80 | (if self.counter { 1 } else { 0 } << 6) | 0x3f,
-            _ => 0xff,
-        }
-    }
-
     pub fn write(&mut self, apu_phase: U3, addr: u16, data: u8) {
         match addr {
             //NR10

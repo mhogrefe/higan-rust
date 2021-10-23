@@ -380,37 +380,6 @@ fn test_clock_envelope() {
 
 /*
 #[test]
-fn test_read() {
-    let mut square_1 = Square1::default();
-
-    square_1.power(true);
-    assert_eq!(square_1.read(0), 0xff);
-
-    square_1.power(true);
-    square_1.sweep_frequency = U3::wrapping_from(0b101);
-    square_1.sweep_direction = true;
-    square_1.sweep_shift = U3::wrapping_from(0b010);
-    assert_eq!(square_1.read(0xff10), 0b11011010);
-
-    square_1.power(true);
-    square_1.duty = U2::wrapping_from(0b01);
-    assert_eq!(square_1.read(0xff11), 0b01111111);
-
-    square_1.power(true);
-    square_1.envelope_volume = U4::wrapping_from(0b1011);
-    square_1.envelope_direction = true;
-    square_1.envelope_frequency = U3::wrapping_from(0b010);
-    assert_eq!(square_1.read(0xff12), 0b10111010);
-
-    square_1.power(true);
-    assert_eq!(square_1.read(0xff13), 0b11111111);
-
-    square_1.power(true);
-    square_1.counter = false;
-    assert_eq!(square_1.read(0xff14), 0b10111111);
-}
-
-#[test]
 fn test_write() {
     let mut bus = Bus::default();
     let mut square_1 = Square1::default();

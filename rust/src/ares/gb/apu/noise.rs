@@ -104,29 +104,6 @@ impl Noise {
     }
 
     /*
-    pub fn read(&self, addr: u16) -> u8 {
-        match addr {
-            //NR40
-            0xff1f => 0xff,
-
-            //NR41
-            0xff20 => 0xff,
-            //NR42
-            0xff21 => {
-                self.envelope_volume.x() << 4
-                    | if self.envelope_direction { 1 } else { 0 } << 3
-                    | self.envelope_frequency.x()
-            }
-            //NR43
-            0xff22 => {
-                self.frequency.x() << 4 | if self.narrow { 1 } else { 0 } << 3 | self.divisor.x()
-            }
-            //NR44
-            0xff23 => 0x80 | if self.counter { 1 } else { 0 } << 6 | 0x3f,
-            _ => 0xff,
-        }
-    }
-
     pub fn write(&mut self, apu_phase: U3, addr: u16, data: u8) {
         match addr {
             //NR41

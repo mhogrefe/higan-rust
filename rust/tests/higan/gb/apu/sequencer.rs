@@ -73,40 +73,6 @@ fn test_run() {
 
 /*
 #[test]
-fn test_read() {
-    let mut sequencer = Sequencer::default();
-
-    sequencer.power();
-    assert_eq!(sequencer.read(0), 0xff);
-
-    sequencer.power();
-    sequencer.left_enable = true;
-    sequencer.left_volume = U3::wrapping_from(0b010);
-    sequencer.right_enable = false;
-    sequencer.right_volume = U3::wrapping_from(0b101);
-    assert_eq!(sequencer.read(0xff24), 0b10100101);
-
-    sequencer.power();
-    sequencer.noise_channel.left_enable = true;
-    sequencer.wave_channel.left_enable = false;
-    sequencer.square_2_channel.left_enable = true;
-    sequencer.square_1_channel.left_enable = false;
-    sequencer.noise_channel.right_enable = false;
-    sequencer.wave_channel.right_enable = true;
-    sequencer.square_2_channel.right_enable = false;
-    sequencer.square_1_channel.right_enable = true;
-    assert_eq!(sequencer.read(0xff25), 0b10100101);
-
-    sequencer.power();
-    sequencer.enable = true;
-    sequencer.noise.enable = false;
-    sequencer.wave.enable = true;
-    sequencer.square_2.enable = false;
-    sequencer.square_1.enable = true;
-    assert_eq!(sequencer.read(0xff26), 0b11110101);
-}
-
-#[test]
 fn test_write() {
     let mut sequencer = Sequencer::default();
     let mut bus = Bus::default();

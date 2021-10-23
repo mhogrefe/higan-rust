@@ -100,34 +100,6 @@ impl Wave {
     }
 
     /*
-    pub fn read(&self, model_is_game_boy_color: bool, addr: u16) -> u8 {
-        match addr {
-            //NR30
-            0xff1a => (if self.dac_enable { 1 } else { 0 }) << 7 | 0x7f,
-            //NR31
-            0xff1b => 0xff,
-            //NR32
-            0xff1c => 0x80 | self.volume.x() << 5 | 0x1f,
-            //NR33
-            0xff1d => 0xff,
-            //NR34
-            0xff1e => 0x80 | (if self.counter { 1 } else { 0 }) << 6 | 0x3f,
-            0xff30..=0xff3f => {
-                if self.enable {
-                    if !model_is_game_boy_color && self.pattern_hold == 0 {
-                        0xff
-                    } else {
-                        self.pattern[(self.pattern_offset.x() >> 1) as usize]
-                    }
-                } else {
-                    self.pattern[(addr & 15) as usize]
-                }
-            }
-
-            _ => return 0xff,
-        }
-    }
-
     pub fn write(&mut self, model_is_game_boy_color: bool, apu_phase: U3, addr: u16, data: u8) {
         match addr {
             //NR30
@@ -212,6 +184,31 @@ impl Wave {
             _ => {}
         }
     }*/
+
+    /// See cpp/ares/gb/apu/wave.cpp
+    pub fn read_ram(&self, address: U4, data: u8, model_is_game_boy_color: bool) -> u8 {
+        if self.enable {
+            if !model_is_game_boy_color && self.pattern_hold == 0 {
+                data
+            } else {
+                self.pattern[usize::from(u8::from(self.pattern_offset >> 1))]
+            }
+        } else {
+            self.pattern[usize::from(u8::from(address))]
+        }
+    }
+
+    /// See cpp/ares/gb/apu/wave.cpp
+    pub fn write_ram(&mut self, address: U4, data: u8, model_is_game_boy_color: bool) {
+        if self.enable {
+            if !model_is_game_boy_color && self.pattern_hold == 0 {
+            } else {
+                self.pattern[usize::from(u8::from(self.pattern_offset >> 1))] = data;
+            }
+        } else {
+            self.pattern[usize::from(u8::from(address))] = data;
+        }
+    }
 
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn power(&mut self, initialize_length: bool) {

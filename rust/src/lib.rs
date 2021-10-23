@@ -9,6 +9,7 @@ pub mod ares {
     pub mod gb {
         pub mod apu {
             pub mod apu;
+            pub mod io;
             pub mod noise;
             pub mod sequencer;
             pub mod square_1;

@@ -102,26 +102,6 @@ impl Square2 {
     }
 
     /*
-    pub fn read(&self, addr: u16) -> u8 {
-        match addr {
-            //NR20
-            0xff15 => 0xff,
-            //NR21
-            0xff16 => self.duty.x() << 6 | 0x3f,
-            //NR22
-            0xff17 => {
-                self.envelope_volume.x() << 4
-                    | if self.envelope_direction { 1 } else { 0 } << 3
-                    | self.envelope_frequency.x()
-            }
-            //NR23
-            0xff18 => 0xff,
-            //NR24
-            0xff19 => 0x80 | if self.counter { 1 } else { 0 } << 6 | 0x3f,
-            _ => 0xff,
-        }
-    }
-
     pub fn write(&mut self, apu_phase: U3, addr: u16, data: u8) {
         match addr {
             //NR21

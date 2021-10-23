@@ -29,39 +29,6 @@ pub struct Sequencer {
 
 impl Sequencer {
     /*
-    pub fn read(&self, addr: u16) -> u8 {
-        match addr {
-            //NR50
-            0xff24 => {
-                (if self.left_enable { 1 } else { 0 }) << 7
-                    | self.left_volume.x() << 4
-                    | (if self.right_enable { 1 } else { 0 }) << 3
-                    | self.right_volume.x()
-            }
-            //NR51
-            0xff25 => {
-                (if self.noise.left_enable { 1 } else { 0 }) << 7
-                    | (if self.wave.left_enable { 1 } else { 0 }) << 6
-                    | (if self.square_2.left_enable { 1 } else { 0 }) << 5
-                    | (if self.square_1.left_enable { 1 } else { 0 }) << 4
-                    | (if self.noise.right_enable { 1 } else { 0 }) << 3
-                    | (if self.wave.right_enable { 1 } else { 0 }) << 2
-                    | (if self.square_2.right_enable { 1 } else { 0 }) << 1
-                    | (if self.square_1.right_enable { 1 } else { 0 }) << 0
-            }
-            //NR52
-            0xff26 => {
-                (if self.enable { 1 } else { 0 }) << 7
-                    | 0x70
-                    | (if self.noise.enable { 1 } else { 0 }) << 3
-                    | (if self.wave.enable { 1 } else { 0 }) << 2
-                    | (if self.square_2.enable { 1 } else { 0 }) << 1
-                    | (if self.square_1.enable { 1 } else { 0 }) << 0
-            }
-            _ => 0xff,
-        }
-    }
-
     pub fn write(
         &mut self,
         model_is_game_boy_color: bool,

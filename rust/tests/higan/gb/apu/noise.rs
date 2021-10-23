@@ -238,36 +238,6 @@ fn test_clock_envelope() {
 
 /*
 #[test]
-fn test_read() {
-    let mut noise = Noise::default();
-
-    noise.power(true);
-    assert_eq!(noise.read(0), 0xff);
-
-    noise.power(true);
-    assert_eq!(noise.read(0xff1f), 0b11111111);
-
-    noise.power(true);
-    assert_eq!(noise.read(0xff20), 0b11111111);
-
-    noise.power(true);
-    noise.envelope_volume = U4::wrapping_from(0b1011);
-    noise.envelope_direction = true;
-    noise.envelope_frequency = U3::wrapping_from(0b010);
-    assert_eq!(noise.read(0xff21), 0b10111010);
-
-    noise.power(true);
-    noise.frequency = U4::wrapping_from(0b1011);
-    noise.narrow = true;
-    noise.divisor = U3::wrapping_from(0b010);
-    assert_eq!(noise.read(0xff22), 0b10111010);
-
-    noise.power(true);
-    noise.counter = false;
-    assert_eq!(noise.read(0xff23), 0b10111111);
-}
-
-#[test]
 fn test_write() {
     let mut bus = Bus::default();
     let mut noise = Noise::default();
