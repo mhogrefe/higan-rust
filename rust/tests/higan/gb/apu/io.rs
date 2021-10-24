@@ -305,7 +305,7 @@ fn test_write_io() {
     assert!(bus.apu.noise.counter);
     assert_eq!(bus.apu.noise.length, 1);
 
-    // same as previous, but apu.phase = 1, so enable becomes false
+    // same as previous, but apu.phase = 1
     bus.power_apu();
     bus.apu.noise.power(true);
     bus.apu.sequencer.enable = true;
