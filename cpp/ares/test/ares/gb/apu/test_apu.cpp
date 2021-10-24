@@ -11,6 +11,7 @@ namespace ares {
 namespace gb {
 namespace apu {
 
+#include "test_io.cpp"
 #include "test_noise.cpp"
 #include "test_sequencer.cpp"
 #include "test_square1.cpp"
@@ -90,6 +91,7 @@ void TestRunSequencer() {
 
 void TestAPU() {
   TestRunSequencer();
+  io::TestAll();
   noise::TestAll();
   sequencer::TestAll();
   square1::TestAll();
