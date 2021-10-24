@@ -182,5 +182,142 @@ void TestReadIO() {
   EXPECT_EQ("Wave read", read_helper(&apu, 0xff35), (n8)0xab);
 }
 
-void TestAll() { TestReadIO(); }
+void write_helper(APU *apu, n16 address, n8 data) {
+  apu->writeIO(2, address, data);
+}
+
+void write_helper_with_cycle(APU *apu, u32 cycle, n16 address, n8 data) {
+  apu->writeIO(cycle, address, data);
+}
+
+void TestWriteIO() {
+  APU *apu = &::ares::GameBoy::apu;
+  apu->power();
+  apu->sequencer.enable = true;
+
+  // Noise
+  apu->noise.power(true);
+  write_helper(apu, 0xff20, 0b10110100);
+  EXPECT_EQ("Noise write", apu->noise.length, 12u);
+
+  apu->noise.power(true);
+  apu->noise.enable = true;
+  write_helper(apu, 0xff21, 0b10111010);
+  EXPECT_EQ("Noise write", apu->noise.envelopeVolume, (n4)0b1011);
+
+  EXPECT_TRUE("Noise write", apu->noise.envelopeDirection);
+  EXPECT_EQ("Noise write", apu->noise.envelopeFrequency, (n3)0b010);
+  EXPECT_TRUE("Noise write", apu->noise.enable);
+
+  apu->noise.power(true);
+  apu->noise.enable = true;
+  write_helper(apu, 0xff21, 0);
+  EXPECT_EQ("Noise write", apu->noise.envelopeVolume, (n4)0);
+  EXPECT_FALSE("Noise write", apu->noise.envelopeDirection);
+  EXPECT_EQ("Noise write", apu->noise.envelopeFrequency, (n3)0);
+  EXPECT_FALSE("Noise write", apu->noise.enable);
+
+  apu->noise.power(true);
+  apu->noise.enable = true;
+  write_helper(apu, 0xff22, 0b10111010);
+  EXPECT_EQ("Noise write", apu->noise.frequency, (n4)0b1011);
+  EXPECT_TRUE("Noise write", apu->noise.narrow);
+  EXPECT_EQ("Noise write", apu->noise.divisor, (n3)0b010);
+
+  // data.bit(6) is false, data.bit(7) is true
+  apu->noise.power(true);
+  write_helper_with_cycle(apu, 4, 0xff23, 0b10110011);
+  EXPECT_FALSE("Noise write", apu->noise.enable);
+  EXPECT_FALSE("Noise write", apu->noise.counter);
+  EXPECT_EQ("Noise write", apu->noise.envelopePeriod, (n3)0);
+  EXPECT_EQ("Noise write", apu->noise.lfsr, (n15)0x7fff);
+  EXPECT_EQ("Noise write", apu->noise.volume, (n4)0);
+  EXPECT_EQ("Noise write", apu->noise.length, 64u);
+
+  // data.bit(6) is false, data.bit(7) is false. Length stays 0
+  apu->noise.power(true);
+  apu->noise.enable = true;
+  apu->noise.length = 0;
+  write_helper_with_cycle(apu, 4, 0xff23, 0b00110011);
+  EXPECT_TRUE("Noise write", apu->noise.enable);
+  EXPECT_FALSE("Noise write", apu->noise.counter);
+  EXPECT_EQ("Noise write", apu->noise.length, 0u);
+
+  /*
+    // data.bit(6) is true, data.bit(7) is true, enable stays true
+    apu->noise.power(true);
+    apu->noise.length = 1;
+    apu->noise.enable = true;
+    apu->noise.envelopeVolume = 5;
+    apu->noise.envelopeDirection = true;
+    write_helper_with_cycle(apu, 4, 0xff23, 0b11110011);
+    EXPECT_TRUE("Noise write", apu->noise.enable);
+    EXPECT_TRUE("Noise write", apu->noise.counter);
+    EXPECT_EQ("Noise write", apu->noise.envelopePeriod, (n3)0);
+    EXPECT_EQ("Noise write", apu->noise.lfsr, (n15)0x7fff);
+    EXPECT_EQ("Noise write", apu->noise.volume, (n4)5);
+    EXPECT_EQ("Noise write", apu->noise.length, 1u);
+
+    // same as previous, but length is initially 0 and becomes 64
+    apu->noise.power(true);
+    apu->noise.enable = true;
+    apu->noise.envelopeVolume = 5;
+    apu->noise.length = 0;
+    apu->noise.envelopeDirection = true;
+    write_helper_with_cycle(apu, 4, 0xff23, 0b11110011);
+    EXPECT_TRUE("Noise write", apu->noise.enable);
+    EXPECT_TRUE("Noise write", apu->noise.counter);
+    EXPECT_EQ("Noise write", apu->noise.envelopePeriod, (n3)0);
+    EXPECT_EQ("Noise write", apu->noise.lfsr, (n15)0x7fff);
+    EXPECT_EQ("Noise write", apu->noise.volume, (n4)5);
+    EXPECT_EQ("Noise write", apu->noise.length, 64u);
+
+    // same as previous, but length is initially 0 and becomes 63 because of
+    // apu->phase
+    apu->power();
+    apu->noise.power(true);
+    apu->sequencer.enable = true;
+    apu->phase = 1;
+    apu->noise.enable = true;
+    apu->noise.envelopeVolume = 5;
+    apu->noise.length = 0;
+    apu->noise.envelopeDirection = true;
+    write_helper_with_cycle(apu, 4, 0xff23, 0b11110011);
+    EXPECT_TRUE("Noise write", apu->noise.enable);
+    EXPECT_TRUE("Noise write", apu->noise.counter);
+    EXPECT_EQ("Noise write", apu->noise.envelopePeriod, (n3)0);
+    EXPECT_EQ("Noise write", apu->noise.lfsr, (n15)0x7fff);
+    EXPECT_EQ("Noise write", apu->noise.volume, (n4)5);
+    EXPECT_EQ("Noise write", apu->noise.length, 63u);
+    // clear phase
+    apu->power();
+
+    // data.bit(6) is true, data.bit(7) is false, enable stays true
+    apu->noise.power(true);
+    apu->noise.length = 1;
+    apu->noise.enable = true;
+    write_helper_with_cycle(apu, 4, 0xff23, 0b01110011);
+    EXPECT_TRUE("Noise write", apu->noise.enable);
+    EXPECT_TRUE("Noise write", apu->noise.counter);
+    EXPECT_EQ("Noise write", apu->noise.length, 1u);
+
+    // same as previous, but GameBoy::apu->phase = 1, so enable becomes false
+    apu->power();
+    apu->noise.power(true);
+    apu->phase = 1;
+    apu->noise.length = 1;
+    apu->noise.enable = true;
+    write_helper_with_cycle(apu, 4, 0xff23, 0b01110011);
+
+    EXPECT_FALSE("Noise write", apu->noise.enable);
+    EXPECT_TRUE("Noise write", apu->noise.counter);
+    EXPECT_EQ("Noise write", apu->noise.length, 0u);
+    // clear phase
+    apu->power();*/
+}
+
+void TestAll() {
+  TestReadIO();
+  TestWriteIO();
+}
 } // namespace io

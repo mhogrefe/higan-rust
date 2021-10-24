@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 auto APU::readIO(u32 cycle, n16 address, n8 data) -> n8 {
   if(address < 0xff10 || address > 0xff3f) return data;
 
