@@ -489,7 +489,7 @@ fn test_write_io() {
     assert_eq!(bus.apu.square_1.period, 2560);
     assert_eq!(bus.apu.square_1.envelope_period, U3::ZERO);
     assert_eq!(bus.apu.square_1.volume, U4::wrapping_from(5));
-    assert_eq!(bus.apu.square_1.length, 64);
+    assert_eq!(bus.apu.square_1.length, 1);
     assert_eq!(bus.apu.square_1.frequency_shadow, 768);
     assert!(!bus.apu.square_1.sweep_negate);
     assert_eq!(bus.apu.square_1.sweep_period, U3::ZERO);
@@ -510,7 +510,7 @@ fn test_write_io() {
     assert_eq!(bus.apu.square_1.period, 2560);
     assert_eq!(bus.apu.square_1.envelope_period, U3::ZERO);
     assert_eq!(bus.apu.square_1.volume, U4::wrapping_from(5));
-    assert_eq!(bus.apu.square_1.length, 0);
+    assert_eq!(bus.apu.square_1.length, 64);
     assert_eq!(bus.apu.square_1.frequency_shadow, 768);
     assert!(!bus.apu.square_1.sweep_negate);
     assert_eq!(bus.apu.square_1.sweep_period, U3::ZERO);
@@ -534,7 +534,7 @@ fn test_write_io() {
     assert_eq!(bus.apu.square_1.period, 2560);
     assert_eq!(bus.apu.square_1.envelope_period, U3::ZERO);
     assert_eq!(bus.apu.square_1.volume, U4::wrapping_from(5));
-    assert_eq!(bus.apu.square_1.length, 0);
+    assert_eq!(bus.apu.square_1.length, 63);
     assert_eq!(bus.apu.square_1.frequency_shadow, 768);
     assert!(!bus.apu.square_1.sweep_negate);
     assert_eq!(bus.apu.square_1.sweep_period, U3::ZERO);
@@ -564,7 +564,7 @@ fn test_write_io() {
     bus.apu.sequencer.enable = true;
     write_helper_with_cycle(&mut bus.apu, 4, 0xff14, 0b01110011);
 
-    assert!(bus.apu.square_1.enable);
+    assert!(!bus.apu.square_1.enable);
     assert!(bus.apu.square_1.counter);
     assert_eq!(
         bus.apu.square_1.frequency,
@@ -647,7 +647,7 @@ fn test_write_io() {
     assert_eq!(bus.apu.square_2.period, 2560);
     assert_eq!(bus.apu.square_2.envelope_period, U3::ZERO);
     assert_eq!(bus.apu.square_2.volume, U4::wrapping_from(5));
-    assert_eq!(bus.apu.square_2.length, 64);
+    assert_eq!(bus.apu.square_2.length, 1);
 
     bus.apu.square_2.power(true);
     bus.apu.square_2.enable = true;
@@ -664,7 +664,7 @@ fn test_write_io() {
     assert_eq!(bus.apu.square_2.period, 2560);
     assert_eq!(bus.apu.square_2.envelope_period, U3::ZERO);
     assert_eq!(bus.apu.square_2.volume, U4::wrapping_from(5));
-    assert_eq!(bus.apu.square_2.length, 0);
+    assert_eq!(bus.apu.square_2.length, 64);
 
     bus.power_apu();
     bus.apu.square_2.power(true);
@@ -684,7 +684,7 @@ fn test_write_io() {
     assert_eq!(bus.apu.square_2.period, 2560);
     assert_eq!(bus.apu.square_2.envelope_period, U3::ZERO);
     assert_eq!(bus.apu.square_2.volume, U4::wrapping_from(5));
-    assert_eq!(bus.apu.square_2.length, 0);
+    assert_eq!(bus.apu.square_2.length, 63);
     // clear phase
     bus.power_apu();
 
@@ -848,7 +848,7 @@ fn test_write_io() {
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     bus.apu.wave.length = 100;
     write_helper_with_cycle(&mut bus.apu, 4, 0xff1e, 0b11000000);
-    assert_eq!(bus.apu.wave.length, 256);
+    assert_eq!(bus.apu.wave.length, 100);
 
     bus.power_apu();
     power_and_zero_pattern_wave(&mut bus.apu.wave);

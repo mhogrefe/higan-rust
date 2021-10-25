@@ -220,7 +220,7 @@ impl APU {
                 {
                     self.square_1.length -= 1;
                     if self.square_1.length == 0 {
-                        self.square_1.enable = true;
+                        self.square_1.enable = false;
                     }
                 }
                 self.square_1.frequency.assign_bits(

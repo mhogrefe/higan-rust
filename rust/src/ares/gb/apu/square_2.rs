@@ -90,7 +90,7 @@ impl Square2 {
         self.envelope_period = self.envelope_frequency;
         self.volume = self.envelope_volume;
 
-        if self.length != 0 {
+        if self.length == 0 {
             self.length = 64;
             if apu_phase.get_bit(0) && self.counter {
                 self.length -= 1;

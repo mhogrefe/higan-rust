@@ -90,7 +90,7 @@ impl Wave {
         self.pattern_sample = U4::ZERO;
         self.pattern_hold = 0;
 
-        if self.length != 0 {
+        if self.length == 0 {
             self.length = 256;
             if apu_phase.get_bit(0) && self.counter {
                 self.length -= 1;
