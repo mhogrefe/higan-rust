@@ -772,6 +772,9 @@ fn test_write_io() {
     // clear phase
     bus.power_apu();
 
+    // pattern[0] corrupted
+    bus.apu.phase = U3::ONE;
+    bus.apu.sequencer.enable = true;
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     for i in 0..16 {
         bus.apu.wave.pattern[i] = i as u8;
@@ -779,12 +782,13 @@ fn test_write_io() {
     bus.apu.wave.pattern_hold = 5;
     bus.apu.wave.pattern_offset = U5::wrapping_from(2);
     write_helper_with_cycle(&mut bus.apu, 4, 0xff1e, 0b11000101);
-    assert_eq!(bus.apu.wave.pattern[0], 0);
+    assert_eq!(bus.apu.wave.pattern[0], 1);
     assert_eq!(bus.apu.wave.pattern[1], 1);
     assert_eq!(bus.apu.wave.pattern[2], 2);
     assert_eq!(bus.apu.wave.pattern[3], 3);
     assert_eq!(bus.apu.wave.pattern[4], 4);
 
+    // pattern[0-3] corrupted
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     for i in 0..16 {
         bus.apu.wave.pattern[i] = i as u8;
@@ -792,10 +796,10 @@ fn test_write_io() {
     bus.apu.wave.pattern_hold = 5;
     bus.apu.wave.pattern_offset = U5::wrapping_from(9);
     write_helper_with_cycle(&mut bus.apu, 4, 0xff1e, 0b11000101);
-    assert_eq!(bus.apu.wave.pattern[0], 0);
-    assert_eq!(bus.apu.wave.pattern[1], 1);
-    assert_eq!(bus.apu.wave.pattern[2], 2);
-    assert_eq!(bus.apu.wave.pattern[3], 3);
+    assert_eq!(bus.apu.wave.pattern[0], 4);
+    assert_eq!(bus.apu.wave.pattern[1], 5);
+    assert_eq!(bus.apu.wave.pattern[2], 6);
+    assert_eq!(bus.apu.wave.pattern[3], 7);
     assert_eq!(bus.apu.wave.pattern[4], 4);
 
     // no corruption when system is Game Boy Color
@@ -843,40 +847,44 @@ fn test_write_io() {
 
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     write_helper_with_cycle(&mut bus.apu, 4, 0xff1e, 0b11000000);
-    assert_eq!(bus.apu.wave.length, 256);
+    assert_eq!(bus.apu.wave.length, 255);
 
+    bus.apu.phase = U3::ZERO;
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     bus.apu.wave.length = 100;
     write_helper_with_cycle(&mut bus.apu, 4, 0xff1e, 0b11000000);
     assert_eq!(bus.apu.wave.length, 100);
 
     bus.power_apu();
+    bus.apu.sequencer.enable = true;
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     bus.apu.phase = U3::ONE;
     bus.apu.wave.length = 100;
     write_helper_with_cycle(&mut bus.apu, 4, 0xff1e, 0b11000000);
-    assert_eq!(bus.apu.wave.length, 100);
+    assert_eq!(bus.apu.wave.length, 99);
     // clear phase
     bus.power_apu();
 
-    power_and_zero_pattern_wave(&mut bus.apu.wave);
     bus.apu.sequencer.enable = true;
-    write_helper_with_cycle(&mut bus.apu, 4, 0xff3a, 123);
-    assert_eq!(bus.apu.wave.pattern[0xa], 0);
+    bus.apu.model_is_game_boy_color = false;
+    power_and_zero_pattern_wave(&mut bus.apu.wave);
+    write_helper(&mut bus.apu, 0xff3a, 123);
+    assert_eq!(bus.apu.wave.pattern[0xa], 123);
 
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     bus.apu.wave.pattern_offset = U5::wrapping_from(5);
     bus.apu.wave.enable = true;
     bus.apu.wave.pattern_hold = 5;
-    write_helper_with_cycle(&mut bus.apu, 4, 0xff3a, 123);
-    assert_eq!(bus.apu.wave.pattern[2], 0);
+    write_helper(&mut bus.apu, 0xff3a, 123);
+    assert_eq!(bus.apu.wave.pattern[2], 123);
 
     bus.power_apu();
+    bus.apu.sequencer.enable = true;
     power_and_zero_pattern_wave(&mut bus.apu.wave);
     bus.apu.phase = U3::ONE;
     bus.apu.wave.pattern_offset = U5::wrapping_from(5);
     bus.apu.wave.enable = true;
-    write_helper_with_cycle(&mut bus.apu, 4, 0xff3a, 123);
+    write_helper(&mut bus.apu, 0xff3a, 123);
     assert_eq!(bus.apu.wave.pattern[2], 0);
     // clear phase
     bus.power_apu();

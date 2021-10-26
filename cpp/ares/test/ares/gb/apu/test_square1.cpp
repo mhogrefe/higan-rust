@@ -365,8 +365,6 @@ void TestAll() {
   TestClockLength();
   TestClockSweep();
   TestClockEnvelope();
-  // TestRead();
-  // TestWrite();
   TestPower();
 }
 } // namespace square1

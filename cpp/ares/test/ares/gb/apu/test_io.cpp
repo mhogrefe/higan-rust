@@ -552,6 +552,301 @@ void TestWriteIO() {
   EXPECT_EQ("Square1 write", apu->square1.length, 0u);
   // clear phase
   apu->power();
+
+  // Square 2
+  apu->sequencer.enable = true;
+  apu->square2.power(true);
+  write_helper(apu, 0xff16, 0b01110010);
+  EXPECT_EQ("Square2 write", apu->square2.duty, (n2)0b01);
+  EXPECT_EQ("Square2 write", apu->square2.length, 14u);
+
+  apu->square2.power(true);
+  apu->square2.enable = true;
+  write_helper(apu, 0xff17, 0b10111010);
+  EXPECT_EQ("Square2 write", apu->square2.envelopeVolume, (n4)0b1011);
+  EXPECT_TRUE("Square2 write", apu->square2.envelopeDirection);
+  EXPECT_EQ("Square2 write", apu->square2.envelopeFrequency, (n3)0b010);
+  EXPECT_TRUE("Square2 write", apu->square2.enable);
+
+  apu->square2.power(true);
+  apu->square2.enable = true;
+  write_helper(apu, 0xff17, 0);
+  EXPECT_EQ("Square2 write", apu->square2.envelopeVolume, (n4)0);
+  EXPECT_FALSE("Square2 write", apu->square2.envelopeDirection);
+  EXPECT_EQ("Square2 write", apu->square2.envelopeFrequency, (n3)0);
+  EXPECT_FALSE("Square2 write", apu->square2.enable);
+
+  apu->square2.power(true);
+  write_helper(apu, 0xff18, 0b10110100);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b10110100);
+
+  // data.bit(6) is false, data.bit(7) is true
+  apu->square2.power(true);
+  write_helper_with_cycle(apu, 4, 0xff19, 0b10110011);
+  EXPECT_FALSE("Square2 write", apu->square2.enable);
+  EXPECT_FALSE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.period, 2560u);
+  EXPECT_EQ("Square2 write", apu->square2.envelopePeriod, (n3)0);
+  EXPECT_EQ("Square2 write", apu->square2.volume, (n4)0);
+  EXPECT_EQ("Square2 write", apu->square2.length, 64u);
+
+  // data.bit(6) is false, data.bit(7) is false. Length stays 0
+  apu->square2.power(true);
+  apu->square2.enable = true;
+  apu->square2.length = 0;
+  write_helper_with_cycle(apu, 4, 0xff19, 0b00110011);
+  EXPECT_TRUE("Square2 write", apu->square2.enable);
+  EXPECT_FALSE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.length, 0u);
+
+  // data.bit(6) is true, data.bit(7) is true, enable stays true
+  apu->square2.power(true);
+  apu->square2.length = 1;
+  apu->square2.enable = true;
+  apu->square2.envelopeVolume = 5;
+  apu->square2.envelopeDirection = true;
+  write_helper_with_cycle(apu, 4, 0xff19, 0b11110011);
+  EXPECT_TRUE("Square2 write", apu->square2.enable);
+  EXPECT_TRUE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.period, 2560u);
+  EXPECT_EQ("Square2 write", apu->square2.envelopePeriod, (n3)0);
+  EXPECT_EQ("Square2 write", apu->square2.volume, (n4)5);
+  EXPECT_EQ("Square2 write", apu->square2.length, 1u);
+
+  // same as previous, but length is initially 0 and becomes 64
+  apu->square2.power(true);
+  apu->square2.enable = true;
+  apu->square2.envelopeVolume = 5;
+  apu->square2.length = 0;
+  apu->square2.envelopeDirection = true;
+  write_helper_with_cycle(apu, 4, 0xff19, 0b11110011);
+  EXPECT_TRUE("Square2 write", apu->square2.enable);
+  EXPECT_TRUE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.period, 2560u);
+  EXPECT_EQ("Square2 write", apu->square2.envelopePeriod, (n3)0);
+  EXPECT_EQ("Square2 write", apu->square2.volume, (n4)5);
+  EXPECT_EQ("Square2 write", apu->square2.length, 64u);
+
+  // same as previous, but length is initially 0 and becomes 63 because of
+  // apu->phase
+  apu->power();
+  apu->square2.power(true);
+  apu->phase = 1;
+  apu->square2.enable = true;
+  apu->square2.envelopeVolume = 5;
+  apu->square2.length = 0;
+  apu->square2.envelopeDirection = true;
+  apu->sequencer.enable = true;
+  write_helper_with_cycle(apu, 4, 0xff19, 0b11110011);
+  EXPECT_TRUE("Square2 write", apu->square2.enable);
+  EXPECT_TRUE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.period, 2560u);
+  EXPECT_EQ("Square2 write", apu->square2.envelopePeriod, (n3)0);
+  EXPECT_EQ("Square2 write", apu->square2.volume, (n4)5);
+  EXPECT_EQ("Square2 write", apu->square2.length, 63u);
+  // clear phase
+  apu->power();
+
+  // data.bit(6) is true, data.bit(7) is false, enable stays true
+  apu->square2.power(true);
+  apu->square2.length = 1;
+  apu->square2.enable = true;
+  apu->sequencer.enable = true;
+  write_helper_with_cycle(apu, 4, 0xff19, 0b01110011);
+  EXPECT_TRUE("Square2 write", apu->square2.enable);
+  EXPECT_TRUE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.length, 1u);
+
+  // same as previous, but apu->phase = 1, so enable becomes false
+  apu->power();
+  apu->square2.power(true);
+  apu->phase = 1;
+  apu->square2.length = 1;
+  apu->square2.enable = true;
+  apu->sequencer.enable = true;
+  write_helper_with_cycle(apu, 4, 0xff19, 0b01110011);
+
+  EXPECT_FALSE("Square2 write", apu->square2.enable);
+  EXPECT_TRUE("Square2 write", apu->square2.counter);
+  EXPECT_EQ("Square2 write", apu->square2.frequency, (n11)0b01100000000);
+  EXPECT_EQ("Square2 write", apu->square2.length, 0u);
+  // clear phase
+  apu->power();
+
+  // Wave
+  PowerAndZeroPattern(&apu->wave);
+  apu->wave.dacEnable = false;
+  apu->sequencer.enable = true;
+  write_helper(apu, 0xff1a, 0b10000000);
+  EXPECT_TRUE("Wave write", apu->wave.dacEnable);
+
+  PowerAndZeroPattern(&apu->wave);
+  apu->wave.dacEnable = true;
+  apu->wave.enable = true;
+  write_helper(apu, 0xff1a, 0);
+  EXPECT_FALSE("Wave write", apu->wave.dacEnable);
+  EXPECT_FALSE("Wave write", apu->wave.enable);
+
+  PowerAndZeroPattern(&apu->wave);
+  write_helper(apu, 0xff1b, 100);
+  EXPECT_EQ("Wave write", apu->wave.length, 156u);
+
+  PowerAndZeroPattern(&apu->wave);
+  write_helper(apu, 0xff1c, 0b01000000);
+  EXPECT_EQ("Wave write", apu->wave.volume, (n2)0b10);
+
+  PowerAndZeroPattern(&apu->wave);
+  write_helper(apu, 0xff1d, 0b10101010);
+  EXPECT_EQ("Wave write", apu->wave.frequency, (n11)0b00010101010);
+
+  // apu->phase.bit(0) is false so enable stays true
+  PowerAndZeroPattern(&apu->wave);
+  apu->wave.enable = true;
+  apu->wave.length = 1;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b01000101);
+  EXPECT_TRUE("Wave write", apu->wave.enable);
+  EXPECT_EQ("Wave write", apu->wave.length, 1u);
+  EXPECT_TRUE("Wave write", apu->wave.counter);
+  EXPECT_EQ("Wave write", apu->wave.frequency, (n11)0b10100000000);
+
+  // apu->phase.bit(0) is true so enable becomes false
+  apu->power();
+  PowerAndZeroPattern(&apu->wave);
+  apu->phase = 1;
+  apu->wave.enable = true;
+  apu->wave.length = 1;
+  apu->sequencer.enable = true;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b01000000);
+  EXPECT_FALSE("Wave write", apu->wave.enable);
+  EXPECT_EQ("Wave write", apu->wave.length, 0u);
+  // clear phase
+  apu->power();
+
+  // pattern[0] corrupted
+  apu->phase = 1;
+  PowerAndZeroPattern(&apu->wave);
+  for (int i = 0; i < 16; ++i) {
+    apu->wave.pattern[i] = i;
+  }
+  apu->wave.patternHold = 5;
+  apu->wave.patternOffset = 2;
+  apu->sequencer.enable = true;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000101);
+  EXPECT_EQ("Wave write", apu->wave.pattern[0], (n8)1);
+  EXPECT_EQ("Wave write", apu->wave.pattern[1], (n8)1);
+  EXPECT_EQ("Wave write", apu->wave.pattern[2], (n8)2);
+  EXPECT_EQ("Wave write", apu->wave.pattern[3], (n8)3);
+  EXPECT_EQ("Wave write", apu->wave.pattern[4], (n8)4);
+
+  // pattern[0-3] corrupted
+  PowerAndZeroPattern(&apu->wave);
+  for (int i = 0; i < 16; ++i) {
+    apu->wave.pattern[i] = i;
+  }
+  apu->wave.patternHold = 5;
+  apu->wave.patternOffset = 9;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000101);
+  EXPECT_EQ("Wave write", apu->wave.pattern[0], (n8)4);
+  EXPECT_EQ("Wave write", apu->wave.pattern[1], (n8)5);
+  EXPECT_EQ("Wave write", apu->wave.pattern[2], (n8)6);
+  EXPECT_EQ("Wave write", apu->wave.pattern[3], (n8)7);
+  EXPECT_EQ("Wave write", apu->wave.pattern[4], (n8)4);
+
+  // no corruption when system is Game Boy Color
+  PowerAndZeroPattern(&apu->wave);
+  old_model = ::ares::GameBoy::system.information.model;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoyColor;
+  for (int i = 0; i < 16; ++i) {
+    apu->wave.pattern[i] = i;
+  }
+  apu->wave.patternHold = 5;
+  apu->wave.patternOffset = 9;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000101);
+  EXPECT_EQ("Wave write", apu->wave.pattern[0], (n8)0);
+  EXPECT_EQ("Wave write", apu->wave.pattern[1], (n8)1);
+  EXPECT_EQ("Wave write", apu->wave.pattern[2], (n8)2);
+  EXPECT_EQ("Wave write", apu->wave.pattern[3], (n8)3);
+  EXPECT_EQ("Wave write", apu->wave.pattern[4], (n8)4);
+  ::ares::GameBoy::system.information.model = old_model;
+
+  // no corruption when data.bit(7) is false
+  PowerAndZeroPattern(&apu->wave);
+  for (int i = 0; i < 16; ++i) {
+    apu->wave.pattern[i] = i;
+  }
+  apu->wave.patternHold = 5;
+  apu->wave.patternOffset = 9;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b01000101);
+  EXPECT_EQ("Wave write", apu->wave.pattern[0], (n8)0);
+  EXPECT_EQ("Wave write", apu->wave.pattern[1], (n8)1);
+  EXPECT_EQ("Wave write", apu->wave.pattern[2], (n8)2);
+  EXPECT_EQ("Wave write", apu->wave.pattern[3], (n8)3);
+  EXPECT_EQ("Wave write", apu->wave.pattern[4], (n8)4);
+
+  PowerAndZeroPattern(&apu->wave);
+  apu->wave.patternOffset = 9;
+  apu->wave.frequency = 1;
+  apu->wave.patternSample = 1;
+  apu->wave.patternHold = 5;
+  apu->wave.dacEnable = true;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000000);
+  EXPECT_TRUE("Wave write", apu->wave.enable);
+  EXPECT_EQ("Wave write", apu->wave.period, 2049u);
+  EXPECT_EQ("Wave write", apu->wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave write", apu->wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave write", apu->wave.patternHold, 0u);
+
+  PowerAndZeroPattern(&apu->wave);
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000000);
+  EXPECT_EQ("Wave write", apu->wave.length, 255u);
+
+  PowerAndZeroPattern(&apu->wave);
+  apu->phase = 0;
+  apu->wave.length = 100;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000000);
+  EXPECT_EQ("Wave write", apu->wave.length, 100u);
+
+  apu->power();
+  PowerAndZeroPattern(&apu->wave);
+  apu->phase = 1;
+  apu->wave.length = 100;
+  apu->sequencer.enable = true;
+  write_helper_with_cycle(apu, 4, 0xff1e, 0b11000000);
+  EXPECT_EQ("Wave write", apu->wave.length, 99u);
+  // clear phase
+  apu->power();
+
+  // passes up to here
+
+  PowerAndZeroPattern(&apu->wave);
+  apu->sequencer.enable = true;
+  write_helper(apu, 0xff3a, 123);
+  EXPECT_EQ("Wave write", apu->wave.pattern[0xa], (n8)123);
+
+  PowerAndZeroPattern(&apu->wave);
+  apu->wave.patternOffset = 5;
+  apu->wave.enable = true;
+  apu->wave.patternHold = 5;
+  write_helper(apu, 0xff3a, 123);
+  EXPECT_EQ("Wave write", apu->wave.pattern[2], (n8)123);
+
+  apu->power();
+  PowerAndZeroPattern(&apu->wave);
+  apu->phase = 1;
+  apu->wave.patternOffset = 5;
+  apu->wave.enable = true;
+  apu->sequencer.enable = true;
+  write_helper(apu, 0xff3a, 123);
+  EXPECT_EQ("Wave write", apu->wave.pattern[2], (n8)0);
+  // clear phase
+  apu->power();
 }
 
 void TestAll() {
