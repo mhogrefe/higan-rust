@@ -9,6 +9,8 @@ namespace component {
 namespace processor {
 namespace sm83 {
 
+#include "ares/component/processor/sm83/registers.hpp"
+
 void TestPair() {
   {
     ::ares::SM83::Registers::Pair pair;
@@ -33,13 +35,13 @@ void TestPair() {
   }
 }
 
-// #include "test_algorithms.cpp"
-// #include "test_registers.cpp"
+#include "test_algorithms.cpp"
+#include "test_registers.cpp"
 
 void TestSM83() {
   TestPair();
-  // algorithms::TestAll();
-  // registers::TestAll();
+  algorithms::TestAll();
+  registers::TestAll();
 }
 } // namespace sm83
 } // namespace processor
