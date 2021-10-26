@@ -1,10 +1,10 @@
-use ares::component::processor::sm83::sm83::LR35902;
+use ares::component::processor::sm83::sm83::SM83;
 use ares::emulator::types::{U3, U4};
 use malachite_base::num::arithmetic::traits::{WrappingAddAssign, WrappingSubAssign};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
 
-impl LR35902 {
+impl SM83 {
     pub fn add(&mut self, target: u8, source: u8, carry: bool) -> u8 {
         let x: u16 = u16::from(target) + u16::from(source) + if carry { 1 } else { 0 };
         let y: u16 = u16::from(U4::wrapping_from(target).x())

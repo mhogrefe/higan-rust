@@ -2,6 +2,15 @@ extern crate higan_rust;
 extern crate malachite_base;
 
 pub mod ares {
+    pub mod component {
+        pub mod processor {
+            pub mod sm83 {
+                pub mod algorithms;
+                pub mod registers;
+                pub mod sm83;
+            }
+        }
+    }
     pub mod gb {
         pub mod apu {
             pub mod apu;
@@ -11,13 +20,6 @@ pub mod ares {
             pub mod square1;
             pub mod square2;
             pub mod wave;
-        }
-    }
-    pub mod processor {
-        pub mod lr35902 {
-            pub mod algorithms;
-            pub mod lr35902;
-            pub mod registers;
         }
     }
 }

@@ -1,6 +1,6 @@
 //TODO test
 
-use ares::component::processor::sm83::sm83::LR35902;
+use ares::component::processor::sm83::sm83::SM83;
 use ares::emulator::types::{U2, U22, U3, U4, U5, U7};
 use ares::gb::memory::memory::Bus;
 
@@ -106,7 +106,7 @@ impl Default for CPUIO {
 #[derive(Clone, Default)]
 pub struct CPU {
     pub model_is_game_boy_color: bool,
-    pub processor: LR35902,
+    pub processor: SM83,
     pub bus: Bus,
 }
 

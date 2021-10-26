@@ -1,12 +1,12 @@
-use higan_rust::ares::component::processor::sm83::sm83::LR35902;
+use higan_rust::ares::component::processor::sm83::sm83::SM83;
 
 #[test]
 fn test_af() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_af(123);
     assert_eq!(processor.get_af(), 123);
 
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_af(0x12ab);
     assert_eq!(processor.get_a(), 0x12);
     assert_eq!(processor.get_f(), 0xab);
@@ -24,11 +24,11 @@ fn test_af() {
 
 #[test]
 fn test_bc() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_bc(123);
     assert_eq!(processor.get_bc(), 123);
 
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_bc(0x12ab);
     assert_eq!(processor.get_b(), 0x12);
     assert_eq!(processor.get_c(), 0xab);
@@ -46,11 +46,11 @@ fn test_bc() {
 
 #[test]
 fn test_de() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_de(123);
     assert_eq!(processor.get_de(), 123);
 
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_de(0x12ab);
     assert_eq!(processor.get_d(), 0x12);
     assert_eq!(processor.get_e(), 0xab);
@@ -68,11 +68,11 @@ fn test_de() {
 
 #[test]
 fn test_hl() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_hl(123);
     assert_eq!(processor.get_hl(), 123);
 
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_hl(0x12ab);
     assert_eq!(processor.get_h(), 0x12);
     assert_eq!(processor.get_l(), 0xab);
@@ -90,7 +90,7 @@ fn test_hl() {
 
 #[test]
 fn test_sp() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_sp(123);
     assert_eq!(processor.get_sp(), 123);
 
@@ -110,7 +110,7 @@ fn test_sp() {
 
 #[test]
 fn test_pc() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_pc(123);
     assert_eq!(processor.get_pc(), 123);
 
@@ -124,7 +124,7 @@ fn test_pc() {
 
 #[test]
 fn test_cf() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_f(0b10100101);
     assert!(!processor.get_cf());
     processor.set_cf(true);
@@ -133,7 +133,7 @@ fn test_cf() {
 
 #[test]
 fn test_hf() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_f(0b10100101);
     assert!(processor.get_hf());
     processor.set_hf(false);
@@ -142,7 +142,7 @@ fn test_hf() {
 
 #[test]
 fn test_nf() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_f(0b10100101);
     assert!(!processor.get_nf());
     processor.set_nf(true);
@@ -151,7 +151,7 @@ fn test_nf() {
 
 #[test]
 fn test_zf() {
-    let mut processor = LR35902::default();
+    let mut processor = SM83::default();
     processor.set_f(0b10100101);
     assert!(processor.get_zf());
     processor.set_zf(false);

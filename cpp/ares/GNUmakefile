@@ -10,7 +10,7 @@ else
   $(error "ares is a library and cannot be built directly.")
 endif
 
-ares.objects := ares ares-fixed-allocator test test_ares test_ares_gb test_ares_gb_apu
+ares.objects := ares ares-fixed-allocator test test_ares test_ares_component test_ares_component_processor test_ares_component_processor_sm83 test_ares_gb test_ares_gb_apu
 
 $(object.path)/ares.o: $(ares.path)/ares/ares.cpp
 $(object.path)/ares-fixed-allocator.o: $(ares.path)/ares/memory/fixed-allocator.cpp
@@ -99,6 +99,9 @@ ares.objects := $(ares.objects:%=$(object.path)/%.o)
 
 $(object.path)/test.o: $(ares.path)/test/test_all.cpp
 $(object.path)/test_ares.o: $(ares.path)/test/ares/test_ares.cpp $(call rwildcard,test/test_ares)
+$(object.path)/test_ares_component.o: $(ares.path)/test/ares/component/test_component.cpp $(call rwildcard,test/ares/component)
+$(object.path)/test_ares_component_processor.o: $(ares.path)/test/ares/component/processor/test_processor.cpp $(call rwildcard,test/ares/component/processor)
+$(object.path)/test_ares_component_processor_sm83.o: $(ares.path)/test/ares/component/processor/sm83/test_sm83.cpp $(call rwildcard,test/ares/component/processor/sm83)
 $(object.path)/test_ares_gb.o: $(ares.path)/test/ares/gb/test_gb.cpp $(call rwildcard,test/ares/gb)
 $(object.path)/test_ares_gb_apu.o: $(ares.path)/test/ares/gb/apu/test_apu.cpp $(call rwildcard,test/ares/gb/apu)
 

@@ -1,7 +1,8 @@
-use ares::component::processor::sm83::sm83::LR35902;
+use ares::component::processor::sm83::sm83::SM83;
 use malachite_base::num::logic::traits::BitAccess;
 
-impl LR35902 {
+/// See higan-rust/cpp/ares/component/processor/sm83/registers.hpp
+impl SM83 {
     pub fn get_af(&self) -> u16 {
         self.r.af.get_word()
     }
