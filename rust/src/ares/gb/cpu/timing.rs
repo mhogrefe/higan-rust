@@ -1,15 +1,13 @@
 //TODO test
 
-use ares::emulator::types::U22;
-use ares::gb::cpu::cpu::{Interrupt, CPU};
-use malachite_base::num::arithmetic::traits::{WrappingAddAssign, WrappingSubAssign};
-use malachite_base::num::basic::traits::One;
+use ares::gb::cpu::cpu::CPU;
 
 //70224 clocks/frame
 //  456 clocks/scanline
 //  154 scanlines/frame
 
 impl CPU {
+    /*
     pub fn step(&mut self, clocks: u32) {
         for _ in 0..clocks {
             self.bus.cpu_io.status.clock.wrapping_add_assign(U22::ONE);
@@ -44,8 +42,9 @@ impl CPU {
         //TODO     system._clocksExecuted += clocks;
         //TODO     scheduler.exit(Scheduler::Event::Step);
         //TODO }
-    }
+    }*/
 
+    /*
     pub fn timer_262144_hz(&mut self) {
         if self.bus.cpu_io.status.timer_enable && self.bus.cpu_io.status.timer_clock == 1 {
             self.bus.cpu_io.status.tima.wrapping_add_assign(1);
@@ -94,7 +93,7 @@ impl CPU {
                 self.raise(Interrupt::Timer);
             }
         }
-    }
+    }*/
 
     /*
     pub fn hblank(&mut self) {

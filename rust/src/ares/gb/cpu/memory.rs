@@ -3,10 +3,11 @@
 use ares::gb::cpu::cpu::CPU;
 
 impl CPU {
+    /*
     pub fn idle(&mut self) {
         self.cycle_edge();
         self.step(4);
-    }
+    }*/
 
     /*
     pub fn read(&mut self, addr: u16) -> u8 {

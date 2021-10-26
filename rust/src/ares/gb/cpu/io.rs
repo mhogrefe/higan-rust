@@ -1,6 +1,4 @@
-use ares::emulator::types::U3;
 use ares::gb::cpu::cpu::CPUIO;
-use malachite_base::num::conversion::traits::WrappingFrom;
 
 impl CPUIO {
     pub fn wram_address(&self, addr: u16) -> u32 {
@@ -15,6 +13,7 @@ impl CPUIO {
         }
     }
 
+    /*
     pub fn read_io(&self, addr: u16) -> u8 {
         match addr {
             0xc000..=0xfdff => self.wram[self.wram_address(addr) as usize],
@@ -150,8 +149,9 @@ impl CPUIO {
 
             _ => 0xff,
         }
-    }
+    }*/
 
+    /*
     // returns whether to do DMA stuff
     pub fn write_io(&mut self, addr: u16, data: u8) -> bool {
         match addr {
@@ -271,5 +271,5 @@ impl CPUIO {
             _ => {}
         }
         false
-    }
+    }*/
 }

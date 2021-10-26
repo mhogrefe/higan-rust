@@ -1,4 +1,4 @@
-use ares::processor::lr35902::lr35902::LR35902;
+use ares::component::processor::sm83::sm83::LR35902;
 use malachite_base::num::logic::traits::BitAccess;
 
 impl LR35902 {

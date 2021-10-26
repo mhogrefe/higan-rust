@@ -1,36 +1,39 @@
 //TODO test
 
-use ares::emulator::types::{U22, U3};
-use ares::gb::memory::memory::{Bus, MMIOType};
-use ares::processor::lr35902::lr35902::LR35902;
-use malachite_base::num::basic::traits::One;
+use ares::component::processor::sm83::sm83::LR35902;
+use ares::emulator::types::{U2, U22, U3, U4, U5, U7};
+use ares::gb::memory::memory::Bus;
 
+/// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
 #[derive(Clone, Copy, Debug)]
 pub enum Interrupt {
-    Vblank,
+    VerticalBlank,
     Stat,
     Timer,
     Serial,
     Joypad,
 }
 
+/// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
 #[derive(Clone, Debug, Default)]
 pub struct Status {
     pub clock: U22,
+    pub interrupt_latch: u8,
+    pub h_blank_pending: bool,
 
     //$ff00  JOYP
-    pub p15: bool,
+    pub joyp: U4,
     pub p14: bool,
-    pub joyp: u8,
-    pub mlt_req: u8,
+    pub p15: bool,
 
     //$ff01  SB
     pub serial_data: u8,
-    pub serial_bits: u32,
+    pub serial_bits: U4,
 
     //$ff02  SC
-    pub serial_transfer: bool,
     pub serial_clock: bool,
+    pub serial_speed: bool,
+    pub serial_transfer: bool,
 
     //$ff04  DIV
     pub div: u16,
@@ -42,19 +45,15 @@ pub struct Status {
     pub tma: u8,
 
     //$ff07  TAC
+    pub timer_clock: U2,
     pub timer_enable: bool,
-    pub timer_clock: u32,
 
     //$ff0f  IF
-    pub interrupt_request_joypad: bool,
-    pub interrupt_request_serial: bool,
-    pub interrupt_request_timer: bool,
-    pub interrupt_request_stat: bool,
-    pub interrupt_request_vblank: bool,
+    pub interrupt_flag: U5,
 
     //$ff4d  KEY1
-    pub speed_double: bool,
     pub speed_switch: bool,
+    pub speed_double: bool,
 
     //$ff51,$ff52  HDMA1,HDMA2
     pub dma_source: u16,
@@ -63,12 +62,11 @@ pub struct Status {
     pub dma_target: u16,
 
     //$ff55  HDMA5
-    pub dma_mode: bool,
-    pub dma_length: u16,
-    pub dma_completed: bool,
+    dma_length: U7,
+    hdma_active: bool,
 
     //$ff6c  ???
-    pub ff6c: u8,
+    pub ff6c: bool,
 
     //$ff70  SVBK
     pub wram_bank: U3,
@@ -77,14 +75,10 @@ pub struct Status {
     pub ff72: u8,
     pub ff73: u8,
     pub ff74: u8,
-    pub ff75: u8,
+    pub ff75: U3,
 
     //$ffff  IE
-    pub interrupt_enable_joypad: bool,
-    pub interrupt_enable_serial: bool,
-    pub interrupt_enable_timer: bool,
-    pub interrupt_enable_stat: bool,
-    pub interrupt_enable_vblank: bool,
+    pub interrupt_enable: u8,
 }
 
 const CPU_WRAM_SIZE: usize = 32_768; //GB=8192, GBC=32768
@@ -123,54 +117,31 @@ impl CPU {
     //TODO
     pub fn set_frequency(&self, _: u32) {}
 
+    /*
     pub fn enter(&mut self) {
         loop {
             //TODO scheduler.synchronize();
             self.main();
         }
-    }
+    }*/
 
+    /*
     pub fn main(&mut self) {
         self.interrupt_test();
         //TODO instruction();
-    }
+    }*/
 
-    pub fn raise(&mut self, id: Interrupt) {
-        match id {
-            Interrupt::Vblank => {
-                self.bus.cpu_io.status.interrupt_request_vblank = true;
-                if self.bus.cpu_io.status.interrupt_enable_vblank {
-                    self.processor.r.halt = false;
-                }
-            }
-            Interrupt::Stat => {
-                self.bus.cpu_io.status.interrupt_request_stat = true;
-                if self.bus.cpu_io.status.interrupt_enable_stat {
-                    self.processor.r.halt = false;
-                }
-            }
-            Interrupt::Timer => {
-                self.bus.cpu_io.status.interrupt_request_timer = true;
-                if self.bus.cpu_io.status.interrupt_enable_timer {
-                    self.processor.r.halt = false;
-                }
-            }
-            Interrupt::Serial => {
-                self.bus.cpu_io.status.interrupt_request_serial = true;
-                if self.bus.cpu_io.status.interrupt_enable_serial {
-                    self.processor.r.halt = false;
-                }
-            }
-            Interrupt::Joypad => {
-                self.bus.cpu_io.status.interrupt_request_joypad = true;
-                if self.bus.cpu_io.status.interrupt_enable_joypad {
-                    self.processor.r.halt = false;
-                    self.processor.r.stop = false;
-                }
-            }
+    /*
+    pub fn raise(&mut self, interrupt_id: u32) {
+        let interrupt_id = u64::from(interrupt_id);
+        self.status.interrupt_flag.set_bit(interrupt_id);
+        if self.status.interrupt_enable.get_bit(interrupt_id) {
+          self.r.halt = false;
+          if interrupt_id == Interrupt::Joypad.value() { r.stop = false};
         }
-    }
+      }*/
 
+    /*
     pub fn interrupt_test(&mut self) {
         if !self.processor.r.ime {
         } else if self.bus.cpu_io.status.interrupt_request_vblank
@@ -199,7 +170,7 @@ impl CPU {
             self.bus.cpu_io.status.interrupt_request_joypad = false;
             self.interrupt(0x0060);
         }
-    }
+    }*/
 
     pub fn stop(&mut self) -> bool {
         if self.bus.cpu_io.status.speed_switch {
@@ -217,6 +188,7 @@ impl CPU {
         }
     }
 
+    /*
     pub fn power(&mut self) {
         //TODO create(Enter, 4 * 1024 * 1024);
         //TODO LR35902::power();
@@ -269,5 +241,5 @@ impl CPU {
         //TODO memory::fill(&status, sizeof(Status));
         self.bus.cpu_io.status.dma_completed = true;
         self.bus.cpu_io.status.wram_bank = U3::ONE;
-    }
+    }*/
 }

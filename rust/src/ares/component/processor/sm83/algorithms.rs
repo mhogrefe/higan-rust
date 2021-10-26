@@ -1,5 +1,5 @@
+use ares::component::processor::sm83::sm83::LR35902;
 use ares::emulator::types::{U3, U4};
-use ares::processor::lr35902::lr35902::LR35902;
 use malachite_base::num::arithmetic::traits::{WrappingAddAssign, WrappingSubAssign};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;

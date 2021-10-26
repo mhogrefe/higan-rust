@@ -3,6 +3,15 @@ extern crate malachite_base;
 extern crate rand;
 
 pub mod ares {
+    pub mod component {
+        pub mod processor {
+            pub mod sm83 {
+                pub mod algorithms;
+                pub mod registers;
+                pub mod sm83;
+            }
+        }
+    }
     pub mod emulator {
         pub mod types;
     }
@@ -27,13 +36,6 @@ pub mod ares {
         }
         pub mod system {
             pub mod system;
-        }
-    }
-    pub mod processor {
-        pub mod lr35902 {
-            pub mod algorithms;
-            pub mod lr35902;
-            pub mod registers;
         }
     }
 }
