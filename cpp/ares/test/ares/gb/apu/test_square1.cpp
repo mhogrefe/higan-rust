@@ -347,6 +347,110 @@ void TestClockEnvelope() {
   EXPECT_EQ("Square1 clockEnvelope", square1.volume, (n4)15);
 }
 
+void TestTrigger() {
+  APU::Square1 square1;
+
+  square1.power(true);
+  square1.envelopeFrequency = (n3)3;
+  square1.envelopeVolume = (n4)2;
+  square1.length = 5;
+  square1.frequency = (n11)100;
+  square1.sweepShift = (n3)5;
+  ::ares::GameBoy::apu.phase = 3;
+  square1.trigger();
+  EXPECT_TRUE("Square1 trigger", square1.enable);
+  EXPECT_EQ("Square1 trigger", square1.period, 3896u);
+  EXPECT_EQ("Square1 trigger", square1.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square1 trigger", square1.volume, (n4)2);
+  EXPECT_EQ("Square1 trigger", square1.length, 5u);
+  EXPECT_EQ("Square1 trigger", square1.frequencyShadow, 100);
+  EXPECT_FALSE("Square1 trigger", square1.sweepNegate);
+  EXPECT_EQ("Square1 trigger", square1.sweepPeriod, (n3)0);
+  EXPECT_TRUE("Square1 trigger", square1.sweepEnable);
+
+  // length is 0, so it gets set to 64
+  square1.power(true);
+  square1.envelopeFrequency = (n3)3;
+  square1.envelopeVolume = (n4)2;
+  square1.length = 0;
+  square1.frequency = (n11)100;
+  square1.sweepShift = (n3)5;
+  ::ares::GameBoy::apu.phase = 3;
+  square1.trigger();
+  EXPECT_TRUE("Square1 trigger", square1.enable);
+  EXPECT_EQ("Square1 trigger", square1.period, 3896u);
+  EXPECT_EQ("Square1 trigger", square1.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square1 trigger", square1.volume, (n4)2);
+  EXPECT_EQ("Square1 trigger", square1.length, 64u);
+  EXPECT_EQ("Square1 trigger", square1.frequencyShadow, 100);
+  EXPECT_FALSE("Square1 trigger", square1.sweepNegate);
+  EXPECT_EQ("Square1 trigger", square1.sweepPeriod, (n3)0);
+  EXPECT_TRUE("Square1 trigger", square1.sweepEnable);
+
+  // length is 0, so it gets set to 64
+  // counter is true, so length gets decremented to 63
+  square1.power(true);
+  square1.envelopeFrequency = (n3)3;
+  square1.envelopeVolume = (n4)2;
+  square1.length = 0;
+  square1.frequency = (n11)100;
+  square1.sweepShift = (n3)5;
+  square1.counter = true;
+  ::ares::GameBoy::apu.phase = 3;
+  square1.trigger();
+  EXPECT_TRUE("Square1 trigger", square1.enable);
+  EXPECT_EQ("Square1 trigger", square1.period, 3896u);
+  EXPECT_EQ("Square1 trigger", square1.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square1 trigger", square1.volume, (n4)2);
+  EXPECT_EQ("Square1 trigger", square1.length, 63u);
+  EXPECT_EQ("Square1 trigger", square1.frequencyShadow, 100);
+  EXPECT_FALSE("Square1 trigger", square1.sweepNegate);
+  EXPECT_EQ("Square1 trigger", square1.sweepPeriod, (n3)0);
+  EXPECT_TRUE("Square1 trigger", square1.sweepEnable);
+
+  // length is 0, so it gets set to 64
+  // counter is true but apu phase is even, so length doesn't get decremented to
+  // 63
+  square1.power(true);
+  square1.envelopeFrequency = (n3)3;
+  square1.envelopeVolume = (n4)2;
+  square1.length = 0;
+  square1.frequency = (n11)100;
+  square1.sweepShift = (n3)5;
+  square1.counter = true;
+  ::ares::GameBoy::apu.phase = 2;
+  square1.trigger();
+  EXPECT_TRUE("Square1 trigger", square1.enable);
+  EXPECT_EQ("Square1 trigger", square1.period, 3896u);
+  EXPECT_EQ("Square1 trigger", square1.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square1 trigger", square1.volume, (n4)2);
+  EXPECT_EQ("Square1 trigger", square1.length, 64u);
+  EXPECT_EQ("Square1 trigger", square1.frequencyShadow, 100);
+  EXPECT_FALSE("Square1 trigger", square1.sweepNegate);
+  EXPECT_EQ("Square1 trigger", square1.sweepPeriod, (n3)0);
+  EXPECT_TRUE("Square1 trigger", square1.sweepEnable);
+
+  // sweep_shift is zero
+  square1.power(true);
+  square1.envelopeFrequency = (n3)3;
+  square1.envelopeVolume = (n4)2;
+  square1.length = 0;
+  square1.frequency = (n11)100;
+  square1.sweepShift = (n3)0;
+  square1.counter = true;
+  ::ares::GameBoy::apu.phase = 2;
+  square1.trigger();
+  EXPECT_TRUE("Square1 trigger", square1.enable);
+  EXPECT_EQ("Square1 trigger", square1.period, 3896u);
+  EXPECT_EQ("Square1 trigger", square1.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square1 trigger", square1.volume, (n4)2);
+  EXPECT_EQ("Square1 trigger", square1.length, 64u);
+  EXPECT_EQ("Square1 trigger", square1.frequencyShadow, 100);
+  EXPECT_FALSE("Square1 trigger", square1.sweepNegate);
+  EXPECT_EQ("Square1 trigger", square1.sweepPeriod, (n3)0);
+  EXPECT_FALSE("Square1 trigger", square1.sweepEnable);
+}
+
 void TestPower() {
   APU::Square1 square1;
   square1.length = 0;
@@ -365,6 +469,7 @@ void TestAll() {
   TestClockLength();
   TestClockSweep();
   TestClockEnvelope();
+  TestTrigger();
   TestPower();
 }
 } // namespace square1

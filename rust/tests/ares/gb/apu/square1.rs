@@ -1,7 +1,7 @@
 use higan_rust::ares::emulator::types::{U11, U2, U3, U4};
 use higan_rust::ares::gb::apu::square_1::Square1;
 use malachite_base::comparison::traits::Max;
-use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::basic::traits::{One, Two, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 
 #[test]
@@ -302,6 +302,105 @@ fn test_clock_sweep() {
     assert_eq!(square_1.frequency_shadow, 10);
     assert_eq!(square_1.frequency, U11::ZERO);
     assert_eq!(square_1.period, 0);
+}
+
+#[test]
+fn test_trigger() {
+    let mut square_1 = Square1::default();
+
+    square_1.power(true);
+    square_1.envelope_frequency = U3::new(3);
+    square_1.envelope_volume = U4::TWO;
+    square_1.length = 5;
+    square_1.frequency = U11::new(100);
+    square_1.sweep_shift = U3::new(5);
+    square_1.trigger(U3::new(3));
+    assert!(square_1.enable);
+    assert_eq!(square_1.period, 3896);
+    assert_eq!(square_1.envelope_period, U3::new(3));
+    assert_eq!(square_1.volume, U4::TWO);
+    assert_eq!(square_1.length, 5);
+    assert_eq!(square_1.frequency_shadow, 100);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(square_1.sweep_enable);
+
+    // length is 0, so it gets set to 64
+    square_1.power(true);
+    square_1.envelope_frequency = U3::new(3);
+    square_1.envelope_volume = U4::TWO;
+    square_1.length = 0;
+    square_1.frequency = U11::new(100);
+    square_1.sweep_shift = U3::new(5);
+    square_1.trigger(U3::new(3));
+    assert!(square_1.enable);
+    assert_eq!(square_1.period, 3896);
+    assert_eq!(square_1.envelope_period, U3::new(3));
+    assert_eq!(square_1.volume, U4::TWO);
+    assert_eq!(square_1.length, 64);
+    assert_eq!(square_1.frequency_shadow, 100);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(square_1.sweep_enable);
+
+    // length is 0, so it gets set to 64
+    // counter is true, so length gets decremented to 63
+    square_1.power(true);
+    square_1.envelope_frequency = U3::new(3);
+    square_1.envelope_volume = U4::TWO;
+    square_1.length = 0;
+    square_1.frequency = U11::new(100);
+    square_1.sweep_shift = U3::new(5);
+    square_1.counter = true;
+    square_1.trigger(U3::new(3));
+    assert!(square_1.enable);
+    assert_eq!(square_1.period, 3896);
+    assert_eq!(square_1.envelope_period, U3::new(3));
+    assert_eq!(square_1.volume, U4::TWO);
+    assert_eq!(square_1.length, 63);
+    assert_eq!(square_1.frequency_shadow, 100);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(square_1.sweep_enable);
+
+    // length is 0, so it gets set to 64
+    // counter is true but apu phase is even, so length doesn't get decremented to 63
+    square_1.power(true);
+    square_1.envelope_frequency = U3::new(3);
+    square_1.envelope_volume = U4::TWO;
+    square_1.length = 0;
+    square_1.frequency = U11::new(100);
+    square_1.sweep_shift = U3::new(5);
+    square_1.counter = true;
+    square_1.trigger(U3::TWO);
+    assert!(square_1.enable);
+    assert_eq!(square_1.period, 3896);
+    assert_eq!(square_1.envelope_period, U3::new(3));
+    assert_eq!(square_1.volume, U4::TWO);
+    assert_eq!(square_1.length, 64);
+    assert_eq!(square_1.frequency_shadow, 100);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(square_1.sweep_enable);
+
+    // sweep_shift is zero
+    square_1.power(true);
+    square_1.envelope_frequency = U3::new(3);
+    square_1.envelope_volume = U4::TWO;
+    square_1.length = 0;
+    square_1.frequency = U11::new(100);
+    square_1.sweep_shift = U3::ZERO;
+    square_1.counter = true;
+    square_1.trigger(U3::TWO);
+    assert!(square_1.enable);
+    assert_eq!(square_1.period, 3896);
+    assert_eq!(square_1.envelope_period, U3::new(3));
+    assert_eq!(square_1.volume, U4::TWO);
+    assert_eq!(square_1.length, 64);
+    assert_eq!(square_1.frequency_shadow, 100);
+    assert!(!square_1.sweep_negate);
+    assert_eq!(square_1.sweep_period, U3::ZERO);
+    assert!(!square_1.sweep_enable);
 }
 
 #[test]

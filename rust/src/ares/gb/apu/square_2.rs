@@ -1,6 +1,6 @@
 use ares::emulator::types::{U11, U2, U3, U4};
 use malachite_base::num::arithmetic::traits::{
-    SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingSubAssign,
+    SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingNeg, WrappingSubAssign,
 };
 use malachite_base::num::basic::traits::One;
 use malachite_base::num::logic::traits::BitAccess;
@@ -37,7 +37,7 @@ impl Square2 {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = (2_048 - u32::from(self.frequency)) << 1;
+                self.period = u32::from(self.frequency.wrapping_neg()) << 1;
                 self.phase.wrapping_add_assign(U3::ONE);
                 let x = self.phase.x();
                 self.duty_output = match self.duty.x() {

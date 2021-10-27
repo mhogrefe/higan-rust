@@ -217,14 +217,13 @@ void TestClockEnvelope() {
 }
 
 void TestTrigger() {
-  APU apu;
-  APU::Noise noise = apu.noise;
+  APU::Noise noise;
 
   noise.power(true);
   noise.envelopeFrequency = (n3)2;
   noise.envelopeVolume = (n3)3;
   noise.length = 5;
-  apu.phase = 3;
+  ::ares::GameBoy::apu.phase = 3;
   noise.trigger();
   EXPECT_TRUE("Noise trigger", noise.enable);
   EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
@@ -237,7 +236,7 @@ void TestTrigger() {
   noise.envelopeFrequency = (n3)2;
   noise.envelopeVolume = (n3)3;
   noise.length = 0;
-  apu.phase = 3;
+  ::ares::GameBoy::apu.phase = 3;
   noise.trigger();
   EXPECT_TRUE("Noise trigger", noise.enable);
   EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
@@ -252,7 +251,7 @@ void TestTrigger() {
   noise.envelopeVolume = (n3)3;
   noise.length = 0;
   noise.counter = true;
-  apu.phase = 3;
+  ::ares::GameBoy::apu.phase = 3;
   noise.trigger();
   EXPECT_TRUE("Noise trigger", noise.enable);
   EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
@@ -267,7 +266,7 @@ void TestTrigger() {
   noise.envelopeVolume = (n3)3;
   noise.length = 0;
   noise.counter = true;
-  apu.phase = 2;
+  ::ares::GameBoy::apu.phase = 2;
   noise.trigger();
   EXPECT_TRUE("Noise trigger", noise.enable);
   EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
@@ -293,6 +292,7 @@ void TestAll() {
   TestRun();
   TestClockLength();
   TestClockEnvelope();
+  TestTrigger();
   TestPower();
 }
 } // namespace noise

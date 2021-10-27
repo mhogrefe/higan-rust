@@ -1,10 +1,10 @@
 use ares::emulator::types::{U11, U2, U3, U4};
 use malachite_base::num::arithmetic::traits::{
-    NegAssign, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingSubAssign,
+    NegAssign, Parity, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingNeg,
+    WrappingSubAssign,
 };
 use malachite_base::num::basic::traits::One;
 use malachite_base::num::conversion::traits::WrappingFrom;
-use malachite_base::num::logic::traits::BitAccess;
 
 /// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
@@ -45,7 +45,7 @@ impl Square1 {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = (2_048 - u32::wrapping_from(self.frequency)) << 1;
+                self.period = u32::wrapping_from(self.frequency.wrapping_neg()) << 1;
                 self.phase.wrapping_add_assign(U3::ONE);
                 let x = self.phase.x();
                 self.duty_output = match self.duty.x() {
@@ -80,7 +80,7 @@ impl Square1 {
         } else if self.sweep_shift.x() != 0 && update {
             self.frequency_shadow = freq;
             self.frequency = U11::wrapping_from(freq);
-            self.period = (2_048 - u32::from(self.frequency)) << 1;
+            self.period = u32::from(self.frequency.wrapping_neg()) << 1;
         }
     }
 
@@ -121,17 +121,16 @@ impl Square1 {
         }
     }
 
-    //TODO test
     /// See cpp/ares/gb/apu/square1.cpp
     pub fn trigger(&mut self, apu_phase: U3) {
         self.enable = self.dac_enable();
-        self.period = 2 * (2048 - u32::from(self.frequency));
+        self.period = u32::from(self.frequency.wrapping_neg()) << 1;
         self.envelope_period = self.envelope_frequency;
         self.volume = self.envelope_volume;
 
         if self.length == 0 {
             self.length = 64;
-            if apu_phase.get_bit(0) && self.counter {
+            if apu_phase.odd() && self.counter {
                 self.length -= 1;
             }
         }
@@ -141,8 +140,8 @@ impl Square1 {
         self.sweep_period = self.sweep_frequency;
         self.sweep_enable = self.sweep_period.x() != 0 || self.sweep_shift.x() != 0;
         if self.sweep_shift.x() != 0 {
-            self.sweep(false)
-        };
+            self.sweep(false);
+        }
     }
 
     /// See cpp/ares/gb/apu/square1.cpp
