@@ -216,6 +216,66 @@ void TestClockEnvelope() {
   EXPECT_EQ("Noise clockEnvelope", noise.volume, (n4)15);
 }
 
+void TestTrigger() {
+  APU apu;
+  APU::Noise noise = apu.noise;
+
+  noise.power(true);
+  noise.envelopeFrequency = (n3)2;
+  noise.envelopeVolume = (n3)3;
+  noise.length = 5;
+  apu.phase = 3;
+  noise.trigger();
+  EXPECT_TRUE("Noise trigger", noise.enable);
+  EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
+  EXPECT_EQ("Noise trigger", noise.envelopePeriod, (n3)2);
+  EXPECT_EQ("Noise trigger", noise.volume, (n4)3);
+  EXPECT_EQ("Noise trigger", noise.length, 5u);
+
+  // length is 0, so gets set to 64
+  noise.power(true);
+  noise.envelopeFrequency = (n3)2;
+  noise.envelopeVolume = (n3)3;
+  noise.length = 0;
+  apu.phase = 3;
+  noise.trigger();
+  EXPECT_TRUE("Noise trigger", noise.enable);
+  EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
+  EXPECT_EQ("Noise trigger", noise.envelopePeriod, (n3)2);
+  EXPECT_EQ("Noise trigger", noise.volume, (n4)3);
+  EXPECT_EQ("Noise trigger", noise.length, 64u);
+
+  // length is 0, so gets set to 64
+  // counter is true, so length gets decremented to 63
+  noise.power(true);
+  noise.envelopeFrequency = (n3)2;
+  noise.envelopeVolume = (n3)3;
+  noise.length = 0;
+  noise.counter = true;
+  apu.phase = 3;
+  noise.trigger();
+  EXPECT_TRUE("Noise trigger", noise.enable);
+  EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
+  EXPECT_EQ("Noise trigger", noise.envelopePeriod, (n3)2);
+  EXPECT_EQ("Noise trigger", noise.volume, (n4)3);
+  EXPECT_EQ("Noise trigger", noise.length, 63u);
+
+  // length is 0, so gets set to 64
+  // counter is true but phase is even, so length doesn't get decremented
+  noise.power(true);
+  noise.envelopeFrequency = (n3)2;
+  noise.envelopeVolume = (n3)3;
+  noise.length = 0;
+  noise.counter = true;
+  apu.phase = 2;
+  noise.trigger();
+  EXPECT_TRUE("Noise trigger", noise.enable);
+  EXPECT_EQ("Noise trigger", noise.lfsr, (n15)(-1));
+  EXPECT_EQ("Noise trigger", noise.envelopePeriod, (n3)2);
+  EXPECT_EQ("Noise trigger", noise.volume, (n4)3);
+  EXPECT_EQ("Noise trigger", noise.length, 64u);
+}
+
 void TestPower() {
   APU::Noise noise;
   noise.length = 0;

@@ -1,9 +1,9 @@
 use ares::emulator::types::{U15, U3, U4};
+use malachite_base::comparison::traits::Max;
 use malachite_base::num::arithmetic::traits::{
     Parity, SaturatingAddAssign, SaturatingSubAssign, WrappingSubAssign,
 };
 use malachite_base::num::basic::traits::One;
-use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
 
 /// See higan-rust/cpp/ares/gb/apu/apu.hpp
@@ -86,16 +86,15 @@ impl Noise {
         }
     }
 
-    //TODO test
     /// See higan-rust/cpp/ares/gb/apu/noise.cpp
     pub fn trigger(&mut self, apu_phase: U3) {
         self.enable = self.dac_enable();
-        self.lfsr = U15::wrapping_from(-1);
+        self.lfsr = U15::MAX;
         self.envelope_period = self.envelope_frequency;
         self.volume = self.envelope_volume;
         if self.length == 0 {
             self.length = 64;
-            if apu_phase.get_bit(0) && self.counter {
+            if apu_phase.odd() && self.counter {
                 self.length -= 1;
             };
         }

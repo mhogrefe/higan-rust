@@ -1,7 +1,7 @@
 use higan_rust::ares::emulator::types::{U15, U3, U4};
 use higan_rust::ares::gb::apu::noise::Noise;
 use malachite_base::comparison::traits::Max;
-use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::basic::traits::{One, Two, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 
 #[test]
@@ -234,6 +234,62 @@ fn test_clock_envelope() {
     noise.clock_envelope();
     assert_eq!(noise.envelope_period, U3::wrapping_from(5));
     assert_eq!(noise.volume, U4::MAX);
+}
+
+#[test]
+fn test_trigger() {
+    let mut noise = Noise::default();
+
+    noise.power(true);
+    noise.envelope_frequency = U3::TWO;
+    noise.envelope_volume = U4::new(3);
+    noise.length = 5;
+    noise.trigger(U3::new(3));
+    assert!(noise.enable);
+    assert_eq!(noise.lfsr, U15::MAX);
+    assert_eq!(noise.envelope_period, U3::TWO);
+    assert_eq!(noise.volume, U4::new(3));
+    assert_eq!(noise.length, 5);
+
+    // length is 0, so gets set to 64
+    noise.power(true);
+    noise.envelope_frequency = U3::TWO;
+    noise.envelope_volume = U4::new(3);
+    noise.length = 0;
+    noise.trigger(U3::new(3));
+    assert!(noise.enable);
+    assert_eq!(noise.lfsr, U15::MAX);
+    assert_eq!(noise.envelope_period, U3::TWO);
+    assert_eq!(noise.volume, U4::new(3));
+    assert_eq!(noise.length, 64);
+
+    // length is 0, so gets set to 64
+    // counter is true, so length gets decremented to 63
+    noise.power(true);
+    noise.envelope_frequency = U3::TWO;
+    noise.envelope_volume = U4::new(3);
+    noise.length = 0;
+    noise.counter = true;
+    noise.trigger(U3::new(3));
+    assert!(noise.enable);
+    assert_eq!(noise.lfsr, U15::MAX);
+    assert_eq!(noise.envelope_period, U3::TWO);
+    assert_eq!(noise.volume, U4::new(3));
+    assert_eq!(noise.length, 63);
+
+    // length is 0, so gets set to 64
+    // counter is true but phase is even, so length doesn't get decremented
+    noise.power(true);
+    noise.envelope_frequency = U3::TWO;
+    noise.envelope_volume = U4::new(3);
+    noise.length = 0;
+    noise.counter = true;
+    noise.trigger(U3::TWO);
+    assert!(noise.enable);
+    assert_eq!(noise.lfsr, U15::MAX);
+    assert_eq!(noise.envelope_period, U3::TWO);
+    assert_eq!(noise.volume, U4::new(3));
+    assert_eq!(noise.length, 64);
 }
 
 #[test]
