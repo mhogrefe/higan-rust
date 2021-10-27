@@ -127,7 +127,6 @@ impl Square1 {
         self.period = u32::from(self.frequency.wrapping_neg()) << 1;
         self.envelope_period = self.envelope_frequency;
         self.volume = self.envelope_volume;
-
         if self.length == 0 {
             self.length = 64;
             if apu_phase.odd() && self.counter {

@@ -1,9 +1,9 @@
 use ares::emulator::types::{U11, U2, U3, U4};
 use malachite_base::num::arithmetic::traits::{
-    SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingNeg, WrappingSubAssign,
+    Parity, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingNeg,
+    WrappingSubAssign,
 };
 use malachite_base::num::basic::traits::One;
-use malachite_base::num::logic::traits::BitAccess;
 
 /// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
@@ -86,13 +86,12 @@ impl Square2 {
     /// See cpp/ares/gb/apu/square2.cpp
     pub fn trigger(&mut self, apu_phase: U3) {
         self.enable = self.dac_enable();
-        self.period = 2 * (2048 - u32::from(self.frequency));
+        self.period = u32::from(self.frequency.wrapping_neg()) << 1;
         self.envelope_period = self.envelope_frequency;
         self.volume = self.envelope_volume;
-
         if self.length == 0 {
             self.length = 64;
-            if apu_phase.get_bit(0) && self.counter {
+            if apu_phase.odd() && self.counter {
                 self.length -= 1;
             };
         }

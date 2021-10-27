@@ -250,6 +250,70 @@ void TestClockEnvelope() {
   EXPECT_EQ("Square2 clockEnvelope", square2.volume, (n4)15);
 }
 
+void TestTrigger() {
+  APU::Square2 square2;
+
+  square2.power(true);
+  square2.envelopeFrequency = (n3)3;
+  square2.envelopeVolume = (n4)2;
+  square2.length = 5;
+  square2.frequency = (n11)100;
+  ::ares::GameBoy::apu.phase = 3;
+  square2.trigger();
+  EXPECT_TRUE("Square2 trigger", square2.enable);
+  EXPECT_EQ("Square2 trigger", square2.period, 3896u);
+  EXPECT_EQ("Square2 trigger", square2.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square2 trigger", square2.volume, (n4)2);
+  EXPECT_EQ("Square2 trigger", square2.length, 5u);
+
+  // length is 0, so it gets set to 64
+  square2.power(true);
+  square2.envelopeFrequency = (n3)3;
+  square2.envelopeVolume = (n4)2;
+  square2.length = 0;
+  square2.frequency = (n11)100;
+  ::ares::GameBoy::apu.phase = 3;
+  square2.trigger();
+  EXPECT_TRUE("Square2 trigger", square2.enable);
+  EXPECT_EQ("Square2 trigger", square2.period, 3896u);
+  EXPECT_EQ("Square2 trigger", square2.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square2 trigger", square2.volume, (n4)2);
+  EXPECT_EQ("Square2 trigger", square2.length, 64u);
+
+  // length is 0, so it gets set to 64
+  // counter is true, so length gets decremented to 63
+  square2.power(true);
+  square2.envelopeFrequency = (n3)3;
+  square2.envelopeVolume = (n4)2;
+  square2.length = 0;
+  square2.frequency = (n11)100;
+  square2.counter = true;
+  ::ares::GameBoy::apu.phase = 3;
+  square2.trigger();
+  EXPECT_TRUE("Square2 trigger", square2.enable);
+  EXPECT_EQ("Square2 trigger", square2.period, 3896u);
+  EXPECT_EQ("Square2 trigger", square2.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square2 trigger", square2.volume, (n4)2);
+  EXPECT_EQ("Square2 trigger", square2.length, 63u);
+
+  // length is 0, so it gets set to 64
+  // counter is true but apu phase is even, so length doesn't get decremented to
+  // 63
+  square2.power(true);
+  square2.envelopeFrequency = (n3)3;
+  square2.envelopeVolume = (n4)2;
+  square2.length = 0;
+  square2.frequency = (n11)100;
+  square2.counter = true;
+  ::ares::GameBoy::apu.phase = 2;
+  square2.trigger();
+  EXPECT_TRUE("Square2 trigger", square2.enable);
+  EXPECT_EQ("Square2 trigger", square2.period, 3896u);
+  EXPECT_EQ("Square2 trigger", square2.envelopePeriod, (n3)3);
+  EXPECT_EQ("Square2 trigger", square2.volume, (n4)2);
+  EXPECT_EQ("Square2 trigger", square2.length, 64u);
+}
+
 void TestPower() {
   APU::Square2 square2;
   square2.length = 0;
@@ -266,6 +330,7 @@ void TestAll() {
   TestRun();
   TestClockLength();
   TestClockEnvelope();
+  TestTrigger();
   TestPower();
 }
 } // namespace square2

@@ -1,7 +1,7 @@
 use higan_rust::ares::emulator::types::{U11, U2, U3, U4};
 use higan_rust::ares::gb::apu::square_2::Square2;
 use malachite_base::comparison::traits::Max;
-use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::basic::traits::{One, Two, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 
 #[test]
@@ -278,6 +278,66 @@ fn test_clock_envelope() {
     square_2.clock_envelope();
     assert_eq!(square_2.envelope_period, U3::wrapping_from(5));
     assert_eq!(square_2.volume, U4::MAX);
+}
+
+#[test]
+fn test_trigger() {
+    let mut square_2 = Square2::default();
+
+    square_2.power(true);
+    square_2.envelope_frequency = U3::new(3);
+    square_2.envelope_volume = U4::TWO;
+    square_2.length = 5;
+    square_2.frequency = U11::new(100);
+    square_2.trigger(U3::new(3));
+    assert!(square_2.enable);
+    assert_eq!(square_2.period, 3896);
+    assert_eq!(square_2.envelope_period, U3::new(3));
+    assert_eq!(square_2.volume, U4::TWO);
+    assert_eq!(square_2.length, 5);
+
+    // length is 0, so it gets set to 64
+    square_2.power(true);
+    square_2.envelope_frequency = U3::new(3);
+    square_2.envelope_volume = U4::TWO;
+    square_2.length = 0;
+    square_2.frequency = U11::new(100);
+    square_2.trigger(U3::new(3));
+    assert!(square_2.enable);
+    assert_eq!(square_2.period, 3896);
+    assert_eq!(square_2.envelope_period, U3::new(3));
+    assert_eq!(square_2.volume, U4::TWO);
+    assert_eq!(square_2.length, 64);
+
+    // length is 0, so it gets set to 64
+    // counter is true, so length gets decremented to 63
+    square_2.power(true);
+    square_2.envelope_frequency = U3::new(3);
+    square_2.envelope_volume = U4::TWO;
+    square_2.length = 0;
+    square_2.frequency = U11::new(100);
+    square_2.counter = true;
+    square_2.trigger(U3::new(3));
+    assert!(square_2.enable);
+    assert_eq!(square_2.period, 3896);
+    assert_eq!(square_2.envelope_period, U3::new(3));
+    assert_eq!(square_2.volume, U4::TWO);
+    assert_eq!(square_2.length, 63);
+
+    // length is 0, so it gets set to 64
+    // counter is true but apu phase is even, so length doesn't get decremented to 63
+    square_2.power(true);
+    square_2.envelope_frequency = U3::new(3);
+    square_2.envelope_volume = U4::TWO;
+    square_2.length = 0;
+    square_2.frequency = U11::new(100);
+    square_2.counter = true;
+    square_2.trigger(U3::TWO);
+    assert!(square_2.enable);
+    assert_eq!(square_2.period, 3896);
+    assert_eq!(square_2.envelope_period, U3::new(3));
+    assert_eq!(square_2.volume, U4::TWO);
+    assert_eq!(square_2.length, 64);
 }
 
 #[test]
