@@ -1,5 +1,5 @@
 use ares::emulator::types::{U11, U2, U3, U4, U5};
-use malachite_base::num::arithmetic::traits::{Parity, WrappingAddAssign, WrappingNeg};
+use malachite_base::num::arithmetic::traits::{Parity, WrappingAddAssign};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
@@ -41,7 +41,7 @@ impl Wave {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = u32::from(self.frequency.wrapping_neg());
+                self.period = 2048 - u32::from(self.frequency);
                 self.pattern_offset.wrapping_add_assign(U5::ONE);
                 self.pattern_sample = self.get_pattern(self.pattern_offset);
                 self.pattern_hold = 1;

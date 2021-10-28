@@ -1,6 +1,6 @@
 use ares::emulator::types::{U11, U2, U3, U4};
 use malachite_base::num::arithmetic::traits::{
-    NegAssign, Parity, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign, WrappingNeg,
+    NegAssign, Parity, SaturatingAddAssign, SaturatingSubAssign, WrappingAddAssign,
     WrappingSubAssign,
 };
 use malachite_base::num::basic::traits::One;
@@ -45,7 +45,7 @@ impl Square1 {
         if self.period != 0 {
             self.period -= 1;
             if self.period == 0 {
-                self.period = u32::wrapping_from(self.frequency.wrapping_neg()) << 1;
+                self.period = (2048 - u32::from(self.frequency)) << 1;
                 self.phase.wrapping_add_assign(U3::ONE);
                 let x = self.phase.x();
                 self.duty_output = match self.duty.x() {
@@ -80,7 +80,7 @@ impl Square1 {
         } else if self.sweep_shift.x() != 0 && update {
             self.frequency_shadow = freq;
             self.frequency = U11::wrapping_from(freq);
-            self.period = u32::from(self.frequency.wrapping_neg()) << 1;
+            self.period = (2048 - u32::from(self.frequency)) << 1;
         }
     }
 
@@ -124,7 +124,7 @@ impl Square1 {
     /// See cpp/ares/gb/apu/square1.cpp
     pub fn trigger(&mut self, apu_phase: U3) {
         self.enable = self.dac_enable();
-        self.period = u32::from(self.frequency.wrapping_neg()) << 1;
+        self.period = (2048 - u32::from(self.frequency)) << 1;
         self.envelope_period = self.envelope_frequency;
         self.volume = self.envelope_volume;
         if self.length == 0 {
