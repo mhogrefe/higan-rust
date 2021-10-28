@@ -630,6 +630,156 @@ void ExhaustiveTestRLC() {
   EXPECT_EQ("Algorithms RLC", outcomes[0b11], 0);
 }
 
+void TestRR() {
+  // CF false, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RR", processor.RR(10), (n8)5);
+    EXPECT_FALSE("Algorithms RR", processor.CF);
+    EXPECT_FALSE("Algorithms RR", processor.HF);
+    EXPECT_FALSE("Algorithms RR", processor.NF);
+    EXPECT_FALSE("Algorithms RR", processor.ZF);
+  }
+
+  // CF false, ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RR", processor.RR(0), (n8)0);
+    EXPECT_FALSE("Algorithms RR", processor.CF);
+    EXPECT_FALSE("Algorithms RR", processor.HF);
+    EXPECT_FALSE("Algorithms RR", processor.NF);
+    EXPECT_TRUE("Algorithms RR", processor.ZF);
+  }
+
+  // CF true, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RR", processor.RR(3), (n8)1);
+    EXPECT_TRUE("Algorithms RR", processor.CF);
+    EXPECT_FALSE("Algorithms RR", processor.HF);
+    EXPECT_FALSE("Algorithms RR", processor.NF);
+    EXPECT_FALSE("Algorithms RR", processor.ZF);
+  }
+
+  // CF true, ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RR", processor.RR(1), (n8)0);
+    EXPECT_TRUE("Algorithms RR", processor.CF);
+    EXPECT_FALSE("Algorithms RR", processor.HF);
+    EXPECT_FALSE("Algorithms RR", processor.NF);
+    EXPECT_TRUE("Algorithms RR", processor.ZF);
+  }
+
+  {
+    ::ares::GameBoy::CPU processor;
+    processor.CF = true;
+    EXPECT_EQ("Algorithms RR", processor.RR(0), (n8)0b10000000);
+    EXPECT_FALSE("Algorithms RR", processor.CF);
+    EXPECT_FALSE("Algorithms RR", processor.HF);
+    EXPECT_FALSE("Algorithms RR", processor.NF);
+    EXPECT_FALSE("Algorithms RR", processor.ZF);
+  }
+
+  {
+    ::ares::GameBoy::CPU processor;
+    processor.CF = true;
+    EXPECT_EQ("Algorithms RR", processor.RR(1), (n8)0b10000000);
+    EXPECT_TRUE("Algorithms RR", processor.CF);
+    EXPECT_FALSE("Algorithms RR", processor.HF);
+    EXPECT_FALSE("Algorithms RR", processor.NF);
+    EXPECT_FALSE("Algorithms RR", processor.ZF);
+  }
+}
+
+void ExhaustiveTestRR() {
+  int outcomes[4] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    ::ares::GameBoy::CPU processor;
+    processor.RR(x);
+    int index = 0;
+    if (processor.CF) {
+      index |= 2;
+    }
+    if (processor.ZF) {
+      index |= 1;
+    }
+    outcomes[index] += 1;
+  }
+  // CF false, ZF false
+  EXPECT_EQ("Algorithms RR", outcomes[0b00], 127);
+
+  // CF false, ZF true
+  EXPECT_EQ("Algorithms RR", outcomes[0b01], 1);
+
+  // CF true, ZF false
+  EXPECT_EQ("Algorithms RR", outcomes[0b10], 127);
+
+  // CF true, ZF true
+  EXPECT_EQ("Algorithms RR", outcomes[0b11], 1);
+}
+
+void TestRRC() {
+  // CF false, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RRC", processor.RR(2), (n8)1);
+    EXPECT_FALSE("Algorithms RRC", processor.CF);
+    EXPECT_FALSE("Algorithms RRC", processor.HF);
+    EXPECT_FALSE("Algorithms RRC", processor.NF);
+    EXPECT_FALSE("Algorithms RRC", processor.ZF);
+  }
+
+  // CF false, ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RRC", processor.RR(0), (n8)0);
+    EXPECT_FALSE("Algorithms RRC", processor.CF);
+    EXPECT_FALSE("Algorithms RRC", processor.HF);
+    EXPECT_FALSE("Algorithms RRC", processor.NF);
+    EXPECT_TRUE("Algorithms RRC", processor.ZF);
+  }
+
+  // CF true, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms RRC", processor.RRC(1), (n8)0b10000000);
+    EXPECT_TRUE("Algorithms RRC", processor.CF);
+    EXPECT_FALSE("Algorithms RRC", processor.HF);
+    EXPECT_FALSE("Algorithms RRC", processor.NF);
+    EXPECT_FALSE("Algorithms RRC", processor.ZF);
+  }
+
+  // CF true, ZF true impossible
+}
+
+void ExhaustiveTestRRC() {
+  int outcomes[4] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    ::ares::GameBoy::CPU processor;
+    processor.RRC(x);
+    int index = 0;
+    if (processor.CF) {
+      index |= 2;
+    }
+    if (processor.ZF) {
+      index |= 1;
+    }
+    outcomes[index] += 1;
+  }
+  // CF false, ZF false
+  EXPECT_EQ("Algorithms RRC", outcomes[0b00], 127);
+
+  // CF false, ZF true
+  EXPECT_EQ("Algorithms RRC", outcomes[0b01], 1);
+
+  // CF true, ZF false
+  EXPECT_EQ("Algorithms RRC", outcomes[0b10], 128);
+
+  // CF true, ZF true
+  EXPECT_EQ("Algorithms RRC", outcomes[0b11], 0);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -649,5 +799,7 @@ void TestAll() {
   ExhaustiveTestRL();
   TestRLC();
   ExhaustiveTestRLC();
+  TestRRC();
+  ExhaustiveTestRRC();
 }
 } // namespace algorithms

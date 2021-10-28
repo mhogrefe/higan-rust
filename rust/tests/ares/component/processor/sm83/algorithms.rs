@@ -546,3 +546,131 @@ fn exhaustive_test_rlc() {
     // CF true, ZF true
     assert_eq!(outcomes[0b11], 0);
 }
+
+#[test]
+fn test_rr() {
+    // CF false, ZF false
+    let mut processor = SM83::default();
+    assert_eq!(processor.rr(10), 5);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF false, ZF true
+    let mut processor = SM83::default();
+    assert_eq!(processor.rr(0), 0);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    // CF true, ZF false
+    let mut processor = SM83::default();
+    assert_eq!(processor.rr(3), 1);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF true, ZF true
+    let mut processor = SM83::default();
+    assert_eq!(processor.rr(1), 0);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    let mut processor = SM83::default();
+    processor.set_cf(true);
+    assert_eq!(processor.rr(0), 0b10000000);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    let mut processor = SM83::default();
+    processor.set_cf(true);
+    assert_eq!(processor.rr(1), 0b10000000);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+}
+
+#[test]
+fn exhaustive_test_rr() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut processor = SM83::default();
+        processor.rr(x);
+        let mut index = 0u32;
+        index.assign_bit(1, processor.get_cf());
+        index.assign_bit(0, processor.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 127);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 1);
+}
+
+#[test]
+fn test_rrc() {
+    // CF false, ZF false
+    let mut processor = SM83::default();
+    assert_eq!(processor.rrc(2), 1);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF false, ZF true
+    let mut processor = SM83::default();
+    assert_eq!(processor.rrc(0), 0);
+    assert!(!processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(processor.get_zf());
+
+    // CF true, ZF false
+    let mut processor = SM83::default();
+    assert_eq!(processor.rrc(1), 0b10000000);
+    assert!(processor.get_cf());
+    assert!(!processor.get_hf());
+    assert!(!processor.get_nf());
+    assert!(!processor.get_zf());
+
+    // CF true, ZF true impossible
+}
+
+#[test]
+fn exhaustive_test_rrc() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut processor = SM83::default();
+        processor.rrc(x);
+        let mut index = 0u32;
+        index.assign_bit(1, processor.get_cf());
+        index.assign_bit(0, processor.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 128);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 0);
+}
