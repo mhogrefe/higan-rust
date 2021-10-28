@@ -7,6 +7,19 @@ void PowerAndZeroPattern(APU::Wave *wave) {
   }
 }
 
+void SetPattern(APU::Wave *wave, const n8 pattern[16]) {
+  for (int i = 0; i < 16; ++i) {
+    wave->pattern[i] = pattern[i];
+  }
+}
+
+void ExpectPatternEq(const std::string cause, APU::Wave *wave,
+                     const n8 pattern[16]) {
+  for (int i = 0; i < 16; ++i) {
+    EXPECT_EQ(cause, wave->pattern[i], pattern[i]);
+  }
+}
+
 void TestGetPattern() {
   APU::Wave wave;
 
@@ -155,6 +168,130 @@ void TestClockLength() {
   EXPECT_FALSE("Wave clockLength", wave.enable);
 }
 
+static const n8 INCREASING_PATTERN[16] = {1, 2,  3,  4,  5,  6,  7, 8,
+                                          9, 10, 11, 12, 13, 14, 15};
+
+static const n8 CORRUPTED_PATTERN_1[16] = {3, 2,  3,  4,  5,  6,  7, 8,
+                                           9, 10, 11, 12, 13, 14, 15};
+
+static const n8 CORRUPTED_PATTERN_2[16] = {9, 10, 11, 12, 5,  6,  7, 8,
+                                           9, 10, 11, 12, 13, 14, 15};
+
+void TestTrigger() {
+  APU::Wave wave;
+
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.patternOffset = (n5)5;
+  wave.length = 5;
+  ::ares::GameBoy::apu.phase = 3;
+  auto old_model = ::ares::GameBoy::system.information.model;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoy;
+  wave.trigger();
+  ExpectPatternEq("Wave trigger", &wave, INCREASING_PATTERN);
+  EXPECT_FALSE("Wave trigger", wave.enable);
+  EXPECT_EQ("Wave trigger", wave.period, 2050u);
+  EXPECT_EQ("Wave trigger", wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave trigger", wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave trigger", wave.patternHold, 0u);
+  EXPECT_EQ("Wave trigger", wave.length, 5u);
+
+  // length is 0, so it gets set to 256
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.patternOffset = (n5)5;
+  wave.length = 0;
+  ::ares::GameBoy::apu.phase = 3;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoy;
+  wave.trigger();
+  ExpectPatternEq("Wave trigger", &wave, INCREASING_PATTERN);
+  EXPECT_FALSE("Wave trigger", wave.enable);
+  EXPECT_EQ("Wave trigger", wave.period, 2050u);
+  EXPECT_EQ("Wave trigger", wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave trigger", wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave trigger", wave.patternHold, 0u);
+  EXPECT_EQ("Wave trigger", wave.length, 256u);
+
+  // length is 0, so it gets set to 256
+  // counter is true, so length gets decremented to 255
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.patternOffset = (n5)5;
+  wave.length = 0;
+  wave.counter = true;
+  ::ares::GameBoy::apu.phase = 3;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoy;
+  wave.trigger();
+  ExpectPatternEq("Wave trigger", &wave, INCREASING_PATTERN);
+  EXPECT_FALSE("Wave trigger", wave.enable);
+  EXPECT_EQ("Wave trigger", wave.period, 2050u);
+  EXPECT_EQ("Wave trigger", wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave trigger", wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave trigger", wave.patternHold, 0u);
+  EXPECT_EQ("Wave trigger", wave.length, 255u);
+
+  // length is 0, so it gets set to 256
+  // counter is true but apu phase is even, so length does not get decremented
+  // to 255
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.patternOffset = (n5)5;
+  wave.length = 0;
+  wave.counter = true;
+  ::ares::GameBoy::apu.phase = 2;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoy;
+  wave.trigger();
+  ExpectPatternEq("Wave trigger", &wave, INCREASING_PATTERN);
+  EXPECT_FALSE("Wave trigger", wave.enable);
+  EXPECT_EQ("Wave trigger", wave.period, 2050u);
+  EXPECT_EQ("Wave trigger", wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave trigger", wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave trigger", wave.patternHold, 0u);
+  EXPECT_EQ("Wave trigger", wave.length, 256u);
+
+  // Pattern corruption, case 1
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.patternOffset = (n5)5;
+  wave.length = 5;
+  wave.patternHold = 5;
+  ::ares::GameBoy::apu.phase = 3;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoy;
+  wave.trigger();
+  ExpectPatternEq("Wave trigger", &wave, CORRUPTED_PATTERN_1);
+  EXPECT_FALSE("Wave trigger", wave.enable);
+  EXPECT_EQ("Wave trigger", wave.period, 2050u);
+  EXPECT_EQ("Wave trigger", wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave trigger", wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave trigger", wave.patternHold, 0u);
+  EXPECT_EQ("Wave trigger", wave.length, 5u);
+
+  // Pattern corruption, case 2
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.patternOffset = (n5)20;
+  wave.length = 5;
+  wave.patternHold = 5;
+  ::ares::GameBoy::apu.phase = 3;
+  ::ares::GameBoy::system.information.model =
+      ::ares::GameBoy::System::Model::GameBoy;
+  wave.trigger();
+  ExpectPatternEq("Wave trigger", &wave, CORRUPTED_PATTERN_2);
+  EXPECT_FALSE("Wave trigger", wave.enable);
+  EXPECT_EQ("Wave trigger", wave.period, 2050u);
+  EXPECT_EQ("Wave trigger", wave.patternOffset, (n5)0);
+  EXPECT_EQ("Wave trigger", wave.patternSample, (n4)0);
+  EXPECT_EQ("Wave trigger", wave.patternHold, 0u);
+  EXPECT_EQ("Wave trigger", wave.length, 5u);
+
+  ::ares::GameBoy::system.information.model = old_model;
+}
+
 void TestPower() {
   APU::Wave wave;
   wave.length = 0;
@@ -170,6 +307,7 @@ void TestAll() {
   TestGetPattern();
   TestRun();
   TestClockLength();
+  TestTrigger();
   TestPower();
 }
 } // namespace wave

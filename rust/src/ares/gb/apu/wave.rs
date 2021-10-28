@@ -1,8 +1,10 @@
 use ares::emulator::types::{U11, U2, U3, U4, U5};
-use malachite_base::num::arithmetic::traits::{Parity, WrappingAddAssign};
+use malachite_base::num::arithmetic::traits::{
+    Parity, RoundToMultipleOfPowerOf2, WrappingAddAssign,
+};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
-use malachite_base::num::logic::traits::BitAccess;
+use malachite_base::rounding_modes::RoundingMode;
 
 /// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
@@ -65,34 +67,32 @@ impl Wave {
         }
     }
 
-    //TODO test
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn trigger(&mut self, model_is_game_boy_color: bool, apu_phase: U3) {
         if !model_is_game_boy_color && self.pattern_hold != 0 {
-            //DMG,SGB trigger while channel is being read corrupts wave RAM
-            if (self.pattern_offset >> 1u32).x() <= 3 {
-                //if current pattern is with 0-3; only byte 0 is corrupted
-                let index = usize::from(u16::from(self.pattern_offset >> 1u32));
+            // DMG,SGB trigger while channel is being read corrupts wave RAM
+            if self.pattern_offset.x() < 8 {
+                // if current pattern is within 0-3, only byte 0 is corrupted
+                let index = usize::from(u16::from(self.pattern_offset) >> 1);
                 self.pattern[0] = self.pattern[index];
             } else {
-                //if current pattern is within 4-15; pattern&~3 is copied to pattern[0-3]
-                let index = usize::from((self.pattern_offset >> 1u32).x() & !3);
+                // if current pattern is within 4-15, pattern&~3 is copied to pattern[0-3]
+                let index = usize::from(self.pattern_offset.x() >> 1)
+                    .round_to_multiple_of_power_of_2(2, RoundingMode::Floor);
                 self.pattern[0] = self.pattern[index];
                 self.pattern[1] = self.pattern[index + 1];
                 self.pattern[2] = self.pattern[index + 2];
                 self.pattern[3] = self.pattern[index + 3];
             }
         }
-
         self.enable = self.dac_enable;
-        self.period = 2048 - u32::from(self.frequency) + 2;
+        self.period = 2050 - u32::from(self.frequency);
         self.pattern_offset = U5::ZERO;
         self.pattern_sample = U4::ZERO;
         self.pattern_hold = 0;
-
         if self.length == 0 {
             self.length = 256;
-            if apu_phase.get_bit(0) && self.counter {
+            if apu_phase.odd() && self.counter {
                 self.length -= 1;
             };
         }

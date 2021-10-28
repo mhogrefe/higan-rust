@@ -1,6 +1,6 @@
-use higan_rust::ares::emulator::types::{U11, U2, U4, U5};
+use higan_rust::ares::emulator::types::{U11, U2, U3, U4, U5};
 use higan_rust::ares::gb::apu::wave::Wave;
-use malachite_base::num::basic::traits::{One, Zero};
+use malachite_base::num::basic::traits::{One, Two, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 
 fn power_and_zero_pattern(wave: &mut Wave) {
@@ -182,6 +182,107 @@ fn test_clock_length() {
     wave.clock_length();
     assert_eq!(wave.length, 0);
     assert!(!wave.enable);
+}
+
+const INCREASING_PATTERN: [u8; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+#[test]
+fn test_trigger() {
+    let mut wave = Wave::default();
+
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.pattern_offset = U5::new(5);
+    wave.length = 5;
+    wave.trigger(false, U3::new(3));
+    assert_eq!(wave.pattern, INCREASING_PATTERN);
+    assert!(!wave.enable);
+    assert_eq!(wave.period, 2050);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+    assert_eq!(wave.length, 5);
+
+    // length is 0, so it gets set to 256
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.pattern_offset = U5::new(5);
+    wave.length = 0;
+    wave.trigger(false, U3::new(3));
+    assert_eq!(wave.pattern, INCREASING_PATTERN);
+    assert!(!wave.enable);
+    assert_eq!(wave.period, 2050);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+    assert_eq!(wave.length, 256);
+
+    // length is 0, so it gets set to 256
+    // counter is true, so length gets decremented to 255
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.pattern_offset = U5::new(5);
+    wave.length = 0;
+    wave.counter = true;
+    wave.trigger(false, U3::new(3));
+    assert_eq!(wave.pattern, INCREASING_PATTERN);
+    assert!(!wave.enable);
+    assert_eq!(wave.period, 2050);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+    assert_eq!(wave.length, 255);
+
+    // length is 0, so it gets set to 256
+    // counter is true but apu phase is even, so length does not get decremented to 255
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.length = 0;
+    wave.counter = true;
+    wave.trigger(false, U3::TWO);
+    assert_eq!(wave.pattern, INCREASING_PATTERN);
+    assert!(!wave.enable);
+    assert_eq!(wave.period, 2050);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+    assert_eq!(wave.length, 256);
+
+    // Pattern corruption, case 1
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.pattern_offset = U5::new(5);
+    wave.length = 5;
+    wave.pattern_hold = 5;
+    wave.trigger(false, U3::new(3));
+    assert_eq!(
+        wave.pattern,
+        [3, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    );
+    assert!(!wave.enable);
+    assert_eq!(wave.period, 2050);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+    assert_eq!(wave.length, 5);
+
+    // Pattern corruption, case 2
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.pattern_offset = U5::new(20);
+    wave.length = 5;
+    wave.pattern_hold = 5;
+    wave.trigger(false, U3::new(3));
+    assert_eq!(
+        wave.pattern,
+        [9, 10, 11, 12, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    );
+    assert!(!wave.enable);
+    assert_eq!(wave.period, 2050);
+    assert_eq!(wave.pattern_offset, U5::ZERO);
+    assert_eq!(wave.pattern_sample, U4::ZERO);
+    assert_eq!(wave.pattern_hold, 0);
+    assert_eq!(wave.length, 5);
 }
 
 #[test]
