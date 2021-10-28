@@ -79,10 +79,7 @@ impl Wave {
                 // if current pattern is within 4-15, pattern&~3 is copied to pattern[0-3]
                 let index = usize::from(self.pattern_offset.x() >> 1)
                     .round_to_multiple_of_power_of_2(2, RoundingMode::Floor);
-                self.pattern[0] = self.pattern[index];
-                self.pattern[1] = self.pattern[index + 1];
-                self.pattern[2] = self.pattern[index + 2];
-                self.pattern[3] = self.pattern[index + 3];
+                self.pattern.copy_within(index..index + 4, 0);
             }
         }
         self.enable = self.dac_enable;
