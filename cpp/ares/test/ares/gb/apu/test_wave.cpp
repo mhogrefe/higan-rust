@@ -292,6 +292,68 @@ void TestTrigger() {
   ::ares::GameBoy::system.information.model = old_model;
 }
 
+void TestReadRam() {
+  APU::Wave wave;
+
+  // data is returned
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.enable = true;
+  wave.patternHold = 0;
+  EXPECT_EQ("Wave readRAM", wave.readRAM(0x03, 100), (n8)100);
+
+  // data read using pattern offset
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.enable = true;
+  wave.patternHold = 5;
+  wave.patternOffset = 10;
+  EXPECT_EQ("Wave readRAM", wave.readRAM(0x03, 100), (n8)6);
+
+  // data read using address
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.enable = false;
+  wave.patternHold = 5;
+  wave.patternOffset = 10;
+  EXPECT_EQ("Wave readRAM", wave.readRAM(0x03, 100), (n8)4);
+}
+
+static const n8 OUTPUT_PATTERN_1[16] = {1, 2,  3,  4,  5,  100, 7, 8,
+                                        9, 10, 11, 12, 13, 14,  15};
+static const n8 OUTPUT_PATTERN_2[16] = {1, 2,  3,  100, 5,  6,  7, 8,
+                                        9, 10, 11, 12,  13, 14, 15};
+
+void TestWriteRam() {
+  APU::Wave wave;
+
+  // nothing happems
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.enable = true;
+  wave.patternHold = 0;
+  wave.writeRAM(0x03, 100);
+  ExpectPatternEq("Wave writeRam", &wave, INCREASING_PATTERN);
+
+  // data written using pattern offset
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.enable = true;
+  wave.patternHold = 5;
+  wave.patternOffset = 10;
+  wave.writeRAM(0x03, 100);
+  ExpectPatternEq("Wave writeRam", &wave, OUTPUT_PATTERN_1);
+
+  // data written using address
+  PowerAndZeroPattern(&wave);
+  SetPattern(&wave, INCREASING_PATTERN);
+  wave.enable = false;
+  wave.patternHold = 5;
+  wave.patternOffset = 10;
+  wave.writeRAM(0x03, 100);
+  ExpectPatternEq("Wave writeRam", &wave, OUTPUT_PATTERN_2);
+}
+
 void TestPower() {
   APU::Wave wave;
   wave.length = 0;
@@ -308,6 +370,8 @@ void TestAll() {
   TestRun();
   TestClockLength();
   TestTrigger();
+  TestReadRam();
+  TestWriteRam();
   TestPower();
 }
 } // namespace wave

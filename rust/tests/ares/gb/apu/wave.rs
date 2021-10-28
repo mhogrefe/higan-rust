@@ -286,6 +286,71 @@ fn test_trigger() {
 }
 
 #[test]
+fn test_read_ram() {
+    let mut wave = Wave::default();
+
+    // data is returned
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.enable = true;
+    wave.pattern_hold = 0;
+    assert_eq!(wave.read_ram(U4::new(3), 100, false), 100);
+
+    // data read using pattern offset
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.enable = true;
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::new(10);
+    assert_eq!(wave.read_ram(U4::new(3), 100, false), 6);
+
+    // data read using address
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.enable = false;
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::new(10);
+    assert_eq!(wave.read_ram(U4::new(3), 100, false), 4);
+}
+
+#[test]
+fn test_write_ram() {
+    let mut wave = Wave::default();
+
+    // nothing happens
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.enable = true;
+    wave.pattern_hold = 0;
+    wave.write_ram(U4::new(3), 100, false);
+    assert_eq!(wave.pattern, INCREASING_PATTERN);
+
+    // data written using pattern offset
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.enable = true;
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::new(10);
+    wave.write_ram(U4::new(3), 100, false);
+    assert_eq!(
+        wave.pattern,
+        [1, 2, 3, 4, 5, 100, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    );
+
+    // data written using address
+    power_and_zero_pattern(&mut wave);
+    wave.pattern = INCREASING_PATTERN;
+    wave.enable = false;
+    wave.pattern_hold = 5;
+    wave.pattern_offset = U5::new(10);
+    wave.write_ram(U4::new(3), 100, false);
+    assert_eq!(
+        wave.pattern,
+        [1, 2, 3, 100, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    );
+}
+
+#[test]
 fn test_power() {
     let mut wave = Wave::default();
     wave.length = 0;

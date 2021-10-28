@@ -95,31 +95,32 @@ impl Wave {
         }
     }
 
-    //TODO test
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn read_ram(&self, address: U4, data: u8, model_is_game_boy_color: bool) -> u8 {
-        if self.enable {
+        let index = if self.enable {
             if !model_is_game_boy_color && self.pattern_hold == 0 {
-                data
+                return data;
             } else {
-                self.pattern[usize::from(u8::from(self.pattern_offset >> 1))]
+                u8::from(self.pattern_offset >> 1)
             }
         } else {
-            self.pattern[usize::from(u8::from(address))]
-        }
+            u8::from(address)
+        };
+        self.pattern[usize::from(index)]
     }
 
-    //TODO test
     /// See cpp/ares/gb/apu/wave.cpp
     pub fn write_ram(&mut self, address: U4, data: u8, model_is_game_boy_color: bool) {
-        if self.enable {
+        let index = if self.enable {
             if !model_is_game_boy_color && self.pattern_hold == 0 {
+                return;
             } else {
-                self.pattern[usize::from(u8::from(self.pattern_offset >> 1))] = data;
+                u8::from(self.pattern_offset >> 1)
             }
         } else {
-            self.pattern[usize::from(u8::from(address))] = data;
-        }
+            u8::from(address)
+        };
+        self.pattern[usize::from(index)] = data;
     }
 
     /// See cpp/ares/gb/apu/wave.cpp
