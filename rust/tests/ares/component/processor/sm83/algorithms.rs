@@ -967,3 +967,84 @@ fn exhaustive_test_sub() {
     // CF true, HF true, ZF true
     assert_eq!(outcomes[0b111], 1);
 }
+
+#[test]
+fn test_swap() {
+    // ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.swap(1), 16);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.swap(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+}
+
+#[test]
+fn exhaustive_test_swap() {
+    let mut outcomes = [0u32; 2];
+    for x in 0..=255 {
+        let mut registers = Registers::default();
+        registers.swap(x);
+        let mut index = 0u32;
+        index.assign_bit(0, registers.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // ZF false
+    assert_eq!(outcomes[0b0], 255);
+
+    // ZF true
+    assert_eq!(outcomes[0b1], 1);
+}
+
+#[test]
+fn test_xor() {
+    // ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.xor(0, 1), 1);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.xor(0, 0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+
+    let mut registers = Registers::default();
+    assert_eq!(registers.xor(6, 4), 2);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+}
+
+#[test]
+fn exhaustive_test_xor() {
+    let mut outcomes = [0u32; 2];
+    for x in 0..=255 {
+        for y in 0..=255 {
+            let mut registers = Registers::default();
+            registers.xor(x, y);
+            let mut index = 0u32;
+            index.assign_bit(0, registers.get_zf());
+            outcomes[index as usize] += 1;
+        }
+    }
+    // ZF false
+    assert_eq!(outcomes[0b0], 65_280);
+
+    // ZF true
+    assert_eq!(outcomes[0b1], 256);
+}

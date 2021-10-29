@@ -1127,6 +1127,97 @@ void ExhaustiveTestSUB() {
   EXPECT_EQ("Algorithms SUB", outcomes[0b111], 1);
 }
 
+void TestSWAP() {
+  // ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SWAP", processor.SWAP(1), (n8)16);
+    EXPECT_FALSE("Algorithms SWAP", processor.CF);
+    EXPECT_FALSE("Algorithms SWAP", processor.HF);
+    EXPECT_FALSE("Algorithms SWAP", processor.NF);
+    EXPECT_FALSE("Algorithms SWAP", processor.ZF);
+  }
+
+  // ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SWAP", processor.SWAP(0), (n8)0);
+    EXPECT_FALSE("Algorithms SWAP", processor.CF);
+    EXPECT_FALSE("Algorithms SWAP", processor.HF);
+    EXPECT_FALSE("Algorithms SWAP", processor.NF);
+    EXPECT_TRUE("Algorithms SWAP", processor.ZF);
+  }
+}
+
+void ExhaustiveTestSWAP() {
+  int outcomes[2] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    ::ares::GameBoy::CPU processor;
+    processor.SWAP(x);
+    int index = 0;
+    if (processor.ZF) {
+      index |= 1;
+    }
+    outcomes[index] += 1;
+  }
+  // ZF false
+  EXPECT_EQ("Algorithms SWAP", outcomes[0b0], 255);
+
+  // ZF true
+  EXPECT_EQ("Algorithms SWAP", outcomes[0b1], 1);
+}
+
+void TestXOR() {
+  // ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms XOR", processor.XOR(0, 1), (n8)1);
+    EXPECT_FALSE("Algorithms XOR", processor.CF);
+    EXPECT_FALSE("Algorithms XOR", processor.HF);
+    EXPECT_FALSE("Algorithms XOR", processor.NF);
+    EXPECT_FALSE("Algorithms XOR", processor.ZF);
+  }
+
+  // ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms XOR", processor.XOR(0, 0), (n8)0);
+    EXPECT_FALSE("Algorithms XOR", processor.CF);
+    EXPECT_FALSE("Algorithms XOR", processor.HF);
+    EXPECT_FALSE("Algorithms XOR", processor.NF);
+    EXPECT_TRUE("Algorithms XOR", processor.ZF);
+  }
+
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms XOR", processor.XOR(6, 4), (n8)2);
+    EXPECT_FALSE("Algorithms XOR", processor.CF);
+    EXPECT_FALSE("Algorithms XOR", processor.HF);
+    EXPECT_FALSE("Algorithms XOR", processor.NF);
+    EXPECT_FALSE("Algorithms XOR", processor.ZF);
+  }
+}
+
+void ExhaustiveTestXOR() {
+  int outcomes[2] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    for (int y = 0; y <= 255; ++y) {
+      ::ares::GameBoy::CPU processor;
+      processor.XOR(x, y);
+      int index = 0;
+      if (processor.ZF) {
+        index |= 1;
+      }
+      outcomes[index] += 1;
+    }
+  }
+  // ZF false
+  EXPECT_EQ("Algorithms XOR", outcomes[0b0], 65280);
+
+  // ZF true
+  EXPECT_EQ("Algorithms XOR", outcomes[0b1], 256);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -1156,5 +1247,7 @@ void TestAll() {
   ExhaustiveTestSRL();
   TestSUB();
   ExhaustiveTestSUB();
+  TestXOR();
+  ExhaustiveTestXOR();
 }
 } // namespace algorithms

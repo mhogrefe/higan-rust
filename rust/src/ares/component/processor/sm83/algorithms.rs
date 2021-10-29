@@ -160,4 +160,22 @@ impl Registers {
         self.set_zf(x.divisible_by_power_of_2(8));
         u8::wrapping_from(x)
     }
+
+    pub fn swap(&mut self, mut target: u8) -> u8 {
+        target = target << 4 | target >> 4;
+        self.set_cf(false);
+        self.set_hf(false);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        target
+    }
+
+    pub fn xor(&mut self, mut target: u8, source: u8) -> u8 {
+        target ^= source;
+        self.set_cf(false);
+        self.set_hf(false);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        target
+    }
 }
