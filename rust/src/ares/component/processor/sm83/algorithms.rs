@@ -1,7 +1,7 @@
 use ares::component::processor::sm83::sm83::Registers;
 use ares::emulator::types::U3;
 use malachite_base::num::arithmetic::traits::{
-    DivisibleByPowerOf2, ModPowerOf2, WrappingAddAssign, WrappingSubAssign,
+    DivisibleByPowerOf2, ModPowerOf2, Parity, WrappingAddAssign, WrappingSubAssign,
 };
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
@@ -110,6 +110,36 @@ impl Registers {
     pub fn rrc(&mut self, mut target: u8) -> u8 {
         target = target << 7 | target >> 1;
         self.set_cf(target.get_bit(7));
+        self.set_hf(false);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        target
+    }
+
+    pub fn sla(&mut self, mut target: u8) -> u8 {
+        let carry = target.get_bit(7);
+        target <<= 1;
+        self.set_cf(carry);
+        self.set_hf(false);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        target
+    }
+
+    pub fn sra(&mut self, mut target: u8) -> u8 {
+        let carry = target.odd();
+        target = u8::wrapping_from(i8::wrapping_from(target) >> 1);
+        self.set_cf(carry);
+        self.set_hf(false);
+        self.set_nf(false);
+        self.set_zf(target == 0);
+        target
+    }
+
+    pub fn srl(&mut self, mut target: u8) -> u8 {
+        let carry = target.odd();
+        target >>= 1;
+        self.set_cf(carry);
         self.set_hf(false);
         self.set_nf(false);
         self.set_zf(target == 0);

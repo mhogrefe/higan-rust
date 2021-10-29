@@ -674,3 +674,194 @@ fn exhaustive_test_rrc() {
     // CF true, ZF true
     assert_eq!(outcomes[0b11], 0);
 }
+
+#[test]
+fn test_sla() {
+    // CF false, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sla(1), 2);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF false, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sla(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+
+    // CF true, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sla(129), 2);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF true, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sla(128), 0);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+}
+
+#[test]
+fn exhaustive_test_sla() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut registers = Registers::default();
+        registers.sla(x);
+        let mut index = 0u32;
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 127);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 1);
+}
+
+#[test]
+fn test_sra() {
+    // CF false, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sra(2), 1);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF false, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sra(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+
+    // CF true, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sra(3), 1);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF true, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sra(1), 0);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+
+    let mut registers = Registers::default();
+    assert_eq!(registers.sra(128), 192);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+}
+
+#[test]
+fn exhaustive_test_sra() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut registers = Registers::default();
+        registers.sra(x);
+        let mut index = 0u32;
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 127);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 1);
+}
+
+#[test]
+fn test_srl() {
+    // CF false, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.srl(2), 1);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF false, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.srl(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+
+    // CF true, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.srl(3), 1);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF true, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.srl(1), 0);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
+
+    let mut registers = Registers::default();
+    assert_eq!(registers.srl(128), 64);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
+}
+
+#[test]
+fn exhaustive_test_srl() {
+    let mut outcomes = [0u32; 4];
+    for x in 0..=255 {
+        let mut registers = Registers::default();
+        registers.srl(x);
+        let mut index = 0u32;
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
+        outcomes[index as usize] += 1;
+    }
+    // CF false, ZF false
+    assert_eq!(outcomes[0b00], 127);
+
+    // CF false, ZF true
+    assert_eq!(outcomes[0b01], 1);
+
+    // CF true, ZF false
+    assert_eq!(outcomes[0b10], 127);
+
+    // CF true, ZF true
+    assert_eq!(outcomes[0b11], 1);
+}
