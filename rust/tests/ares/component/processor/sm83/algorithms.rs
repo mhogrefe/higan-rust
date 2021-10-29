@@ -865,3 +865,105 @@ fn exhaustive_test_srl() {
     // CF true, ZF true
     assert_eq!(outcomes[0b11], 1);
 }
+
+#[test]
+fn test_sub() {
+    // CF false, HF false, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(1, 0, false), 1);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF false, HF false, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(0, 0, false), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(registers.get_zf());
+
+    // CF false, HF true, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(16, 0, true), 15);
+    assert!(!registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF false, HF true, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(16, 15, true), 0);
+    assert!(!registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(registers.get_zf());
+
+    // CF true, HF false, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(0, 16, false), 240);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF true, HF false, ZF true impossible
+
+    // CF true, HF true, ZF false
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(0, 0, true), 255);
+    assert!(registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
+
+    // CF true, HF true, ZF true
+    let mut registers = Registers::default();
+    assert_eq!(registers.sub(0, 255, true), 0);
+    assert!(registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(registers.get_zf());
+}
+
+#[test]
+fn exhaustive_test_sub() {
+    let mut outcomes = [0u32; 8];
+    for x in 0..=255 {
+        for y in 0..=255 {
+            for &carry in [true, false].iter() {
+                let mut registers = Registers::default();
+                registers.sub(x, y, carry);
+                let mut index = 0u32;
+                index.assign_bit(2, registers.get_cf());
+                index.assign_bit(1, registers.get_hf());
+                index.assign_bit(0, registers.get_zf());
+                outcomes[index as usize] += 1;
+            }
+        }
+    }
+    // CF false, HF false, ZF false
+    assert_eq!(outcomes[0b000], 34_320);
+
+    // CF false, HF false, ZF true
+    assert_eq!(outcomes[0b001], 496);
+
+    // CF false, HF true, ZF false
+    assert_eq!(outcomes[0b010], 30_705);
+
+    // CF false, HF true, ZF true
+    assert_eq!(outcomes[0b011], 15);
+
+    // CF true, HF false, ZF false
+    assert_eq!(outcomes[0b100], 30_720);
+
+    // CF true, HF false, ZF true
+    assert_eq!(outcomes[0b101], 0);
+
+    // CF true, HF true, ZF false
+    assert_eq!(outcomes[0b110], 34_815);
+
+    // CF true, HF true, ZF true
+    assert_eq!(outcomes[0b111], 1);
+}

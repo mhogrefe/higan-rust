@@ -145,4 +145,19 @@ impl Registers {
         self.set_zf(target == 0);
         target
     }
+
+    pub fn sub(&mut self, target: u8, source: u8, carry: bool) -> u8 {
+        let mut x: u16 = u16::from(target).wrapping_sub(u16::from(source));
+        let mut y: u16 =
+            u16::from(target.mod_power_of_2(4)).wrapping_sub(u16::from(source.mod_power_of_2(4)));
+        if carry {
+            x.wrapping_sub_assign(1);
+            y.wrapping_sub_assign(1);
+        }
+        self.set_cf(x > 0xff);
+        self.set_hf(y > 0x0f);
+        self.set_nf(true);
+        self.set_zf(x.divisible_by_power_of_2(8));
+        u8::wrapping_from(x)
+    }
 }

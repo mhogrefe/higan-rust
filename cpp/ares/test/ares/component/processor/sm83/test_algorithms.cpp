@@ -1007,6 +1007,126 @@ void ExhaustiveTestSRL() {
   EXPECT_EQ("Algorithms SRL", outcomes[0b11], 1);
 }
 
+void TestSUB() {
+  // CF false, HF false, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(1, 0, false), (n8)1);
+    EXPECT_FALSE("Algorithms SUB", processor.CF);
+    EXPECT_FALSE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_FALSE("Algorithms SUB", processor.ZF);
+  }
+
+  // CF false, HF false, ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(0, 0, false), (n8)0);
+    EXPECT_FALSE("Algorithms SUB", processor.CF);
+    EXPECT_FALSE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_TRUE("Algorithms SUB", processor.ZF);
+  }
+
+  // CF false, HF true, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(16, 0, true), (n8)15);
+    EXPECT_FALSE("Algorithms SUB", processor.CF);
+    EXPECT_TRUE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_FALSE("Algorithms SUB", processor.ZF);
+  }
+
+  // CF false, HF true, ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(16, 15, true), (n8)0);
+    EXPECT_FALSE("Algorithms SUB", processor.CF);
+    EXPECT_TRUE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_TRUE("Algorithms SUB", processor.ZF);
+  }
+
+  // CF true, HF false, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(0, 16, false), (n8)240);
+    EXPECT_TRUE("Algorithms SUB", processor.CF);
+    EXPECT_FALSE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_FALSE("Algorithms SUB", processor.ZF);
+  }
+
+  // CF true, HF false, ZF true impossible
+
+  // CF true, HF true, ZF false
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(0, 0, true), (n8)255);
+    EXPECT_TRUE("Algorithms SUB", processor.CF);
+    EXPECT_TRUE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_FALSE("Algorithms SUB", processor.ZF);
+  }
+
+  // CF true, HF true, ZF true
+  {
+    ::ares::GameBoy::CPU processor;
+    EXPECT_EQ("Algorithms SUB", processor.SUB(0, 255, true), (n8)0);
+    EXPECT_TRUE("Algorithms SUB", processor.CF);
+    EXPECT_TRUE("Algorithms SUB", processor.HF);
+    EXPECT_TRUE("Algorithms SUB", processor.NF);
+    EXPECT_TRUE("Algorithms SUB", processor.ZF);
+  }
+}
+
+void ExhaustiveTestSUB() {
+  int outcomes[8] = {0};
+  for (int x = 0; x <= 255; ++x) {
+    for (int y = 0; y <= 255; ++y) {
+      for (bool carry : {false, true}) {
+        ::ares::GameBoy::CPU processor;
+        processor.SUB(x, y, carry);
+        int index = 0;
+        if (processor.CF) {
+          index |= 4;
+        }
+        if (processor.HF) {
+          index |= 2;
+        }
+        if (processor.ZF) {
+          index |= 1;
+        }
+        outcomes[index] += 1;
+      }
+    }
+  }
+  // CF false, HF false, ZF false
+  EXPECT_EQ("Algorithms SUB", outcomes[0b000], 34320);
+
+  // CF false, HF false, ZF true
+  EXPECT_EQ("Algorithms SUB", outcomes[0b001], 496);
+
+  // CF false, HF true, ZF false
+  EXPECT_EQ("Algorithms SUB", outcomes[0b010], 30705);
+
+  // CF false, HF true, ZF true
+  EXPECT_EQ("Algorithms SUB", outcomes[0b011], 15);
+
+  // CF true, HF false, ZF false
+  EXPECT_EQ("Algorithms SUB", outcomes[0b100], 30720);
+
+  // CF true, HF false, ZF true
+  EXPECT_EQ("Algorithms SUB", outcomes[0b101], 0);
+
+  // CF true, HF true, ZF false
+  EXPECT_EQ("Algorithms SUB", outcomes[0b110], 34815);
+
+  // CF true, HF true, ZF true
+  EXPECT_EQ("Algorithms SUB", outcomes[0b111], 1);
+}
+
 void TestAll() {
   TestADD();
   ExhaustiveTestADD();
@@ -1034,5 +1154,7 @@ void TestAll() {
   ExhaustiveTestSRA();
   TestSRL();
   ExhaustiveTestSRL();
+  TestSUB();
+  ExhaustiveTestSUB();
 }
 } // namespace algorithms
