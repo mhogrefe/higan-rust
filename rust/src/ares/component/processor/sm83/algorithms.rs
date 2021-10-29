@@ -1,4 +1,4 @@
-use ares::component::processor::sm83::sm83::SM83;
+use ares::component::processor::sm83::sm83::Registers;
 use ares::emulator::types::U3;
 use malachite_base::num::arithmetic::traits::{
     DivisibleByPowerOf2, ModPowerOf2, WrappingAddAssign, WrappingSubAssign,
@@ -7,7 +7,7 @@ use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
 
 // See higan-rust/cpp/ares/component/processor/sm83/algorithms.cpp
-impl SM83 {
+impl Registers {
     pub fn add(&mut self, target: u8, source: u8, carry: bool) -> u8 {
         let mut x: u16 = u16::from(target) + u16::from(source);
         let mut y: u16 = u16::from(target.mod_power_of_2(4)) + u16::from(source.mod_power_of_2(4));

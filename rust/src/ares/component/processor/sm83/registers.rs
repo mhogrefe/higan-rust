@@ -1,118 +1,118 @@
-use ares::component::processor::sm83::sm83::SM83;
+use ares::component::processor::sm83::sm83::Registers;
 use malachite_base::num::logic::traits::BitAccess;
 
 /// See higan-rust/cpp/ares/component/processor/sm83/registers.hpp
-impl SM83 {
+impl Registers {
     pub fn get_af(&self) -> u16 {
-        self.r.af.get_word()
+        self.af.get_word()
     }
 
     pub fn set_af(&mut self, af: u16) {
-        self.r.af.set_word(af)
+        self.af.set_word(af)
     }
 
     pub fn get_bc(&self) -> u16 {
-        self.r.bc.get_word()
+        self.bc.get_word()
     }
 
     pub fn set_bc(&mut self, bc: u16) {
-        self.r.bc.set_word(bc)
+        self.bc.set_word(bc)
     }
 
     pub fn get_de(&self) -> u16 {
-        self.r.de.get_word()
+        self.de.get_word()
     }
 
     pub fn set_de(&mut self, de: u16) {
-        self.r.de.set_word(de)
+        self.de.set_word(de)
     }
 
     pub fn get_hl(&self) -> u16 {
-        self.r.hl.get_word()
+        self.hl.get_word()
     }
 
     pub fn set_hl(&mut self, hl: u16) {
-        self.r.hl.set_word(hl)
+        self.hl.set_word(hl)
     }
 
     pub fn get_sp(&self) -> u16 {
-        self.r.sp.get_word()
+        self.sp.get_word()
     }
 
     pub fn set_sp(&mut self, sp: u16) {
-        self.r.sp.set_word(sp)
+        self.sp.set_word(sp)
     }
 
     pub fn get_pc(&self) -> u16 {
-        self.r.pc.get_word()
+        self.pc.get_word()
     }
 
     pub fn set_pc(&mut self, pc: u16) {
-        self.r.pc.set_word(pc)
+        self.pc.set_word(pc)
     }
 
     pub fn get_a(&self) -> u8 {
-        self.r.af.get_hi()
+        self.af.get_hi()
     }
 
     pub fn set_a(&mut self, a: u8) {
-        self.r.af.set_hi(a)
+        self.af.set_hi(a)
     }
 
     pub fn get_f(&self) -> u8 {
-        self.r.af.get_lo()
+        self.af.get_lo()
     }
 
     pub fn set_f(&mut self, f: u8) {
-        self.r.af.set_lo(f)
+        self.af.set_lo(f)
     }
 
     pub fn get_b(&self) -> u8 {
-        self.r.bc.get_hi()
+        self.bc.get_hi()
     }
 
     pub fn set_b(&mut self, b: u8) {
-        self.r.bc.set_hi(b)
+        self.bc.set_hi(b)
     }
 
     pub fn get_c(&self) -> u8 {
-        self.r.bc.get_lo()
+        self.bc.get_lo()
     }
 
     pub fn set_c(&mut self, c: u8) {
-        self.r.bc.set_lo(c)
+        self.bc.set_lo(c)
     }
 
     pub fn get_d(&self) -> u8 {
-        self.r.de.get_hi()
+        self.de.get_hi()
     }
 
     pub fn set_d(&mut self, d: u8) {
-        self.r.de.set_hi(d)
+        self.de.set_hi(d)
     }
 
     pub fn get_e(&self) -> u8 {
-        self.r.de.get_lo()
+        self.de.get_lo()
     }
 
     pub fn set_e(&mut self, e: u8) {
-        self.r.de.set_lo(e)
+        self.de.set_lo(e)
     }
 
     pub fn get_h(&self) -> u8 {
-        self.r.hl.get_hi()
+        self.hl.get_hi()
     }
 
     pub fn set_h(&mut self, h: u8) {
-        self.r.hl.set_hi(h)
+        self.hl.set_hi(h)
     }
 
     pub fn get_l(&self) -> u8 {
-        self.r.hl.get_lo()
+        self.hl.get_lo()
     }
 
     pub fn set_l(&mut self, l: u8) {
-        self.r.hl.set_lo(l)
+        self.hl.set_lo(l)
     }
 
     pub fn get_cf(&self) -> bool {

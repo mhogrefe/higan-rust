@@ -1,4 +1,4 @@
-use higan_rust::ares::component::processor::sm83::sm83::SM83;
+use higan_rust::ares::component::processor::sm83::sm83::Registers;
 use higan_rust::ares::emulator::types::U3;
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
@@ -6,70 +6,70 @@ use malachite_base::num::logic::traits::BitAccess;
 #[test]
 fn test_add() {
     // CF false, HF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(3, 4, false), 7);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(3, 4, false), 7);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, HF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(0, 0, false), 0);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(0, 0, false), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF false, HF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(9, 8, false), 17);
-    assert!(!processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(9, 8, false), 17);
+    assert!(!registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, HF true, ZF true impossible
 
     // CF true, HF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(128, 128, true), 1);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(128, 128, true), 1);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, HF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(128, 128, false), 0);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(128, 128, false), 0);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // Variant of previous case: sum is same but HF is different!
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(128, 127, true), 0);
-    assert!(processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(128, 127, true), 0);
+    assert!(registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF true, HF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(143, 143, false), 30);
-    assert!(processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(143, 143, false), 30);
+    assert!(registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, HF true, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.add(3, 252, true), 0);
-    assert!(processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.add(3, 252, true), 0);
+    assert!(registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 }
 
 #[test]
@@ -78,12 +78,12 @@ fn exhaustive_test_add() {
     for x in 0..=255 {
         for y in 0..=255 {
             for &carry in [true, false].iter() {
-                let mut processor = SM83::default();
-                processor.add(x, y, carry);
+                let mut registers = Registers::default();
+                registers.add(x, y, carry);
                 let mut index = 0u32;
-                index.assign_bit(2, processor.get_cf());
-                index.assign_bit(1, processor.get_hf());
-                index.assign_bit(0, processor.get_zf());
+                index.assign_bit(2, registers.get_cf());
+                index.assign_bit(1, registers.get_hf());
+                index.assign_bit(0, registers.get_zf());
                 outcomes[index as usize] += 1;
             }
         }
@@ -116,20 +116,20 @@ fn exhaustive_test_add() {
 #[test]
 fn test_and() {
     // ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.and(6, 7), 6);
-    assert!(!processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.and(6, 7), 6);
+    assert!(!registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.and(6, 8), 0);
-    assert!(!processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.and(6, 8), 0);
+    assert!(!registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 }
 
 #[test]
@@ -137,10 +137,10 @@ fn exhaustive_test_and() {
     let mut outcomes = [0u32; 2];
     for x in 0..=255 {
         for y in 0..=255 {
-            let mut processor = SM83::default();
-            processor.and(x, y);
+            let mut registers = Registers::default();
+            registers.and(x, y);
             let mut index = 0u32;
-            index.assign_bit(0, processor.get_zf());
+            index.assign_bit(0, registers.get_zf());
             outcomes[index as usize] += 1;
         }
     }
@@ -154,18 +154,18 @@ fn exhaustive_test_and() {
 #[test]
 fn test_bit() {
     // ZF false
-    let mut processor = SM83::default();
-    processor.bit(U3::wrapping_from(1), 0b10100101);
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    registers.bit(U3::wrapping_from(1), 0b10100101);
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // ZF true
-    let mut processor = SM83::default();
-    processor.bit(U3::wrapping_from(2), 0b10100101);
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.bit(U3::wrapping_from(2), 0b10100101);
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 }
 
 #[test]
@@ -173,10 +173,10 @@ fn exhaustive_test_bit() {
     let mut outcomes = [0u32; 2];
     for index in 0..=7 {
         for x in 0..=255 {
-            let mut processor = SM83::default();
-            processor.bit(U3::wrapping_from(index), x);
+            let mut registers = Registers::default();
+            registers.bit(U3::wrapping_from(index), x);
             let mut outcome_index = 0u32;
-            outcome_index.assign_bit(0, processor.get_zf());
+            outcome_index.assign_bit(0, registers.get_zf());
             outcomes[outcome_index as usize] += 1;
         }
     }
@@ -190,48 +190,48 @@ fn exhaustive_test_bit() {
 #[test]
 fn test_cp() {
     // CF false, HF false, ZF false
-    let mut processor = SM83::default();
-    processor.cp(10, 5);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.cp(10, 5);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, HF false, ZF true
-    let mut processor = SM83::default();
-    processor.cp(10, 10);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    registers.cp(10, 10);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF false, HF true, ZF false
-    let mut processor = SM83::default();
-    processor.cp(100, 10);
-    assert!(!processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.cp(100, 10);
+    assert!(!registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, HF true, ZF true impossible
 
     // CF true, HF false, ZF false
-    let mut processor = SM83::default();
-    processor.cp(2, 17);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.cp(2, 17);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, HF false, ZF true impossible
 
     // CF true, HF true, ZF false
-    let mut processor = SM83::default();
-    processor.cp(2, 19);
-    assert!(processor.get_cf());
-    assert!(processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.cp(2, 19);
+    assert!(registers.get_cf());
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, HF true, ZF true impossible
 }
@@ -241,12 +241,12 @@ fn exhaustive_test_cp() {
     let mut outcomes = [0u32; 8];
     for x in 0..=255 {
         for y in 0..=255 {
-            let mut processor = SM83::default();
-            processor.cp(x, y);
+            let mut registers = Registers::default();
+            registers.cp(x, y);
             let mut index = 0u32;
-            index.assign_bit(2, processor.get_cf());
-            index.assign_bit(1, processor.get_hf());
-            index.assign_bit(0, processor.get_zf());
+            index.assign_bit(2, registers.get_cf());
+            index.assign_bit(1, registers.get_hf());
+            index.assign_bit(0, registers.get_zf());
             outcomes[index as usize] += 1;
         }
     }
@@ -278,44 +278,44 @@ fn exhaustive_test_cp() {
 #[test]
 fn test_dec() {
     // HF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.dec(10), 9);
-    assert!(!processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.dec(10), 9);
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 
     // HF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.dec(1), 0);
-    assert!(!processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.dec(1), 0);
+    assert!(!registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(registers.get_zf());
 
     // HF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.dec(32), 31);
-    assert!(processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.dec(32), 31);
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 
     // HF true, ZF true impossible
 
-    let mut processor = SM83::default();
-    assert_eq!(processor.dec(0), 255);
-    assert!(processor.get_hf());
-    assert!(processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.dec(0), 255);
+    assert!(registers.get_hf());
+    assert!(registers.get_nf());
+    assert!(!registers.get_zf());
 }
 
 #[test]
 fn exhaustive_test_dec() {
     let mut outcomes = [0u32; 4];
     for x in 0..=255 {
-        let mut processor = SM83::default();
-        processor.dec(x);
+        let mut registers = Registers::default();
+        registers.dec(x);
         let mut index = 0u32;
-        index.assign_bit(1, processor.get_hf());
-        index.assign_bit(0, processor.get_zf());
+        index.assign_bit(1, registers.get_hf());
+        index.assign_bit(0, registers.get_zf());
         outcomes[index as usize] += 1;
     }
     // HF false, ZF false
@@ -334,38 +334,38 @@ fn exhaustive_test_dec() {
 #[test]
 fn test_inc() {
     // HF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.inc(10), 11);
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.inc(10), 11);
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // HF false, ZF true impossible
 
     // HF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.inc(31), 32);
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.inc(31), 32);
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // HF true, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.inc(255), 0);
-    assert!(processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.inc(255), 0);
+    assert!(registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 }
 
 #[test]
 fn exhaustive_test_inc() {
     let mut outcomes = [0u32; 4];
     for x in 0..=255 {
-        let mut processor = SM83::default();
-        processor.inc(x);
+        let mut registers = Registers::default();
+        registers.inc(x);
         let mut index = 0u32;
-        index.assign_bit(1, processor.get_hf());
-        index.assign_bit(0, processor.get_zf());
+        index.assign_bit(1, registers.get_hf());
+        index.assign_bit(0, registers.get_zf());
         outcomes[index as usize] += 1;
     }
     // HF false, ZF false
@@ -384,20 +384,20 @@ fn exhaustive_test_inc() {
 #[test]
 fn test_or() {
     // ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.or(6, 9), 15);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.or(6, 9), 15);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.or(0, 0), 0);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.or(0, 0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 }
 
 #[test]
@@ -405,10 +405,10 @@ fn exhaustive_test_or() {
     let mut outcomes = [0u32; 2];
     for x in 0..=255 {
         for y in 0..=255 {
-            let mut processor = SM83::default();
-            processor.or(x, y);
+            let mut registers = Registers::default();
+            registers.or(x, y);
             let mut index = 0u32;
-            index.assign_bit(0, processor.get_zf());
+            index.assign_bit(0, registers.get_zf());
             outcomes[index as usize] += 1;
         }
     }
@@ -422,63 +422,63 @@ fn exhaustive_test_or() {
 #[test]
 fn test_rl() {
     // CF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rl(10), 20);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rl(10), 20);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.rl(0), 0);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rl(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rl(130), 4);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rl(130), 4);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.rl(0b10000000), 0);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rl(0b10000000), 0);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
-    let mut processor = SM83::default();
-    processor.set_cf(true);
-    assert_eq!(processor.rl(0), 1);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.set_cf(true);
+    assert_eq!(registers.rl(0), 1);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
-    let mut processor = SM83::default();
-    processor.set_cf(true);
-    assert_eq!(processor.rl(0b10000000), 1);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.set_cf(true);
+    assert_eq!(registers.rl(0b10000000), 1);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 }
 
 #[test]
 fn exhaustive_test_rl() {
     let mut outcomes = [0u32; 4];
     for x in 0..=255 {
-        let mut processor = SM83::default();
-        processor.rl(x);
+        let mut registers = Registers::default();
+        registers.rl(x);
         let mut index = 0u32;
-        index.assign_bit(1, processor.get_cf());
-        index.assign_bit(0, processor.get_zf());
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
         outcomes[index as usize] += 1;
     }
     // CF false, ZF false
@@ -497,28 +497,28 @@ fn exhaustive_test_rl() {
 #[test]
 fn test_rlc() {
     // CF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rlc(10), 20);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rlc(10), 20);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.rlc(0), 0);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rlc(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rlc(130), 5);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rlc(130), 5);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, ZF true impossible
 }
@@ -527,11 +527,11 @@ fn test_rlc() {
 fn exhaustive_test_rlc() {
     let mut outcomes = [0u32; 4];
     for x in 0..=255 {
-        let mut processor = SM83::default();
-        processor.rlc(x);
+        let mut registers = Registers::default();
+        registers.rlc(x);
         let mut index = 0u32;
-        index.assign_bit(1, processor.get_cf());
-        index.assign_bit(0, processor.get_zf());
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
         outcomes[index as usize] += 1;
     }
     // CF false, ZF false
@@ -550,63 +550,63 @@ fn exhaustive_test_rlc() {
 #[test]
 fn test_rr() {
     // CF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rr(10), 5);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rr(10), 5);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.rr(0), 0);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rr(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rr(3), 1);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rr(3), 1);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.rr(1), 0);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rr(1), 0);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
-    let mut processor = SM83::default();
-    processor.set_cf(true);
-    assert_eq!(processor.rr(0), 0b10000000);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.set_cf(true);
+    assert_eq!(registers.rr(0), 0b10000000);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
-    let mut processor = SM83::default();
-    processor.set_cf(true);
-    assert_eq!(processor.rr(1), 0b10000000);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    registers.set_cf(true);
+    assert_eq!(registers.rr(1), 0b10000000);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 }
 
 #[test]
 fn exhaustive_test_rr() {
     let mut outcomes = [0u32; 4];
     for x in 0..=255 {
-        let mut processor = SM83::default();
-        processor.rr(x);
+        let mut registers = Registers::default();
+        registers.rr(x);
         let mut index = 0u32;
-        index.assign_bit(1, processor.get_cf());
-        index.assign_bit(0, processor.get_zf());
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
         outcomes[index as usize] += 1;
     }
     // CF false, ZF false
@@ -625,28 +625,28 @@ fn exhaustive_test_rr() {
 #[test]
 fn test_rrc() {
     // CF false, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rrc(2), 1);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rrc(2), 1);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF false, ZF true
-    let mut processor = SM83::default();
-    assert_eq!(processor.rrc(0), 0);
-    assert!(!processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rrc(0), 0);
+    assert!(!registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(registers.get_zf());
 
     // CF true, ZF false
-    let mut processor = SM83::default();
-    assert_eq!(processor.rrc(1), 0b10000000);
-    assert!(processor.get_cf());
-    assert!(!processor.get_hf());
-    assert!(!processor.get_nf());
-    assert!(!processor.get_zf());
+    let mut registers = Registers::default();
+    assert_eq!(registers.rrc(1), 0b10000000);
+    assert!(registers.get_cf());
+    assert!(!registers.get_hf());
+    assert!(!registers.get_nf());
+    assert!(!registers.get_zf());
 
     // CF true, ZF true impossible
 }
@@ -655,11 +655,11 @@ fn test_rrc() {
 fn exhaustive_test_rrc() {
     let mut outcomes = [0u32; 4];
     for x in 0..=255 {
-        let mut processor = SM83::default();
-        processor.rrc(x);
+        let mut registers = Registers::default();
+        registers.rrc(x);
         let mut index = 0u32;
-        index.assign_bit(1, processor.get_cf());
-        index.assign_bit(0, processor.get_zf());
+        index.assign_bit(1, registers.get_cf());
+        index.assign_bit(0, registers.get_zf());
         outcomes[index as usize] += 1;
     }
     // CF false, ZF false
