@@ -7,6 +7,8 @@ pub mod ares {
         pub mod processor {
             pub mod sm83 {
                 pub mod algorithms;
+                pub mod instructions;
+                pub mod memory;
                 pub mod registers;
                 pub mod sm83;
             }
@@ -25,16 +27,11 @@ pub mod ares {
             pub mod square_2;
             pub mod wave;
         }
+        pub mod bus;
         pub mod cpu {
             pub mod cpu;
-            pub mod io;
             pub mod memory;
-        }
-        pub mod memory {
-            pub mod memory;
-        }
-        pub mod system {
-            pub mod system;
+            pub mod timing;
         }
     }
 }

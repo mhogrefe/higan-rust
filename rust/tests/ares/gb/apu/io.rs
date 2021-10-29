@@ -1,7 +1,7 @@
 use higan_rust::ares::emulator::types::{U11, U15, U2, U3, U4, U5};
 use higan_rust::ares::gb::apu::apu::APU;
 use higan_rust::ares::gb::apu::wave::Wave;
-use higan_rust::ares::gb::memory::memory::Bus;
+use higan_rust::ares::gb::bus::Bus;
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 

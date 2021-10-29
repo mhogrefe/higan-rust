@@ -55,8 +55,3 @@ pub struct Registers {
 
     pub halt_bug: bool,
 }
-
-#[derive(Clone, Debug, Default)]
-pub struct SM83 {
-    pub r: Registers,
-}

@@ -6,7 +6,7 @@ use ares::gb::apu::sequencer::Sequencer;
 use ares::gb::apu::square_1::Square1;
 use ares::gb::apu::square_2::Square2;
 use ares::gb::apu::wave::Wave;
-use ares::gb::memory::memory::Bus;
+use ares::gb::bus::Bus;
 use malachite_base::num::arithmetic::traits::{WrappingAdd, WrappingAddAssign};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;

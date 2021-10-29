@@ -1,8 +1,5 @@
-//TODO test
-
-use ares::component::processor::sm83::sm83::SM83;
+use ares::component::processor::sm83::sm83::Registers;
 use ares::emulator::types::{U2, U22, U3, U4, U5, U7};
-use ares::gb::memory::memory::Bus;
 
 /// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
 #[derive(Clone, Copy, Debug)]
@@ -81,55 +78,10 @@ pub struct Status {
     pub interrupt_enable: u8,
 }
 
-const CPU_WRAM_SIZE: usize = 32_768; //GB=8192, GBC=32768
-const CPU_HRAM_SIZE: usize = 128;
-
-#[derive(Clone)]
-pub struct CPUIO {
-    pub model_is_super_game_boy: bool,
-    pub status: Status,
-    pub wram: [u8; CPU_WRAM_SIZE],
-    pub hram: [u8; CPU_HRAM_SIZE],
-}
-
-impl Default for CPUIO {
-    fn default() -> CPUIO {
-        CPUIO {
-            model_is_super_game_boy: false,
-            status: Status::default(),
-            wram: [0; CPU_WRAM_SIZE],
-            hram: [0; CPU_HRAM_SIZE],
-        }
-    }
-}
-
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct CPU {
     pub model_is_game_boy_color: bool,
-    pub processor: SM83,
-    pub bus: Bus,
-}
-
-impl CPU {
-    //TODO this is probably a Thread thing
-    pub fn interrupt(&self, _: u32) {}
-
-    //TODO
-    pub fn set_frequency(&self, _: u32) {}
-
-    pub fn stop(&mut self) -> bool {
-        if self.bus.cpu_io.status.speed_switch {
-            self.bus.cpu_io.status.speed_switch = false;
-            self.bus.cpu_io.status.speed_double ^= true;
-            if !self.bus.cpu_io.status.speed_double {
-                self.set_frequency(4 * 1024 * 1024);
-            }
-            if self.bus.cpu_io.status.speed_double {
-                self.set_frequency(8 * 1024 * 1024);
-            }
-            true
-        } else {
-            false
-        }
-    }
+    pub model_is_super_game_boy: bool,
+    pub r: Registers,
+    pub status: Status,
 }
