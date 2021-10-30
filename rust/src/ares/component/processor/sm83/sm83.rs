@@ -13,6 +13,11 @@ impl Register {
     }
 
     #[inline]
+    pub fn get_word_mut(&mut self) -> &mut u16 {
+        &mut self.0
+    }
+
+    #[inline]
     pub fn set_word(&mut self, word: u16) {
         self.0 = word;
     }

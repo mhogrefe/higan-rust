@@ -7,6 +7,7 @@ pub mod ares {
         pub mod processor {
             pub mod sm83 {
                 pub mod algorithms;
+                pub mod instruction;
                 pub mod instructions;
                 pub mod memory;
                 pub mod registers;

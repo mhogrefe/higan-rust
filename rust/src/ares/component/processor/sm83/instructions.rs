@@ -180,16 +180,16 @@ impl Bus {
         }
     }
 
-    pub fn instruction_inc_direct(&mut self, data: &mut u8) {
+    pub fn instruction_inc_direct_8(&mut self, data: &mut u8) {
         *data = self.cpu.r.inc(*data);
     }
 
-    pub fn instruction_inc_direct_8(&mut self, data: &mut u16) {
+    pub fn instruction_inc_direct_16(&mut self, data: &mut u16) {
         self.cpu_idle();
         *data += 1;
     }
 
-    pub fn instruction_inc_indirect_16(&mut self, address: u16) {
+    pub fn instruction_inc_indirect(&mut self, address: u16) {
         let data = self.cpu_read(address);
         let d = self.cpu.r.inc(data);
         self.cpu_write(address, d);
@@ -223,6 +223,58 @@ impl Bus {
             pc.wrapping_sub_assign(abs_data);
         }
         self.cpu.r.set_pc(pc);
+    }
+
+    pub fn instruction_ld_address_direct_8(&mut self, data: u8) {
+        let op = self.cpu_operands();
+        self.cpu_write(op, data);
+    }
+
+    pub fn instruction_ld_address_direct_16(&mut self, data: u16) {
+        let op = self.cpu_operands();
+        self.cpu_store(op, data);
+    }
+
+    pub fn instruction_ld_direct_address(&mut self, data: &mut u8) {
+        let op = self.cpu_operands();
+        *data = self.cpu_read(op);
+    }
+
+    pub fn instruction_ld_direct_data_8(&mut self, target: &mut u8) {
+        *target = self.cpu_operand();
+    }
+
+    pub fn instruction_ld_direct_data_16(&mut self, target: &mut u16) {
+        *target = self.cpu_operands();
+    }
+
+    pub fn instruction_ld_direct_direct_8(target: &mut u8, source: u8) {
+        *target = source;
+    }
+
+    pub fn instruction_ld_direct_direct_16(&mut self, target: &mut u16, source: u16) {
+        self.cpu_idle();
+        *target = source;
+    }
+
+    pub fn instruction_ld_direct_direct_relative(&mut self, target: &mut u16, source: u16) {
+        let data = self.cpu_operand();
+        self.cpu_idle();
+        self.cpu
+            .r
+            .set_cf(source.mod_power_of_2(8) + u16::from(data) > 0xff);
+        self.cpu
+            .r
+            .set_hf(source.mod_power_of_2(4) + u16::from(data.mod_power_of_2(4)) > 0x0f);
+        self.cpu.r.set_nf(false);
+        self.cpu.r.set_zf(false);
+        let data = i8::wrapping_from(data);
+        let abs_data = u16::from(data.unsigned_abs());
+        *target = if data >= 0 {
+            source.wrapping_add(abs_data)
+        } else {
+            source.wrapping_sub(abs_data)
+        };
     }
 
     pub fn instruction_ld_direct_indirect(&mut self, target: &mut u8, source: u16) {
