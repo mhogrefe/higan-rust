@@ -1,5 +1,6 @@
 use ares::component::processor::sm83::sm83::Registers;
 use ares::emulator::types::{U2, U22, U3, U4, U5, U7};
+use malachite_base::num::logic::traits::NotAssign;
 
 /// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
 #[derive(Clone, Copy, Debug)]
@@ -84,4 +85,23 @@ pub struct CPU {
     pub model_is_super_game_boy: bool,
     pub r: Registers,
     pub status: Status,
+}
+
+// See higan-rust/cpp/ares/gb/cpu/cpu.cpp
+impl CPU {
+    pub fn stoppable(&mut self) -> bool {
+        if self.status.speed_switch {
+            self.status.speed_switch = false;
+            self.status.speed_double.not_assign();
+            if !self.status.speed_double {
+                //TODO setFrequency(4 * 1024 * 1024);
+            }
+            if self.status.speed_double {
+                //TODO setFrequency(8 * 1024 * 1024);
+            }
+            false
+        } else {
+            true
+        }
+    }
 }
