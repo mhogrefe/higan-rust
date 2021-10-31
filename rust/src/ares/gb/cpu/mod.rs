@@ -1,5 +1,6 @@
 use ares::component::processor::sm83::sm83::Registers;
 use ares::emulator::types::{U2, U22, U3, U4, U5, U7};
+use ares::gb::system::Model;
 use malachite_base::num::logic::traits::NotAssign;
 
 /// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
@@ -81,8 +82,7 @@ pub struct Status {
 
 #[derive(Clone, Debug, Default)]
 pub struct CPU {
-    pub model_is_game_boy_color: bool,
-    pub model_is_super_game_boy: bool,
+    pub model: Model,
     pub r: Registers,
     pub status: Status,
 }
@@ -105,3 +105,7 @@ impl CPU {
         }
     }
 }
+
+pub mod io;
+pub mod memory;
+pub mod timing;

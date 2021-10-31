@@ -19,22 +19,13 @@ pub mod ares {
         pub mod types;
     }
     pub mod gb {
-        pub mod apu {
-            pub mod apu;
-            pub mod io;
-            pub mod noise;
-            pub mod sequencer;
-            pub mod square_1;
-            pub mod square_2;
-            pub mod wave;
-        }
+        pub mod apu;
         pub mod bus;
-        pub mod cpu {
-            pub mod cpu;
-            pub mod memory;
-            pub mod timing;
-        }
+        pub mod cpu;
+        pub mod system;
     }
+    pub mod node;
+    pub mod platform;
 }
 pub mod nall {
     pub mod random;

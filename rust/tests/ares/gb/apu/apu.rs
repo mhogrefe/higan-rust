@@ -1,4 +1,4 @@
-use higan_rust::ares::gb::apu::apu::APU;
+use higan_rust::ares::gb::apu::APU;
 
 #[test]
 fn test_run_sequencer() {

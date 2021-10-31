@@ -1,11 +1,12 @@
 use ares::emulator::types::U3;
-use ares::gb::bus::Bus;
+use ares::gb::system::System;
+use ares::platform::Platform;
 use malachite_base::num::logic::traits::BitBlockAccess;
 
-impl Bus {
+impl<P: Platform> System<P> {
     pub fn instruction(&mut self) {
         match self.cpu_operand() {
-            0x00 => Bus::instruction_nop(),
+            0x00 => System::<P>::instruction_nop(),
             0x01 => {
                 let mut bc = self.cpu.r.get_bc();
                 self.instruction_ld_direct_data_16(&mut bc);
@@ -257,32 +258,32 @@ impl Bus {
             0x40 => {
                 let mut b = self.cpu.r.get_b();
                 let b_copy = b;
-                Bus::instruction_ld_direct_direct_8(&mut b, b_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut b, b_copy);
                 self.cpu.r.set_b(b);
             }
             0x41 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_c());
+                System::<P>::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_c());
                 self.cpu.r.set_b(b);
             }
             0x42 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_d());
+                System::<P>::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_d());
                 self.cpu.r.set_b(b);
             }
             0x43 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_e());
                 self.cpu.r.set_b(b);
             }
             0x44 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_h());
+                System::<P>::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_h());
                 self.cpu.r.set_b(b);
             }
             0x45 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_l());
+                System::<P>::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_l());
                 self.cpu.r.set_b(b);
             }
             0x46 => {
@@ -292,38 +293,38 @@ impl Bus {
             }
             0x47 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_a());
+                System::<P>::instruction_ld_direct_direct_8(&mut b, self.cpu.r.get_a());
                 self.cpu.r.set_b(b);
             }
             0x48 => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_b());
+                System::<P>::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_b());
                 self.cpu.r.set_c(c);
             }
             0x49 => {
                 let mut c = self.cpu.r.get_c();
                 let c_copy = c;
-                Bus::instruction_ld_direct_direct_8(&mut c, c_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut c, c_copy);
                 self.cpu.r.set_c(c);
             }
             0x4a => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_d());
+                System::<P>::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_d());
                 self.cpu.r.set_c(c);
             }
             0x4b => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_e());
                 self.cpu.r.set_c(c);
             }
             0x4c => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_h());
+                System::<P>::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_h());
                 self.cpu.r.set_c(c);
             }
             0x4d => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_l());
+                System::<P>::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_l());
                 self.cpu.r.set_c(c);
             }
             0x4e => {
@@ -333,38 +334,38 @@ impl Bus {
             }
             0x4f => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_a());
+                System::<P>::instruction_ld_direct_direct_8(&mut c, self.cpu.r.get_a());
                 self.cpu.r.set_c(c);
             }
             0x50 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_b());
+                System::<P>::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_b());
                 self.cpu.r.set_d(d);
             }
             0x51 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_c());
+                System::<P>::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_c());
                 self.cpu.r.set_d(d);
             }
             0x52 => {
                 let mut d = self.cpu.r.get_d();
                 let d_copy = d;
-                Bus::instruction_ld_direct_direct_8(&mut d, d_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut d, d_copy);
                 self.cpu.r.set_d(d);
             }
             0x53 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_e());
                 self.cpu.r.set_d(d);
             }
             0x54 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_h());
+                System::<P>::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_h());
                 self.cpu.r.set_d(d);
             }
             0x55 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_l());
+                System::<P>::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_l());
                 self.cpu.r.set_d(d);
             }
             0x56 => {
@@ -374,38 +375,38 @@ impl Bus {
             }
             0x57 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_a());
+                System::<P>::instruction_ld_direct_direct_8(&mut d, self.cpu.r.get_a());
                 self.cpu.r.set_d(d);
             }
             0x58 => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_b());
+                System::<P>::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_b());
                 self.cpu.r.set_e(e);
             }
             0x59 => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_c());
+                System::<P>::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_c());
                 self.cpu.r.set_e(e);
             }
             0x5a => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_d());
+                System::<P>::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_d());
                 self.cpu.r.set_e(e);
             }
             0x5b => {
                 let mut e = self.cpu.r.get_e();
                 let e_copy = e;
-                Bus::instruction_ld_direct_direct_8(&mut e, e_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut e, e_copy);
                 self.cpu.r.set_e(e);
             }
             0x5c => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_h());
+                System::<P>::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_h());
                 self.cpu.r.set_e(e);
             }
             0x5d => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_l());
+                System::<P>::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_l());
                 self.cpu.r.set_e(e);
             }
             0x5e => {
@@ -415,38 +416,38 @@ impl Bus {
             }
             0x5f => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_a());
+                System::<P>::instruction_ld_direct_direct_8(&mut e, self.cpu.r.get_a());
                 self.cpu.r.set_e(e);
             }
             0x60 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_b());
+                System::<P>::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_b());
                 self.cpu.r.set_h(h);
             }
             0x61 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_c());
+                System::<P>::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_c());
                 self.cpu.r.set_h(h);
             }
             0x62 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_d());
+                System::<P>::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_d());
                 self.cpu.r.set_h(h);
             }
             0x63 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_e());
                 self.cpu.r.set_h(h);
             }
             0x64 => {
                 let mut h = self.cpu.r.get_h();
                 let h_copy = h;
-                Bus::instruction_ld_direct_direct_8(&mut h, h_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut h, h_copy);
                 self.cpu.r.set_h(h);
             }
             0x65 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_l());
+                System::<P>::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_l());
                 self.cpu.r.set_h(h);
             }
             0x66 => {
@@ -456,38 +457,38 @@ impl Bus {
             }
             0x67 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_a());
+                System::<P>::instruction_ld_direct_direct_8(&mut h, self.cpu.r.get_a());
                 self.cpu.r.set_h(h);
             }
             0x68 => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_b());
+                System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_b());
                 self.cpu.r.set_l(l);
             }
             0x69 => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_c());
+                System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_c());
                 self.cpu.r.set_l(l);
             }
             0x6a => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_d());
+                System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_d());
                 self.cpu.r.set_l(l);
             }
             0x6b => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_e());
                 self.cpu.r.set_l(l);
             }
             0x6c => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_e());
                 self.cpu.r.set_l(l);
             }
             0x6d => {
                 let mut l = self.cpu.r.get_l();
                 let l_copy = l;
-                Bus::instruction_ld_direct_direct_8(&mut l, l_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut l, l_copy);
                 self.cpu.r.set_l(l);
             }
             0x6e => {
@@ -497,7 +498,7 @@ impl Bus {
             }
             0x6f => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_a());
+                System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_a());
                 self.cpu.r.set_l(l);
             }
             0x70 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_b()),
@@ -510,32 +511,32 @@ impl Bus {
             0x77 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_a()),
             0x78 => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_b());
+                System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_b());
                 self.cpu.r.set_a(a);
             }
             0x79 => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_c());
+                System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_c());
                 self.cpu.r.set_a(a);
             }
             0x7a => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_d());
+                System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_d());
                 self.cpu.r.set_a(a);
             }
             0x7b => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_e());
+                System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_e());
                 self.cpu.r.set_a(a);
             }
             0x7c => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_h());
+                System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_h());
                 self.cpu.r.set_a(a);
             }
             0x7d => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_l());
+                System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_l());
                 self.cpu.r.set_a(a);
             }
             0x7e => {
@@ -547,7 +548,7 @@ impl Bus {
                 // This is a no-op
                 let mut a = self.cpu.r.get_a();
                 let a_copy = a;
-                Bus::instruction_ld_direct_direct_8(&mut a, a_copy);
+                System::<P>::instruction_ld_direct_direct_8(&mut a, a_copy);
                 self.cpu.r.set_a(a);
             }
             0x80 => {
@@ -1280,74 +1281,74 @@ impl Bus {
             0x0f => self.instruction_bit_index_direct(bit, self.cpu.r.get_a()),
             0x10 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_res_index_direct(bit, &mut b);
+                System::<P>::instruction_res_index_direct(bit, &mut b);
                 self.cpu.r.set_b(b);
             }
             0x11 => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_res_index_direct(bit, &mut c);
+                System::<P>::instruction_res_index_direct(bit, &mut c);
                 self.cpu.r.set_c(c);
             }
             0x12 => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_res_index_direct(bit, &mut d);
+                System::<P>::instruction_res_index_direct(bit, &mut d);
                 self.cpu.r.set_d(d);
             }
             0x13 => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_res_index_direct(bit, &mut e);
+                System::<P>::instruction_res_index_direct(bit, &mut e);
                 self.cpu.r.set_e(e);
             }
             0x14 => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_res_index_direct(bit, &mut h);
+                System::<P>::instruction_res_index_direct(bit, &mut h);
                 self.cpu.r.set_h(h);
             }
             0x15 => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_res_index_direct(bit, &mut l);
+                System::<P>::instruction_res_index_direct(bit, &mut l);
                 self.cpu.r.set_l(l);
             }
             0x16 => self.instruction_res_index_indirect(bit, self.cpu.r.get_hl()),
             0x17 => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_res_index_direct(bit, &mut a);
+                System::<P>::instruction_res_index_direct(bit, &mut a);
                 self.cpu.r.set_a(a);
             }
             0x18 => {
                 let mut b = self.cpu.r.get_b();
-                Bus::instruction_set_index_direct(bit, &mut b);
+                System::<P>::instruction_set_index_direct(bit, &mut b);
                 self.cpu.r.set_b(b);
             }
             0x19 => {
                 let mut c = self.cpu.r.get_c();
-                Bus::instruction_set_index_direct(bit, &mut c);
+                System::<P>::instruction_set_index_direct(bit, &mut c);
                 self.cpu.r.set_c(c);
             }
             0x1a => {
                 let mut d = self.cpu.r.get_d();
-                Bus::instruction_set_index_direct(bit, &mut d);
+                System::<P>::instruction_set_index_direct(bit, &mut d);
                 self.cpu.r.set_d(d);
             }
             0x1b => {
                 let mut e = self.cpu.r.get_e();
-                Bus::instruction_set_index_direct(bit, &mut e);
+                System::<P>::instruction_set_index_direct(bit, &mut e);
                 self.cpu.r.set_e(e);
             }
             0x1c => {
                 let mut h = self.cpu.r.get_h();
-                Bus::instruction_set_index_direct(bit, &mut h);
+                System::<P>::instruction_set_index_direct(bit, &mut h);
                 self.cpu.r.set_h(h);
             }
             0x1d => {
                 let mut l = self.cpu.r.get_l();
-                Bus::instruction_set_index_direct(bit, &mut l);
+                System::<P>::instruction_set_index_direct(bit, &mut l);
                 self.cpu.r.set_l(l);
             }
             0x1e => self.instruction_set_index_indirect(bit, self.cpu.r.get_hl()),
             0x1f => {
                 let mut a = self.cpu.r.get_a();
-                Bus::instruction_set_index_direct(bit, &mut a);
+                System::<P>::instruction_set_index_direct(bit, &mut a);
                 self.cpu.r.set_a(a);
             }
             _ => {}

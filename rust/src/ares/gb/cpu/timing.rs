@@ -1,6 +1,7 @@
-use ares::gb::bus::Bus;
+use ares::gb::system::System;
+use ares::platform::Platform;
 
-impl Bus {
+impl<P: Platform> System<P> {
     pub fn cpu_step(&mut self, _clocks: u32) {
         unimplemented!();
     }

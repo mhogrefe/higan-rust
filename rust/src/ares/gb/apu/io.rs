@@ -1,5 +1,6 @@
 use ares::emulator::types::{U11, U2, U3, U4};
-use ares::gb::apu::apu::APU;
+use ares::gb::apu::APU;
+use ares::gb::system::Model;
 use malachite_base::num::basic::traits::Zero;
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
@@ -139,7 +140,7 @@ impl APU {
                 return self.wave.read_ram(
                     U4::wrapping_from(address),
                     data,
-                    self.model_is_game_boy_color,
+                    self.model == Model::GameBoyColor,
                 );
             }
             _ => {}
@@ -153,7 +154,7 @@ impl APU {
         }
         if !self.sequencer.enable {
             let mut valid = address == 0xff26; //NR52
-            if !self.model_is_game_boy_color {
+            if self.model != Model::GameBoyColor {
                 //NRx1 length is writable only on DMG,SGB; not on CGB
                 if address == 0xff11 {
                     //NR11; duty is not writable (remains 0)
@@ -325,7 +326,8 @@ impl APU {
                     .assign_bits(8, 11, &U11::wrapping_from(data.get_bits(0, 3)));
                 self.wave.counter = data.get_bit(6);
                 if data.get_bit(7) {
-                    self.wave.trigger(self.model_is_game_boy_color, self.phase)
+                    self.wave
+                        .trigger(self.model == Model::GameBoyColor, self.phase)
                 };
             }
 
@@ -398,7 +400,7 @@ impl APU {
                 if self.sequencer.enable != data.get_bit(7) {
                     self.sequencer.enable = data.get_bit(7);
                     if !self.sequencer.enable {
-                        let reset_length_counters = self.model_is_game_boy_color;
+                        let reset_length_counters = self.model == Model::GameBoyColor;
                         self.square_1.power(reset_length_counters);
                         self.square_2.power(reset_length_counters);
                         self.wave.power(reset_length_counters);
@@ -414,7 +416,7 @@ impl APU {
                 self.wave.write_ram(
                     U4::wrapping_from(address),
                     data,
-                    self.model_is_game_boy_color,
+                    self.model == Model::GameBoyColor,
                 );
             }
             _ => {}

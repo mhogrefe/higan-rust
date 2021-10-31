@@ -1,11 +1,12 @@
 use ares::emulator::types::U3;
-use ares::gb::bus::Bus;
+use ares::gb::system::System;
+use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{ModPowerOf2, WrappingAddAssign, WrappingSubAssign};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use malachite_base::num::logic::traits::BitAccess;
 
 // See higan-rust/rust/src/ares/component/processor/sm83/instructions.rs
-impl Bus {
+impl<P: Platform> System<P> {
     pub fn instruction_adc_direct_data(&mut self, target: &mut u8) {
         let op = self.cpu_operand();
         *target = self.cpu.r.add(*target, op, self.cpu.r.get_cf());
@@ -328,7 +329,7 @@ impl Bus {
         self.cpu_write(0xff00 | u16::from(target), source);
     }
 
-    pub const fn instruction_nop() {}
+    pub fn instruction_nop() {}
 
     pub fn instruction_or_direct_data(&mut self, target: &mut u8) {
         let op = self.cpu_operand();

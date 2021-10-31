@@ -1,8 +1,9 @@
-use ares::gb::bus::Bus;
+use ares::gb::system::System;
+use ares::platform::Platform;
 use malachite_base::num::conversion::traits::WrappingFrom;
 
 // See higan-rust/cpp/ares/component/processor/sm83/memory.cpp
-impl Bus {
+impl<P: Platform> System<P> {
     pub fn cpu_operand(&mut self) -> u8 {
         if self.cpu.r.halt_bug {
             self.cpu.r.halt_bug = false;

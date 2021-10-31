@@ -1,24 +1,20 @@
-//TODO test
-
 use ares::emulator::types::{U12, U3};
 use ares::gb::apu::noise::Noise;
 use ares::gb::apu::sequencer::Sequencer;
 use ares::gb::apu::square_1::Square1;
 use ares::gb::apu::square_2::Square2;
 use ares::gb::apu::wave::Wave;
-use ares::gb::bus::Bus;
+use ares::gb::system::{Model, System};
+use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{WrappingAdd, WrappingAddAssign};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::WrappingFrom;
 use nall::random::{Pcg, Rng};
 
-//TODO impl Thread
-//TODO auto APU::Enter() -> void
-
 /// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
 pub struct APU {
-    pub model_is_game_boy_color: bool,
+    pub model: Model,
     pub square_1: Square1,
     pub square_2: Square2,
     pub noise: Noise,
@@ -128,7 +124,7 @@ impl APU {
     }
 }
 
-impl Bus {
+impl<P: Platform> System<P> {
     //TODO test
     pub fn power_apu(&mut self) {
         //TODO Thread::create(2 * 1024 * 1024, {&APU::main, this});
@@ -147,3 +143,10 @@ impl Bus {
         }
     }
 }
+
+pub mod io;
+pub mod noise;
+pub mod sequencer;
+pub mod square_1;
+pub mod square_2;
+pub mod wave;
