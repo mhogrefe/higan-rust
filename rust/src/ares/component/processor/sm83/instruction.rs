@@ -1,4 +1,6 @@
+use ares::emulator::types::U3;
 use ares::gb::bus::Bus;
+use malachite_base::num::logic::traits::BitBlockAccess;
 
 impl Bus {
     pub fn instruction(&mut self) {
@@ -498,140 +500,856 @@ impl Bus {
                 Bus::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_a());
                 self.cpu.r.set_l(l);
             }
-            /*
-            op(0x70, LD_Indirect_Direct, HL, B)
-            op(0x71, LD_Indirect_Direct, HL, C)
-            op(0x72, LD_Indirect_Direct, HL, D)
-            op(0x73, LD_Indirect_Direct, HL, E)
-            op(0x74, LD_Indirect_Direct, HL, H)
-            op(0x75, LD_Indirect_Direct, HL, L)
-            op(0x76, HALT)
-            op(0x77, LD_Indirect_Direct, HL, A)
-            op(0x78, LD_Direct_Direct, A, B)
-            op(0x79, LD_Direct_Direct, A, C)
-            op(0x7a, LD_Direct_Direct, A, D)
-            op(0x7b, LD_Direct_Direct, A, E)
-            op(0x7c, LD_Direct_Direct, A, H)
-            op(0x7d, LD_Direct_Direct, A, L)
-            op(0x7e, LD_Direct_Indirect, A, HL)
-            op(0x7f, LD_Direct_Direct, A, A)
-            op(0x80, ADD_Direct_Direct, A, B)
-            op(0x81, ADD_Direct_Direct, A, C)
-            op(0x82, ADD_Direct_Direct, A, D)
-            op(0x83, ADD_Direct_Direct, A, E)
-            op(0x84, ADD_Direct_Direct, A, H)
-            op(0x85, ADD_Direct_Direct, A, L)
-            op(0x86, ADD_Direct_Indirect, A, HL)
-            op(0x87, ADD_Direct_Direct, A, A)
-            op(0x88, ADC_Direct_Direct, A, B)
-            op(0x89, ADC_Direct_Direct, A, C)
-            op(0x8a, ADC_Direct_Direct, A, D)
-            op(0x8b, ADC_Direct_Direct, A, E)
-            op(0x8c, ADC_Direct_Direct, A, H)
-            op(0x8d, ADC_Direct_Direct, A, L)
-            op(0x8e, ADC_Direct_Indirect, A, HL)
-            op(0x8f, ADC_Direct_Direct, A, A)
-            op(0x90, SUB_Direct_Direct, A, B)
-            op(0x91, SUB_Direct_Direct, A, C)
-            op(0x92, SUB_Direct_Direct, A, D)
-            op(0x93, SUB_Direct_Direct, A, E)
-            op(0x94, SUB_Direct_Direct, A, H)
-            op(0x95, SUB_Direct_Direct, A, L)
-            op(0x96, SUB_Direct_Indirect, A, HL)
-            op(0x97, SUB_Direct_Direct, A, A)
-            op(0x98, SBC_Direct_Direct, A, B)
-            op(0x99, SBC_Direct_Direct, A, C)
-            op(0x9a, SBC_Direct_Direct, A, D)
-            op(0x9b, SBC_Direct_Direct, A, E)
-            op(0x9c, SBC_Direct_Direct, A, H)
-            op(0x9d, SBC_Direct_Direct, A, L)
-            op(0x9e, SBC_Direct_Indirect, A, HL)
-            op(0x9f, SBC_Direct_Direct, A, A)
-            op(0xa0, AND_Direct_Direct, A, B)
-            op(0xa1, AND_Direct_Direct, A, C)
-            op(0xa2, AND_Direct_Direct, A, D)
-            op(0xa3, AND_Direct_Direct, A, E)
-            op(0xa4, AND_Direct_Direct, A, H)
-            op(0xa5, AND_Direct_Direct, A, L)
-            op(0xa6, AND_Direct_Indirect, A, HL)
-            op(0xa7, AND_Direct_Direct, A, A)
-            op(0xa8, XOR_Direct_Direct, A, B)
-            op(0xa9, XOR_Direct_Direct, A, C)
-            op(0xaa, XOR_Direct_Direct, A, D)
-            op(0xab, XOR_Direct_Direct, A, E)
-            op(0xac, XOR_Direct_Direct, A, H)
-            op(0xad, XOR_Direct_Direct, A, L)
-            op(0xae, XOR_Direct_Indirect, A, HL)
-            op(0xaf, XOR_Direct_Direct, A, A)
-            op(0xb0, OR_Direct_Direct, A, B)
-            op(0xb1, OR_Direct_Direct, A, C)
-            op(0xb2, OR_Direct_Direct, A, D)
-            op(0xb3, OR_Direct_Direct, A, E)
-            op(0xb4, OR_Direct_Direct, A, H)
-            op(0xb5, OR_Direct_Direct, A, L)
-            op(0xb6, OR_Direct_Indirect, A, HL)
-            op(0xb7, OR_Direct_Direct, A, A)
-            op(0xb8, CP_Direct_Direct, A, B)
-            op(0xb9, CP_Direct_Direct, A, C)
-            op(0xba, CP_Direct_Direct, A, D)
-            op(0xbb, CP_Direct_Direct, A, E)
-            op(0xbc, CP_Direct_Direct, A, H)
-            op(0xbd, CP_Direct_Direct, A, L)
-            op(0xbe, CP_Direct_Indirect, A, HL)
-            op(0xbf, CP_Direct_Direct, A, A)
-            op(0xc0, RET_Condition, ZF == 0)
-            op(0xc1, POP_Direct, BC)
-            op(0xc2, JP_Condition_Address, ZF == 0)
-            op(0xc3, JP_Condition_Address, 1)
-            op(0xc4, CALL_Condition_Address, ZF == 0)
-            op(0xc5, PUSH_Direct, BC)
-            op(0xc6, ADD_Direct_Data, A)
-            op(0xc7, RST_Implied, 0x00)
-            op(0xc8, RET_Condition, ZF == 1)
-            op(0xc9, RET)
-            op(0xca, JP_Condition_Address, ZF == 1)
-            op(0xcb, CB)
-            op(0xcc, CALL_Condition_Address, ZF == 1)
-            op(0xcd, CALL_Condition_Address, 1)
-            op(0xce, ADC_Direct_Data, A)
-            op(0xcf, RST_Implied, 0x08)
-            op(0xd0, RET_Condition, CF == 0)
-            op(0xd1, POP_Direct, DE)
-            op(0xd2, JP_Condition_Address, CF == 0)
-            op(0xd4, CALL_Condition_Address, CF == 0)
-            op(0xd5, PUSH_Direct, DE)
-            op(0xd6, SUB_Direct_Data, A)
-            op(0xd7, RST_Implied, 0x10)
-            op(0xd8, RET_Condition, CF == 1)
-            op(0xd9, RETI)
-            op(0xda, JP_Condition_Address, CF == 1)
-            op(0xdc, CALL_Condition_Address, CF == 1)
-            op(0xde, SBC_Direct_Data, A)
-            op(0xdf, RST_Implied, 0x18)
-            op(0xe0, LDH_Address_Direct, A)
-            op(0xe1, POP_Direct, HL)
-            op(0xe2, LDH_Indirect_Direct, C, A)
-            op(0xe5, PUSH_Direct, HL)
-            op(0xe6, AND_Direct_Data, A)
-            op(0xe7, RST_Implied, 0x20)
-            op(0xe8, ADD_Direct_Relative, SP)
-            op(0xe9, JP_Direct, HL)
-            op(0xea, LD_Address_Direct, A)
-            op(0xee, XOR_Direct_Data, A)
-            op(0xef, RST_Implied, 0x28)
-            op(0xf0, LDH_Direct_Address, A)
-            op(0xf1, POP_Direct_AF, AF)
-            op(0xf2, LDH_Direct_Indirect, A, C)
-            op(0xf3, DI)
-            op(0xf5, PUSH_Direct, AF)
-            op(0xf6, OR_Direct_Data, A)
-            op(0xf7, RST_Implied, 0x30)
-            op(0xf8, LD_Direct_DirectRelative, HL, SP)
-            op(0xf9, LD_Direct_Direct, SP, HL)
-            op(0xfa, LD_Direct_Address, A)
-            op(0xfb, EI)
-            op(0xfe, CP_Direct_Data, A)
-            op(0xff, RST_Implied, 0x38)*/
+            0x70 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_b()),
+            0x71 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_c()),
+            0x72 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_d()),
+            0x73 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_e()),
+            0x74 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_h()),
+            0x75 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_l()),
+            0x76 => self.instruction_halt(),
+            0x77 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_a()),
+            0x78 => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0x79 => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0x7a => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0x7b => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0x7c => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0x7d => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0x7e => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_ld_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0x7f => {
+                // This is a no-op
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                Bus::instruction_ld_direct_direct_8(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0x80 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0x81 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0x82 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0x83 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0x84 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0x85 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0x86 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0x87 => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_add_direct_direct_8(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0x88 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_direct(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0x89 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_direct(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0x8a => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_direct(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0x8b => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_direct(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0x8c => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_direct(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0x8d => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_direct(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0x8e => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0x8f => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_adc_direct_direct(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0x90 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_direct(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0x91 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_direct(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0x92 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_direct(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0x93 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_direct(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0x94 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_direct(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0x95 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_direct(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0x96 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0x97 => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_sub_direct_direct(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0x98 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_direct(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0x99 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_direct(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0x9a => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_direct(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0x9b => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_direct(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0x9c => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_direct(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0x9d => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_direct(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0x9e => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0x9f => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_sbc_direct_direct(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0xa0 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_direct(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0xa1 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_direct(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0xa2 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_direct(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0xa3 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_direct(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0xa4 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_direct(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0xa5 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_direct(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0xa6 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0xa7 => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_and_direct_direct(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0xa8 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_direct(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0xa9 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_direct(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0xaa => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_direct(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0xab => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_direct(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0xac => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_direct(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0xad => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_direct(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0xae => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0xaf => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_xor_direct_direct(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0xb0 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_direct(&mut a, self.cpu.r.get_b());
+                self.cpu.r.set_a(a);
+            }
+            0xb1 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_direct(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0xb2 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_direct(&mut a, self.cpu.r.get_d());
+                self.cpu.r.set_a(a);
+            }
+            0xb3 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_direct(&mut a, self.cpu.r.get_e());
+                self.cpu.r.set_a(a);
+            }
+            0xb4 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_direct(&mut a, self.cpu.r.get_h());
+                self.cpu.r.set_a(a);
+            }
+            0xb5 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_direct(&mut a, self.cpu.r.get_l());
+                self.cpu.r.set_a(a);
+            }
+            0xb6 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.cpu.r.set_a(a);
+            }
+            0xb7 => {
+                let mut a = self.cpu.r.get_a();
+                let a_copy = a;
+                self.instruction_or_direct_direct(&mut a, a_copy);
+                self.cpu.r.set_a(a);
+            }
+            0xb8 => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_b()),
+            0xb9 => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_c()),
+            0xba => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_d()),
+            0xbb => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_e()),
+            0xbc => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_h()),
+            0xbd => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_l()),
+            0xbe => self.instruction_cp_direct_indirect(self.cpu.r.get_a(), self.cpu.r.get_hl()),
+            0xbf => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_a()),
+            0xc0 => self.instruction_ret_condition(!self.cpu.r.get_zf()),
+            0xc1 => {
+                let mut bc = self.cpu.r.get_bc();
+                self.instruction_pop_direct(&mut bc);
+                self.cpu.r.set_bc(bc);
+            }
+            0xc2 => self.instruction_jp_condition_address(!self.cpu.r.get_zf()),
+            0xc3 => self.instruction_jp_condition_address(true),
+            0xc4 => self.instruction_call_condition_address(!self.cpu.r.get_zf()),
+            0xc5 => self.instruction_push_direct(self.cpu.r.get_bc()),
+            0xc6 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_add_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xc7 => self.instruction_rst_implied(0),
+            0xc8 => self.instruction_ret_condition(self.cpu.r.get_zf()),
+            0xc9 => self.instruction_ret(),
+            0xca => self.instruction_jp_condition_address(self.cpu.r.get_zf()),
+            0xcb => self.instruction_cb(),
+            0xcc => self.instruction_call_condition_address(self.cpu.r.get_zf()),
+            0xcd => self.instruction_call_condition_address(true),
+            0xce => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_adc_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xcf => self.instruction_rst_implied(0x08),
+            0xd0 => self.instruction_ret_condition(!self.cpu.r.get_cf()),
+            0xd1 => {
+                let mut de = self.cpu.r.get_de();
+                self.instruction_pop_direct(&mut de);
+                self.cpu.r.set_de(de);
+            }
+            0xd2 => self.instruction_jp_condition_address(!self.cpu.r.get_cf()),
+            0xd4 => self.instruction_call_condition_address(!self.cpu.r.get_cf()),
+            0xd5 => self.instruction_push_direct(self.cpu.r.get_de()),
+            0xd6 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sub_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xd7 => self.instruction_rst_implied(0x10),
+            0xd8 => self.instruction_ret_condition(self.cpu.r.get_cf()),
+            0xd9 => self.instruction_reti(),
+            0xda => self.instruction_jp_condition_address(self.cpu.r.get_cf()),
+            0xdc => self.instruction_call_condition_address(self.cpu.r.get_cf()),
+            0xde => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sbc_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xdf => self.instruction_rst_implied(0x18),
+            0xe0 => self.instruction_ldh_address_direct(self.cpu.r.get_a()),
+            0xe1 => {
+                let mut hl = self.cpu.r.get_hl();
+                self.instruction_pop_direct(&mut hl);
+                self.cpu.r.set_hl(hl);
+            }
+            0xe2 => self.instruction_ldh_indirect_direct(self.cpu.r.get_c(), self.cpu.r.get_a()),
+            0xe5 => self.instruction_push_direct(self.cpu.r.get_hl()),
+            0xe6 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_and_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xe7 => self.instruction_rst_implied(0x20),
+            0xe8 => {
+                let mut sp = self.cpu.r.get_sp();
+                self.instruction_add_direct_relative(&mut sp);
+                self.cpu.r.set_sp(sp);
+            }
+            0xe9 => self.instruction_jp_direct(self.cpu.r.get_hl()),
+            0xea => self.instruction_ld_address_direct_8(self.cpu.r.get_a()),
+            0xee => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_xor_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xef => self.instruction_rst_implied(0x28),
+            0xf0 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_ldh_direct_address(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xf1 => {
+                let mut af = self.cpu.r.get_af();
+                self.instruction_pop_direct_af(&mut af);
+                self.cpu.r.set_af(af);
+            }
+            0xf2 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_ldh_direct_indirect(&mut a, self.cpu.r.get_c());
+                self.cpu.r.set_a(a);
+            }
+            0xf3 => self.instruction_di(),
+            0xf5 => self.instruction_push_direct(self.cpu.r.get_af()),
+            0xf6 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_or_direct_data(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xf7 => self.instruction_rst_implied(0x30),
+            0xf8 => {
+                let mut hl = self.cpu.r.get_hl();
+                self.instruction_ld_direct_direct_relative(&mut hl, self.cpu.r.get_sp());
+                self.cpu.r.set_hl(hl);
+            }
+            0xf9 => {
+                let mut sp = self.cpu.r.get_sp();
+                self.instruction_ld_direct_direct_16(&mut sp, self.cpu.r.get_hl());
+                self.cpu.r.set_sp(sp);
+            }
+            0xfa => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_ld_direct_address(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0xfb => self.instruction_ei(),
+            0xfe => self.instruction_cp_direct_data(self.cpu.r.get_a()),
+            0xff => self.instruction_rst_implied(0x38),
+            _ => {}
+        }
+    }
+
+    pub fn instruction_cb(&mut self) {
+        let mut ret = true;
+        let opcode = self.cpu_operand();
+        match opcode {
+            0x00 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_rlc_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x01 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_rlc_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x02 => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_rlc_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x03 => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_rlc_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x04 => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_rlc_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x05 => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_rlc_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x06 => self.instruction_rlc_indirect(self.cpu.r.get_hl()),
+            0x07 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_rlc_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x08 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_rrc_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x09 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_rrc_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x0a => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_rrc_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x0b => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_rrc_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x0c => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_rrc_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x0d => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_rrc_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x0e => self.instruction_rrc_indirect(self.cpu.r.get_hl()),
+            0x0f => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_rrc_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x10 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_rl_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x11 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_rl_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x12 => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_rl_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x13 => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_rl_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x14 => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_rl_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x15 => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_rl_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x16 => self.instruction_rl_indirect(self.cpu.r.get_hl()),
+            0x17 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_rl_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x18 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_rr_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x19 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_rr_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x1a => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_rr_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x1b => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_rr_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x1c => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_rr_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x1d => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_rr_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x1e => self.instruction_rr_indirect(self.cpu.r.get_hl()),
+            0x1f => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_rr_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x20 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_sla_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x21 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_sla_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x22 => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_sla_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x23 => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_sla_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x24 => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_sla_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x25 => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_sla_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x26 => self.instruction_sla_indirect(self.cpu.r.get_hl()),
+            0x27 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sla_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x28 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_sra_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x29 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_sra_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x2a => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_sra_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x2b => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_sra_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x2c => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_sra_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x2d => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_sra_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x2e => self.instruction_sra_indirect(self.cpu.r.get_hl()),
+            0x2f => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_sra_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x30 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_swap_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x31 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_swap_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x32 => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_swap_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x33 => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_swap_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x34 => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_swap_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x35 => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_swap_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x36 => self.instruction_swap_indirect(self.cpu.r.get_hl()),
+            0x37 => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_swap_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x38 => {
+                let mut b = self.cpu.r.get_b();
+                self.instruction_srl_direct(&mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x39 => {
+                let mut c = self.cpu.r.get_c();
+                self.instruction_srl_direct(&mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x3a => {
+                let mut d = self.cpu.r.get_d();
+                self.instruction_srl_direct(&mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x3b => {
+                let mut e = self.cpu.r.get_e();
+                self.instruction_srl_direct(&mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x3c => {
+                let mut h = self.cpu.r.get_h();
+                self.instruction_srl_direct(&mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x3d => {
+                let mut l = self.cpu.r.get_l();
+                self.instruction_srl_direct(&mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x3e => self.instruction_srl_indirect(self.cpu.r.get_hl()),
+            0x3f => {
+                let mut a = self.cpu.r.get_a();
+                self.instruction_srl_direct(&mut a);
+                self.cpu.r.set_a(a);
+            }
+            _ => ret = false,
+        }
+        if ret {
+            return;
+        }
+        // opcodes 0x40-0xff [op(0x00 - 0x07) declared above]
+        let bit = U3::new(opcode.get_bits(3, 6));
+        match opcode.get_bits(6, 8) << 3 | opcode.get_bits(0, 3) {
+            0x08 => self.instruction_bit_index_direct(bit, self.cpu.r.get_b()),
+            0x09 => self.instruction_bit_index_direct(bit, self.cpu.r.get_c()),
+            0x0a => self.instruction_bit_index_direct(bit, self.cpu.r.get_d()),
+            0x0b => self.instruction_bit_index_direct(bit, self.cpu.r.get_e()),
+            0x0c => self.instruction_bit_index_direct(bit, self.cpu.r.get_h()),
+            0x0d => self.instruction_bit_index_direct(bit, self.cpu.r.get_l()),
+            0x0e => self.instruction_bit_index_indirect(bit, self.cpu.r.get_hl()),
+            0x0f => self.instruction_bit_index_direct(bit, self.cpu.r.get_a()),
+            0x10 => {
+                let mut b = self.cpu.r.get_b();
+                Bus::instruction_res_index_direct(bit, &mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x11 => {
+                let mut c = self.cpu.r.get_c();
+                Bus::instruction_res_index_direct(bit, &mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x12 => {
+                let mut d = self.cpu.r.get_d();
+                Bus::instruction_res_index_direct(bit, &mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x13 => {
+                let mut e = self.cpu.r.get_e();
+                Bus::instruction_res_index_direct(bit, &mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x14 => {
+                let mut h = self.cpu.r.get_h();
+                Bus::instruction_res_index_direct(bit, &mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x15 => {
+                let mut l = self.cpu.r.get_l();
+                Bus::instruction_res_index_direct(bit, &mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x16 => self.instruction_res_index_indirect(bit, self.cpu.r.get_hl()),
+            0x17 => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_res_index_direct(bit, &mut a);
+                self.cpu.r.set_a(a);
+            }
+            0x18 => {
+                let mut b = self.cpu.r.get_b();
+                Bus::instruction_set_index_direct(bit, &mut b);
+                self.cpu.r.set_b(b);
+            }
+            0x19 => {
+                let mut c = self.cpu.r.get_c();
+                Bus::instruction_set_index_direct(bit, &mut c);
+                self.cpu.r.set_c(c);
+            }
+            0x1a => {
+                let mut d = self.cpu.r.get_d();
+                Bus::instruction_set_index_direct(bit, &mut d);
+                self.cpu.r.set_d(d);
+            }
+            0x1b => {
+                let mut e = self.cpu.r.get_e();
+                Bus::instruction_set_index_direct(bit, &mut e);
+                self.cpu.r.set_e(e);
+            }
+            0x1c => {
+                let mut h = self.cpu.r.get_h();
+                Bus::instruction_set_index_direct(bit, &mut h);
+                self.cpu.r.set_h(h);
+            }
+            0x1d => {
+                let mut l = self.cpu.r.get_l();
+                Bus::instruction_set_index_direct(bit, &mut l);
+                self.cpu.r.set_l(l);
+            }
+            0x1e => self.instruction_set_index_indirect(bit, self.cpu.r.get_hl()),
+            0x1f => {
+                let mut a = self.cpu.r.get_a();
+                Bus::instruction_set_index_direct(bit, &mut a);
+                self.cpu.r.set_a(a);
+            }
             _ => {}
         }
     }
