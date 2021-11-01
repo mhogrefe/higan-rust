@@ -37,5 +37,8 @@ pub enum Node {
     Input(Input),
 }
 
+pub mod audio {
+    pub mod stream;
+}
 pub mod input;
 pub mod object;

@@ -5,6 +5,7 @@ use ares::gb::apu::square_1::Square1;
 use ares::gb::apu::square_2::Square2;
 use ares::gb::apu::wave::Wave;
 use ares::gb::system::{Model, System};
+use ares::node::audio::stream::Stream;
 use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{WrappingAdd, WrappingAddAssign};
 use malachite_base::num::basic::traits::{One, Zero};
@@ -14,6 +15,8 @@ use nall::random::{Pcg, Rng};
 /// See higan-rust/cpp/ares/gb/apu/apu.hpp
 #[derive(Clone, Debug, Default)]
 pub struct APU {
+    pub run_ahead: bool,
+    pub stream: Option<Stream>,
     pub model: Model,
     pub square_1: Square1,
     pub square_2: Square2,
@@ -26,7 +29,25 @@ pub struct APU {
 }
 
 impl APU {
-    //TODO test
+    pub fn stream_frame(&mut self, samples: &[f64]) -> bool {
+        if self.run_ahead {
+            return false;
+        }
+        self.stream.as_mut().unwrap().write(samples)
+    }
+
+    pub fn load(&mut self) {
+        self.stream.as_mut().unwrap().set_channels(2);
+        self.stream
+            .as_mut()
+            .unwrap()
+            .set_frequency(2.0 * 1024.0 * 1024.0);
+        self.stream
+            .as_mut()
+            .unwrap()
+            .add_high_pass_filter(20.0, 1, 1);
+    }
+
     /// See higan-rust/cpp/ares/gb/apu/apu.cpp
     pub fn main(&mut self) {
         self.square_1.run();
@@ -34,7 +55,12 @@ impl APU {
         self.wave.run();
         self.noise.run();
         self.run_sequencer();
-        //TODO stream->frame(sequencer.left / 32768.0, sequencer.right / 32768.0);
+        if self.stream_frame(&[
+            f64::from(self.sequencer.left) / 32768.0,
+            f64::from(self.sequencer.right) / 32768.0,
+        ]) {
+            //TODO output audio
+        }
 
         if self.cycle.x() == 0 {
             //512hz

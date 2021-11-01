@@ -28,5 +28,14 @@ pub mod ares {
     pub mod platform;
 }
 pub mod nall {
+    pub mod dsp {
+        pub mod iir {
+            pub mod biquad;
+            pub mod one_pole;
+        }
+        pub mod resampler {
+            pub mod cubic;
+        }
+    }
     pub mod random;
 }
