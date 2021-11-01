@@ -2,7 +2,7 @@ use ares::gb::system::{Model, System};
 use ares::platform::Platform;
 
 impl<P: Platform> System<P> {
-    pub fn poll(&mut self) {
+    pub fn controls_poll(&mut self) {
         if self.model == Model::SuperGameBoy {
             return;
         }

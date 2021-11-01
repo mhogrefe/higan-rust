@@ -1,7 +1,7 @@
 use ares::component::processor::sm83::sm83::Registers;
 use ares::emulator::types::{U2, U22, U3, U4, U5, U7};
 use ares::gb::system::Model;
-use malachite_base::num::logic::traits::NotAssign;
+use malachite_base::num::logic::traits::{BitAccess, NotAssign};
 
 /// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
 #[derive(Clone, Copy, Debug)]
@@ -11,6 +11,18 @@ pub enum Interrupt {
     Timer,
     Serial,
     Joypad,
+}
+
+impl Interrupt {
+    pub fn value(self) -> u32 {
+        match self {
+            Interrupt::VerticalBlank => 0,
+            Interrupt::Stat => 1,
+            Interrupt::Timer => 2,
+            Interrupt::Serial => 3,
+            Interrupt::Joypad => 4,
+        }
+    }
 }
 
 /// See higan-rust/cpp/ares/gb/cpu/cpu.hpp
@@ -102,6 +114,20 @@ impl CPU {
             false
         } else {
             true
+        }
+    }
+
+    pub fn raise(&mut self, interrupt_id: u32) {
+        self.status.interrupt_flag.set_bit(u64::from(interrupt_id));
+        if self
+            .status
+            .interrupt_enable
+            .get_bit(u64::from(interrupt_id))
+        {
+            self.r.halt = false;
+            if interrupt_id == Interrupt::Joypad.value() {
+                self.r.stop = false;
+            }
         }
     }
 }

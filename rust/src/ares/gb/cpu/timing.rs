@@ -1,8 +1,106 @@
-use ares::gb::system::System;
+use ares::emulator::types::U4;
+use ares::gb::cpu::Interrupt;
+use ares::gb::cpu::CPU;
+use ares::gb::system::{Model, System};
 use ares::platform::Platform;
+use malachite_base::num::arithmetic::traits::{
+    DivisibleByPowerOf2, WrappingAddAssign, WrappingSubAssign,
+};
+use malachite_base::num::basic::traits::One;
 
 impl<P: Platform> System<P> {
-    pub fn cpu_step(&mut self, _clocks: u32) {
-        unimplemented!();
+    // synchronized
+    pub fn cpu_step(&mut self, clocks: u32) {
+        for _ in 0..clocks {
+            self.cpu.status.div.wrapping_add_assign(1);
+            if self.cpu.status.div.divisible_by_power_of_2(4) {
+                self.cpu.timer_262144_hz();
+            }
+            if self.cpu.status.div.divisible_by_power_of_2(6) {
+                self.cpu.timer_65536_hz();
+            }
+            if self.cpu.status.div.divisible_by_power_of_2(8) {
+                self.cpu.timer_16384_hz();
+            }
+            if self.cpu.status.div.divisible_by_power_of_2(9) {
+                self.cpu.timer_8192_hz();
+            }
+            if self.cpu.status.div.divisible_by_power_of_2(10) {
+                self.cpu.timer_4096_hz();
+            }
+            if self.cpu.status.div.divisible_by_power_of_2(12) {
+                self.cpu_timer_1024_hz();
+            }
+            //TODO Thread::step(1);
+            // SYNC
+            return;
+        }
+        if self.model == Model::SuperGameBoy {
+            self.information.clocks_executed += clocks;
+        }
+    }
+}
+
+impl CPU {
+    pub fn timer_262144_hz(&mut self) {
+        if self.status.timer_enable && self.status.timer_clock.x() == 1 {
+            self.status.tima.wrapping_add_assign(1);
+            if self.status.tima == 0 {
+                self.status.tima = self.status.tma;
+                self.raise(Interrupt::Timer.value());
+            }
+        }
+    }
+
+    pub fn timer_65536_hz(&mut self) {
+        if self.status.timer_enable && self.status.timer_clock.x() == 2 {
+            self.status.tima.wrapping_add_assign(1);
+            if self.status.tima == 0 {
+                self.status.tima = self.status.tma;
+                self.raise(Interrupt::Timer.value());
+            }
+        }
+    }
+
+    pub fn timer_16384_hz(&mut self) {
+        if self.status.timer_enable && self.status.timer_clock.x() == 3 {
+            self.status.tima.wrapping_add_assign(1);
+            if self.status.tima == 0 {
+                self.status.tima = self.status.tma;
+                self.raise(Interrupt::Timer.value());
+            }
+        }
+    }
+
+    pub fn timer_8192_hz(&mut self) {
+        if self.status.serial_transfer && self.status.serial_clock {
+            self.status.serial_data <<= 1;
+            self.status.serial_data |= 1;
+            self.status.serial_bits.wrapping_sub_assign(U4::ONE);
+            if self.status.serial_bits.x() == 0 {
+                self.status.serial_transfer = false;
+                self.raise(Interrupt::Serial.value());
+            }
+        }
+    }
+
+    pub fn timer_4096_hz(&mut self) {
+        if self.status.timer_enable && self.status.timer_clock.x() == 0 {
+            self.status.tima.wrapping_add_assign(1);
+            if self.status.tima == 0 {
+                self.status.tima = self.status.tma;
+                self.raise(Interrupt::Timer.value());
+            }
+        }
+    }
+
+    pub fn hblank(&mut self) {
+        self.status.h_blank_pending = true;
+    }
+}
+
+impl<P: Platform> System<P> {
+    pub fn cpu_timer_1024_hz(&mut self) {
+        self.cpu_joyp_poll();
     }
 }

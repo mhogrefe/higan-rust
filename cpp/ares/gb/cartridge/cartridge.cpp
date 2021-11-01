@@ -1,4 +1,5 @@
 #include <gb/gb.hpp>
+#include <iostream>
 
 namespace ares::GameBoy {
 
@@ -18,6 +19,8 @@ auto Cartridge::connect() -> void {
   information = {};
   information.title = pak->attribute("title");
   information.board = pak->attribute("board");
+  std::cout << "title: " << information.title << std::endl;
+  std::cout << "board: " << information.board << std::endl;
 
   board.reset();
   if(information.board == "HuC1"  ) board = new Board::HuC1{*this};

@@ -16,6 +16,7 @@ auto Program::create() -> void {
   std::cout << "Testing..." << std::endl;
   test::TestAll();
   std::cout << "Testing complete!" << std::endl;
+  std::cout << "QQQ create" << std::endl;
 
   ares::platform = this;
 

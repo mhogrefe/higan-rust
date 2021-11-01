@@ -35,6 +35,23 @@ impl Default for Model {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct Information {
+    pub name: &'static str,
+    pub model: Model,
+    pub clocks_executed: u32,
+}
+
+impl Default for Information {
+    fn default() -> Information {
+        Information {
+            name: "Game Boy",
+            model: Model::GameBoy,
+            clocks_executed: 0,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct System<P: Platform> {
     pub platform: P,
@@ -43,6 +60,7 @@ pub struct System<P: Platform> {
     pub boot_rom: Vec<u8>,
     pub cpu: CPU,
     pub apu: APU,
+    pub information: Information,
 }
 
 pub mod controls;
