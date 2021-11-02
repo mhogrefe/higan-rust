@@ -48,51 +48,6 @@ impl APU {
             .add_high_pass_filter(20.0, 1, 1);
     }
 
-    /// See higan-rust/cpp/ares/gb/apu/apu.cpp
-    pub fn main(&mut self) {
-        self.square_1.run();
-        self.square_2.run();
-        self.wave.run();
-        self.noise.run();
-        self.run_sequencer();
-        if self.stream_frame(&[
-            f64::from(self.sequencer.left) / 32768.0,
-            f64::from(self.sequencer.right) / 32768.0,
-        ]) {
-            //TODO output audio
-        }
-
-        if self.cycle.x() == 0 {
-            //512hz
-            if self.phase.x() == 0
-                || self.phase.x() == 2
-                || self.phase.x() == 4
-                || self.phase.x() == 6
-            {
-                //256hz
-                self.square_1.clock_length();
-                self.square_2.clock_length();
-                self.wave.clock_length();
-                self.noise.clock_length();
-            }
-            if self.phase.x() == 2 || self.phase.x() == 6 {
-                //128hz
-                self.square_1.clock_sweep();
-            }
-            if self.phase.x() == 7 {
-                //64hz
-                self.square_1.clock_envelope();
-                self.square_2.clock_envelope();
-                self.noise.clock_envelope();
-            }
-            self.phase.wrapping_add_assign(U3::ONE);
-        }
-        self.cycle.wrapping_add_assign(U12::ONE);
-
-        //TODO Thread::step(1);
-        //TODO synchronize(cpu);
-    }
-
     /// See higan-rust/cpp/ares/gb/apu/sequencer.cpp
     pub fn run_sequencer(&mut self) {
         if !self.sequencer.enable {
@@ -152,8 +107,8 @@ impl APU {
 
 impl<P: Platform> System<P> {
     //TODO test
-    pub fn power_apu(&mut self) {
-        //TODO Thread::create(2 * 1024 * 1024, {&APU::main, this});
+    pub fn apu_power(&mut self) {
+        self.apu_thread.frequency = 2 * 1024 * 1024;
 
         self.apu.square_1.power(false);
         self.apu.square_2.power(false);
@@ -166,6 +121,53 @@ impl<P: Platform> System<P> {
         let mut prng = Pcg::new();
         for n in self.apu.wave.pattern.iter_mut() {
             *n = prng.random() as u8;
+        }
+    }
+
+    /// See higan-rust/cpp/ares/gb/apu/apu.cpp
+    pub fn apu_main(&mut self) {
+        self.apu_return_to_sync = false;
+        self.apu.square_1.run();
+        self.apu.square_2.run();
+        self.apu.wave.run();
+        self.apu.noise.run();
+        self.apu.run_sequencer();
+        if self.apu.stream_frame(&[
+            f64::from(self.apu.sequencer.left) / 32768.0,
+            f64::from(self.apu.sequencer.right) / 32768.0,
+        ]) {
+            //TODO output audio
+        }
+
+        if self.apu.cycle.x() == 0 {
+            //512hz
+            if self.apu.phase.x() == 0
+                || self.apu.phase.x() == 2
+                || self.apu.phase.x() == 4
+                || self.apu.phase.x() == 6
+            {
+                //256hz
+                self.apu.square_1.clock_length();
+                self.apu.square_2.clock_length();
+                self.apu.wave.clock_length();
+                self.apu.noise.clock_length();
+            }
+            if self.apu.phase.x() == 2 || self.apu.phase.x() == 6 {
+                //128hz
+                self.apu.square_1.clock_sweep();
+            }
+            if self.apu.phase.x() == 7 {
+                //64hz
+                self.apu.square_1.clock_envelope();
+                self.apu.square_2.clock_envelope();
+                self.apu.noise.clock_envelope();
+            }
+            self.apu.phase.wrapping_add_assign(U3::ONE);
+        }
+        self.apu.cycle.wrapping_add_assign(U12::ONE);
+        self.apu_thread.step(1);
+        if self.apu_is_sync_needed() {
+            self.apu_return_to_sync = true;
         }
     }
 }

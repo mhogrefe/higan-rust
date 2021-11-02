@@ -1,3 +1,5 @@
+use ares::ares::scheduler::scheduler::Scheduler;
+use ares::ares::scheduler::thread::Thread;
 use ares::gb::apu::APU;
 use ares::gb::cpu::CPU;
 use ares::node::InputNode;
@@ -53,6 +55,24 @@ impl Default for Information {
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct SmallStack<T: Copy + Default> {
+    i: usize,
+    xs: [T; 10],
+}
+
+impl<T: Copy + Default> SmallStack<T> {
+    pub fn push(&mut self, x: T) {
+        self.xs[self.i] = x;
+        self.i += 1;
+    }
+
+    pub fn pop(&mut self) -> T {
+        self.i -= 1;
+        self.xs[self.i]
+    }
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct System<P: Platform> {
     pub platform: P,
     pub model: Model,
@@ -62,19 +82,18 @@ pub struct System<P: Platform> {
     pub apu: APU,
     pub information: Information,
 
+    pub scheduler: Scheduler,
+    pub cpu_thread: Thread,
+    pub apu_thread: Thread,
+
     pub cpu_return_to_sync: bool,
     pub cpu_resuming_after_sync: bool,
-    pub cpu_sync_points: Vec<usize>,
-    pub cpu_local_u8s: Vec<u8>,
-    pub cpu_local_u32s: Vec<u32>,
+    pub cpu_sync_points: SmallStack<usize>,
+    pub cpu_local_u8s: SmallStack<u8>,
+    pub cpu_local_u16s: SmallStack<u16>,
+    pub cpu_local_u32s: SmallStack<u32>,
 
-    pub cpu_main_sync_point: usize,
-    pub cpu_main_sp: u16,
-    pub cpu_main_pc: u8,
-    pub cpu_main_mask: u8,
-
-    pub cpu_instruction_add_direct_relative_sync_point: usize,
-    pub cpu_instruction_add_direct_relative_fresh_data: u8,
+    pub apu_return_to_sync: bool,
 
     pub cpu_instruction_call_condition_address_sync_point: usize,
     pub cpu_instruction_call_condition_address_address: u16,

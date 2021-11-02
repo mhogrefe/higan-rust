@@ -5,6 +5,7 @@ extern crate rand;
 pub mod ares {
     pub mod ares {
         pub mod scheduler {
+            pub mod scheduler;
             pub mod thread;
         }
     }

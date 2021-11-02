@@ -5,7 +5,8 @@ use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{ModPowerOf2, WrappingAdd};
 use malachite_base::num::basic::traits::Iverson;
 use malachite_base::num::basic::traits::Zero;
-use malachite_base::num::logic::traits::BitAccess;
+use malachite_base::num::conversion::traits::WrappingFrom;
+use malachite_base::num::logic::traits::{BitAccess, BitBlockAccess};
 
 // See higan-rust/cpp/ares/gb/cpu/io.cpp
 impl CPU {
@@ -52,6 +53,103 @@ impl<P: Platform> System<P> {
 
         if self.cpu.status.joyp.x() != 0xf {
             self.cpu.raise(Interrupt::Joypad.value());
+        }
+    }
+
+    pub fn cpu_read_io(&mut self, cycle: u32, address: u16, mut data: u8) -> u8 {
+        if address <= 0xbfff {
+            data
+        } else if address >= 0xc000 && address <= 0xfdff && cycle == 2 {
+            self.cpu.wram[self.cpu.wram_address(U13::wrapping_from(address)) as usize]
+        } else if address >= 0xff80 && address <= 0xfffe && cycle == 2 {
+            self.cpu.hram[address.mod_power_of_2(7) as usize]
+        } else if address == 0xff00 && cycle == 2 {
+            //JOYP
+            self.cpu_joyp_poll();
+            data.assign_bit(0, self.cpu.status.joyp.get_bit(0));
+            data.assign_bit(1, self.cpu.status.joyp.get_bit(1));
+            data.assign_bit(2, self.cpu.status.joyp.get_bit(2));
+            data.assign_bit(3, self.cpu.status.joyp.get_bit(3));
+            data.assign_bit(4, self.cpu.status.p14);
+            data.assign_bit(5, self.cpu.status.p15);
+            data
+        } else if address == 0xff01 && cycle == 2 {
+            //SB
+            return self.cpu.status.serial_data;
+        } else if address == 0xff02 && cycle == 2 {
+            //SC
+            data.assign_bit(0, self.cpu.status.serial_clock);
+            data.assign_bit(
+                1,
+                self.cpu.status.serial_speed || self.model != Model::GameBoyColor,
+            );
+            data.assign_bit(7, self.cpu.status.serial_transfer);
+            data
+        } else if address == 0xff04 && cycle == 2 {
+            //DIV
+            u8::wrapping_from(self.cpu.status.div.get_bits(8, 16))
+        } else if address == 0xff05 && cycle == 2 {
+            //TIMA
+            self.cpu.status.tima
+        } else if address == 0xff06 && cycle == 2 {
+            //TMA
+            self.cpu.status.tma
+        } else if address == 0xff07 && cycle == 2 {
+            //TAC
+            data.assign_bit(0, self.cpu.status.timer_clock.get_bit(0));
+            data.assign_bit(1, self.cpu.status.timer_clock.get_bit(1));
+            data.assign_bit(2, self.cpu.status.timer_enable);
+            data
+        } else if address == 0xff0f && cycle == 2 {
+            //IF
+            data.assign_bit(0, self.cpu.status.interrupt_flag.get_bit(0));
+            data.assign_bit(1, self.cpu.status.interrupt_flag.get_bit(1));
+            data.assign_bit(2, self.cpu.status.interrupt_flag.get_bit(2));
+            data.assign_bit(3, self.cpu.status.interrupt_flag.get_bit(3));
+            data.assign_bit(4, self.cpu.status.interrupt_flag.get_bit(4));
+            data
+        } else if self.model == Model::GameBoyColor && address == 0xff4d && cycle == 2 {
+            //KEY1
+            data.assign_bit(0, self.cpu.status.speed_switch);
+            data.assign_bit(7, self.cpu.status.speed_double);
+            data
+        } else if self.model == Model::GameBoyColor && address == 0xff55 && cycle == 2 {
+            //HDMA5
+            data.assign_bits(0, 7, &self.cpu.status.dma_length.x());
+            data.assign_bit(7, !self.cpu.status.hdma_active);
+            data
+        } else if self.model == Model::GameBoyColor && address == 0xff56 && cycle == 2 {
+            //RP
+            //unemulated
+            0x02
+        } else if self.model == Model::GameBoyColor && address == 0xff6c && cycle == 2 {
+            //???
+            data.assign_bit(0, self.cpu.status.ff6c);
+            data
+        } else if self.model == Model::GameBoyColor && address == 0xff70 && cycle == 2 {
+            //???
+            self.cpu.status.wram_bank.x()
+        } else if self.model == Model::GameBoyColor && address == 0xff72 && cycle == 2 {
+            //???
+            self.cpu.status.ff72
+        } else if self.model == Model::GameBoyColor && address == 0xff73 && cycle == 2 {
+            //???
+            self.cpu.status.ff73
+        } else if self.model == Model::GameBoyColor && address == 0xff74 && cycle == 2 {
+            //???
+            self.cpu.status.ff74
+        } else if self.model == Model::GameBoyColor && address == 0xff76 && cycle == 2 {
+            //???
+            data.assign_bits(4, 7, &self.cpu.status.ff75.x());
+            data
+        } else if self.model == Model::GameBoyColor && address == 0xff77 && cycle == 2 {
+            //???
+            0xff
+        } else if self.model == Model::GameBoyColor && address == 0xffff && cycle == 2 {
+            //IE
+            self.cpu.status.interrupt_enable
+        } else {
+            data
         }
     }
 }

@@ -100,6 +100,8 @@ pub struct CPU {
     pub model: Model,
     pub r: Registers,
     pub status: Status,
+    wram: Vec<u8>,
+    hram: Vec<u8>,
 }
 
 // See higan-rust/cpp/ares/gb/cpu/cpu.cpp
@@ -142,8 +144,14 @@ impl CPU {
 }
 
 impl<P: Platform> System<P> {
+    // synchronized
     pub fn s_cpu_main(&mut self) {
-        match self.cpu_main_sync_point {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
             0 => self.s_cpu_main_fresh(),
             1 => self.s_cpu_main_resume_at_1(),
             2 => self.s_cpu_main_resume_at_2(),
@@ -160,60 +168,64 @@ impl<P: Platform> System<P> {
             self.cpu.status.h_blank_pending = false;
             self.cpu_h_blank_trigger();
         }
-        //are interrupts enabled?
+        // are interrupts enabled?
         if self.cpu.r.ime {
-            //are any interrupts pending?
+            // are any interrupts pending?
             if self.cpu.status.interrupt_latch != 0 {
                 //TODO debugger.interrupt("IRQ");
                 // ** S1
                 self.s_cpu_idle();
                 if self.cpu_return_to_sync {
-                    self.cpu_main_sync_point = 1;
+                    self.cpu_sync_points.push(1);
                     return;
                 }
 
                 // ** S2
                 self.s_cpu_idle();
                 if self.cpu_return_to_sync {
-                    self.cpu_main_sync_point = 2;
+                    self.cpu_sync_points.push(2);
                     return;
                 }
 
                 // ** S3
                 self.s_cpu_idle();
                 if self.cpu_return_to_sync {
-                    self.cpu_main_sync_point = 3;
+                    self.cpu_sync_points.push(3);
                     return;
                 }
 
                 self.cpu.r.ime = false;
                 // upper byte may write to IE before it is polled again
-                self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-                self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
+                let sp = self.cpu.r.pre_decrement_sp();
+                let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
                 // ** S4
-                self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+                self.s_cpu_write(sp, pc);
                 if self.cpu_return_to_sync {
-                    self.cpu_main_sync_point = 4;
+                    self.cpu_sync_points.push(4);
+                    self.cpu_local_u16s.push(sp);
+                    self.cpu_local_u8s.push(pc);
                     return;
                 }
 
-                self.cpu_main_mask =
-                    self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+                let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
                 // lower byte write to IE has no effect
-                self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-                self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
+                let sp = self.cpu.r.pre_decrement_sp();
+                let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
                 // ** S5
-                self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+                self.s_cpu_write(sp, pc);
                 if self.cpu_return_to_sync {
-                    self.cpu_main_sync_point = 5;
+                    self.cpu_sync_points.push(5);
+                    self.cpu_local_u16s.push(sp);
+                    self.cpu_local_u8s.push(pc);
+                    self.cpu_local_u8s.push(mask);
                     return;
                 }
 
-                if self.cpu_main_mask != 0 {
+                if mask != 0 {
                     // find highest priority interrupt
-                    let interrupt_id = self.cpu_main_mask.index_of_next_true_bit(0).unwrap();
+                    let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
                     self.cpu.lower(u32::wrapping_from(interrupt_id));
                     self.cpu
                         .r
@@ -230,11 +242,10 @@ impl<P: Platform> System<P> {
         // ** S6
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }
@@ -244,51 +255,56 @@ impl<P: Platform> System<P> {
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 1;
+            self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 2;
+            self.cpu_sync_points.push(2);
             return;
         }
 
         // ** S3
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 3;
+            self.cpu_sync_points.push(3);
             return;
         }
 
         self.cpu.r.ime = false;
         // upper byte may write to IE before it is polled again
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
         // ** S4
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 4;
+            self.cpu_sync_points.push(4);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
             return;
         }
 
-        self.cpu_main_mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // lower byte write to IE has no effect
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 5;
+            self.cpu_sync_points.push(5);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            self.cpu_local_u8s.push(mask);
             return;
         }
 
-        if self.cpu_main_mask != 0 {
+        if mask != 0 {
             // find highest priority interrupt
-            let interrupt_id = self.cpu_main_mask.index_of_next_true_bit(0).unwrap();
+            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
             self.cpu.lower(u32::wrapping_from(interrupt_id));
             self.cpu
                 .r
@@ -303,11 +319,10 @@ impl<P: Platform> System<P> {
         // ** S6
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }
@@ -317,44 +332,49 @@ impl<P: Platform> System<P> {
         // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 2;
+            self.cpu_sync_points.push(2);
             return;
         }
 
         // ** S3
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 3;
+            self.cpu_sync_points.push(3);
             return;
         }
 
         self.cpu.r.ime = false;
         // upper byte may write to IE before it is polled again
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
         // ** S4
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 4;
+            self.cpu_sync_points.push(4);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
             return;
         }
 
-        self.cpu_main_mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // lower byte write to IE has no effect
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 5;
+            self.cpu_sync_points.push(5);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            self.cpu_local_u8s.push(mask);
             return;
         }
 
-        if self.cpu_main_mask != 0 {
+        if mask != 0 {
             // find highest priority interrupt
-            let interrupt_id = self.cpu_main_mask.index_of_next_true_bit(0).unwrap();
+            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
             self.cpu.lower(u32::wrapping_from(interrupt_id));
             self.cpu
                 .r
@@ -369,11 +389,10 @@ impl<P: Platform> System<P> {
         // ** S6
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }
@@ -383,37 +402,42 @@ impl<P: Platform> System<P> {
         // ** S3
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 3;
+            self.cpu_sync_points.push(3);
             return;
         }
 
         self.cpu.r.ime = false;
         // upper byte may write to IE before it is polled again
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
         // ** S4
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 4;
+            self.cpu_sync_points.push(4);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
             return;
         }
 
-        self.cpu_main_mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // lower byte write to IE has no effect
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 5;
+            self.cpu_sync_points.push(5);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            self.cpu_local_u8s.push(mask);
             return;
         }
 
-        if self.cpu_main_mask != 0 {
+        if mask != 0 {
             // find highest priority interrupt
-            let interrupt_id = self.cpu_main_mask.index_of_next_true_bit(0).unwrap();
+            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
             self.cpu.lower(u32::wrapping_from(interrupt_id));
             self.cpu
                 .r
@@ -428,11 +452,10 @@ impl<P: Platform> System<P> {
         // ** S6
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }
@@ -440,27 +463,34 @@ impl<P: Platform> System<P> {
 
     fn s_cpu_main_resume_at_4(&mut self) {
         // ** S4
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        let sp = self.cpu_local_u16s.pop();
+        let pc = self.cpu_local_u8s.pop();
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 4;
+            self.cpu_sync_points.push(4);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
             return;
         }
 
-        self.cpu_main_mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // lower byte write to IE has no effect
-        self.cpu_main_sp = self.cpu.r.pre_decrement_sp();
-        self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 5;
+            self.cpu_sync_points.push(5);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            self.cpu_local_u8s.push(mask);
             return;
         }
 
-        if self.cpu_main_mask != 0 {
+        if mask != 0 {
             // find highest priority interrupt
-            let interrupt_id = self.cpu_main_mask.index_of_next_true_bit(0).unwrap();
+            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
             self.cpu.lower(u32::wrapping_from(interrupt_id));
             self.cpu
                 .r
@@ -475,11 +505,10 @@ impl<P: Platform> System<P> {
         // ** S6
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }
@@ -487,15 +516,21 @@ impl<P: Platform> System<P> {
 
     fn s_cpu_main_resume_at_5(&mut self) {
         // ** S5
-        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        let sp = self.cpu_local_u16s.pop();
+        let mask = self.cpu_local_u8s.pop();
+        let pc = self.cpu_local_u8s.pop();
+        self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 5;
+            self.cpu_sync_points.push(5);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            self.cpu_local_u8s.push(mask);
             return;
         }
 
-        if self.cpu_main_mask != 0 {
+        if mask != 0 {
             // find highest priority interrupt
-            let interrupt_id = self.cpu_main_mask.index_of_next_true_bit(0).unwrap();
+            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
             self.cpu.lower(u32::wrapping_from(interrupt_id));
             self.cpu
                 .r
@@ -507,14 +542,12 @@ impl<P: Platform> System<P> {
         }
         //TODO debugger.instruction();
         // ** S6
-
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }
@@ -524,11 +557,10 @@ impl<P: Platform> System<P> {
         // ** S6
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_main_sync_point = 6;
+            self.cpu_sync_points.push(6);
             return;
         }
 
-        self.cpu_main_sync_point = 0;
         if self.model == Model::SuperGameBoy {
             //TODO scheduler.exit(Event::Step);
         }

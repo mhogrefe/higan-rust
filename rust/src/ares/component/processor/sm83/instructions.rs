@@ -50,11 +50,14 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.add(*target, s, false);
     }
 
-    //TODO fix sync!
-
     // synchronized
     pub fn s_instruction_add_direct_relative(&mut self, target: &mut u16) {
-        match self.cpu_instruction_add_direct_relative_sync_point {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
             0 => self.s_instruction_add_direct_relative_fresh(target),
             1 => self.s_instruction_add_direct_relative_fresh_resume_at_1(target),
             2 => self.s_instruction_add_direct_relative_fresh_resume_at_2(target),
@@ -63,23 +66,24 @@ impl<P: Platform> System<P> {
     }
 
     fn s_instruction_add_direct_relative_fresh(&mut self, target: &mut u16) {
-        self.cpu_instruction_add_direct_relative_fresh_data = self.s_cpu_operand();
+        let data = self.s_cpu_operand();
 
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_add_direct_relative_sync_point = 1;
+            self.cpu_sync_points.push(1);
+            self.cpu_local_u8s.push(data);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_add_direct_relative_sync_point = 2;
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(data);
             return;
         }
 
-        let data = self.cpu_instruction_add_direct_relative_fresh_data;
         self.cpu
             .r
             .set_cf(target.mod_power_of_2(8) + u16::from(data) > 0xff);
@@ -95,25 +99,24 @@ impl<P: Platform> System<P> {
         } else {
             target.wrapping_sub_assign(abs_data);
         }
-        self.cpu_instruction_add_direct_relative_sync_point = 0;
     }
 
     fn s_instruction_add_direct_relative_fresh_resume_at_1(&mut self, target: &mut u16) {
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_add_direct_relative_sync_point = 1;
+            self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_add_direct_relative_sync_point = 2;
+            self.cpu_sync_points.push(2);
             return;
         }
 
-        let data = self.cpu_instruction_add_direct_relative_fresh_data;
+        let data = self.cpu_local_u8s.pop();
         self.cpu
             .r
             .set_cf(target.mod_power_of_2(8) + u16::from(data) > 0xff);
@@ -129,18 +132,17 @@ impl<P: Platform> System<P> {
         } else {
             target.wrapping_sub_assign(abs_data);
         }
-        self.cpu_instruction_add_direct_relative_sync_point = 0;
     }
 
     fn s_instruction_add_direct_relative_fresh_resume_at_2(&mut self, target: &mut u16) {
         // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_add_direct_relative_sync_point = 2;
+            self.cpu_sync_points.push(2);
             return;
         }
 
-        let data = self.cpu_instruction_add_direct_relative_fresh_data;
+        let data = self.cpu_local_u8s.pop();
         self.cpu
             .r
             .set_cf(target.mod_power_of_2(8) + u16::from(data) > 0xff);
@@ -156,7 +158,6 @@ impl<P: Platform> System<P> {
         } else {
             target.wrapping_sub_assign(abs_data);
         }
-        self.cpu_instruction_add_direct_relative_sync_point = 0;
     }
 
     pub fn s_instruction_and_direct_data(&mut self, target: &mut u8) {
@@ -181,6 +182,8 @@ impl<P: Platform> System<P> {
         let data = self.s_cpu_read(address);
         self.cpu.r.bit(index, data);
     }
+
+    //TODO fix sync!
 
     // synchronized
     pub fn s_instruction_call_condition_address(&mut self, take: bool) {

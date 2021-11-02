@@ -40,7 +40,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_idle(&mut self) {
         let sync_point = if self.cpu_resuming_after_sync {
-            self.cpu_sync_points.pop().unwrap()
+            self.cpu_sync_points.pop()
         } else {
             0
         };
@@ -175,7 +175,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_read(&mut self, address: u16) -> u8 {
         let sync_point = if self.cpu_resuming_after_sync {
-            self.cpu_sync_points.pop().unwrap()
+            self.cpu_sync_points.pop()
         } else {
             0
         };
@@ -249,7 +249,7 @@ impl<P: Platform> System<P> {
             return 0;
         }
 
-        let mut data = self.cpu_local_u8s.pop().unwrap();
+        let mut data = self.cpu_local_u8s.pop();
         data &= self.bus_read_with_cycle(1, address, data);
 
         // ** S2
@@ -294,7 +294,7 @@ impl<P: Platform> System<P> {
             return 0;
         }
 
-        let mut data = self.cpu_local_u8s.pop().unwrap();
+        let mut data = self.cpu_local_u8s.pop();
         data &= self.bus_read_with_cycle(2, address, data);
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
@@ -329,7 +329,7 @@ impl<P: Platform> System<P> {
             return 0;
         }
 
-        let mut data = self.cpu_local_u8s.pop().unwrap();
+        let mut data = self.cpu_local_u8s.pop();
         data &= self.bus_read_with_cycle(3, address, data);
 
         // ** S4
@@ -351,7 +351,7 @@ impl<P: Platform> System<P> {
             return 0;
         }
 
-        let mut data = self.cpu_local_u8s.pop().unwrap();
+        let mut data = self.cpu_local_u8s.pop();
         data &= self.bus_read_with_cycle(4, address, data);
         data
     }
@@ -359,7 +359,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_write(&mut self, address: u16, data: u8) {
         let sync_point = if self.cpu_resuming_after_sync {
-            self.cpu_sync_points.pop().unwrap()
+            self.cpu_sync_points.pop()
         } else {
             0
         };

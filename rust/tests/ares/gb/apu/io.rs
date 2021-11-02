@@ -199,7 +199,7 @@ fn write_helper_with_cycle(apu: &mut APU, cycle: u32, address: u16, data: u8) {
 fn test_write_io() {
     // Noise
     let mut system = System::<NullPlatform>::default();
-    system.power_apu();
+    system.apu_power();
     system.apu.sequencer.enable = true;
 
     system.apu.noise.power(true);
@@ -281,7 +281,7 @@ fn test_write_io() {
 
     // same as previous, but length is initially 0 and becomes 63 because of
     // apu.phase
-    system.power_apu();
+    system.apu_power();
     system.apu.sequencer.enable = true;
     system.apu.noise.power(true);
     system.apu.phase = U3::ONE;
@@ -297,7 +297,7 @@ fn test_write_io() {
     assert_eq!(system.apu.noise.volume, U4::wrapping_from(5));
     assert_eq!(system.apu.noise.length, 63);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // data.bit(6) is true, data.bit(7) is false, enable stays true
     system.apu.noise.power(true);
@@ -310,7 +310,7 @@ fn test_write_io() {
     assert_eq!(system.apu.noise.length, 1);
 
     // same as previous, but apu.phase = 1
-    system.power_apu();
+    system.apu_power();
     system.apu.noise.power(true);
     system.apu.sequencer.enable = true;
     system.apu.phase = U3::ONE;
@@ -322,7 +322,7 @@ fn test_write_io() {
     assert!(system.apu.noise.counter);
     assert_eq!(system.apu.noise.length, 0);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // Sequencer
     system.apu.sequencer.power();
@@ -363,13 +363,13 @@ fn test_write_io() {
     system.apu.square_1.power(true);
 
     // enable is false and data.bit(7) is true, so system.apu phase is set to 0
-    system.power_apu();
+    system.apu_power();
     system.apu.sequencer.power();
     system.apu.phase = U3::wrapping_from(5);
     write_helper_with_cycle(&mut system.apu, 4, 0xff26, 0b10000000);
     assert_eq!(system.apu.phase, U3::ZERO);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // enable is true, data.bit(7) is false, and model is not GBC, so system.apu
     // components are powered without initializing length
@@ -532,7 +532,7 @@ fn test_write_io() {
     assert_eq!(system.apu.square_1.sweep_period, U3::ZERO);
     assert!(!system.apu.square_1.sweep_enable);
 
-    system.power_apu();
+    system.apu_power();
     system.apu.square_1.power(true);
     system.apu.phase = U3::ONE;
     system.apu.square_1.enable = true;
@@ -556,7 +556,7 @@ fn test_write_io() {
     assert_eq!(system.apu.square_1.sweep_period, U3::ZERO);
     assert!(!system.apu.square_1.sweep_enable);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // data.bit(6) is true, data.bit(7) is false, enable stays true
     system.apu.square_1.power(true);
@@ -572,7 +572,7 @@ fn test_write_io() {
     );
     assert_eq!(system.apu.square_1.length, 1);
 
-    system.power_apu();
+    system.apu_power();
     system.apu.square_1.power(true);
     system.apu.phase = U3::ONE;
     system.apu.square_1.length = 1;
@@ -588,7 +588,7 @@ fn test_write_io() {
     );
     assert_eq!(system.apu.square_1.length, 0);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // Square 2
     system.apu.square_2.power(true);
@@ -688,7 +688,7 @@ fn test_write_io() {
     assert_eq!(system.apu.square_2.volume, U4::wrapping_from(5));
     assert_eq!(system.apu.square_2.length, 64);
 
-    system.power_apu();
+    system.apu_power();
     system.apu.square_2.power(true);
     system.apu.phase = U3::ONE;
     system.apu.square_2.enable = true;
@@ -708,7 +708,7 @@ fn test_write_io() {
     assert_eq!(system.apu.square_2.volume, U4::wrapping_from(5));
     assert_eq!(system.apu.square_2.length, 63);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // data.bit(6) is true, data.bit(7) is false, enable stays true
     system.apu.square_2.power(true);
@@ -725,7 +725,7 @@ fn test_write_io() {
     assert_eq!(system.apu.square_2.length, 1);
 
     // same as previous, but apu.phase = 1, so enable becomes false
-    system.power_apu();
+    system.apu_power();
     system.apu.square_2.power(true);
     system.apu.phase = U3::ONE;
     system.apu.square_2.length = 1;
@@ -741,7 +741,7 @@ fn test_write_io() {
     );
     assert_eq!(system.apu.square_2.length, 0);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // Wave
     power_and_zero_pattern_wave(&mut system.apu.wave);
@@ -781,7 +781,7 @@ fn test_write_io() {
     assert_eq!(system.apu.wave.frequency, U11::wrapping_from(0b10100000000));
 
     // apu.phase.bit(0) is true so enable becomes false
-    system.power_apu();
+    system.apu_power();
     power_and_zero_pattern_wave(&mut system.apu.wave);
     system.apu.phase = U3::ONE;
     power_and_zero_pattern_wave(&mut system.apu.wave);
@@ -792,7 +792,7 @@ fn test_write_io() {
     assert!(!system.apu.wave.enable);
     assert_eq!(system.apu.wave.length, 0);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     // pattern[0] corrupted
     system.apu.phase = U3::ONE;
@@ -877,7 +877,7 @@ fn test_write_io() {
     write_helper_with_cycle(&mut system.apu, 4, 0xff1e, 0b11000000);
     assert_eq!(system.apu.wave.length, 100);
 
-    system.power_apu();
+    system.apu_power();
     system.apu.sequencer.enable = true;
     power_and_zero_pattern_wave(&mut system.apu.wave);
     system.apu.phase = U3::ONE;
@@ -885,7 +885,7 @@ fn test_write_io() {
     write_helper_with_cycle(&mut system.apu, 4, 0xff1e, 0b11000000);
     assert_eq!(system.apu.wave.length, 99);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 
     system.apu.sequencer.enable = true;
     system.apu.model = Model::GameBoy;
@@ -900,7 +900,7 @@ fn test_write_io() {
     write_helper(&mut system.apu, 0xff3a, 123);
     assert_eq!(system.apu.wave.pattern[2], 123);
 
-    system.power_apu();
+    system.apu_power();
     system.apu.sequencer.enable = true;
     power_and_zero_pattern_wave(&mut system.apu.wave);
     system.apu.phase = U3::ONE;
@@ -909,5 +909,5 @@ fn test_write_io() {
     write_helper(&mut system.apu, 0xff3a, 123);
     assert_eq!(system.apu.wave.pattern[2], 0);
     // clear phase
-    system.power_apu();
+    system.apu_power();
 }

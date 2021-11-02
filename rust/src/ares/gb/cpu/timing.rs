@@ -13,7 +13,7 @@ impl<P: Platform> System<P> {
     pub fn s_cpu_step(&mut self, clocks: u32) {
         let start = if self.cpu_resuming_after_sync {
             self.cpu_resuming_after_sync = false;
-            self.cpu_local_u32s.pop().unwrap()
+            self.cpu_local_u32s.pop()
         } else {
             0
         };
@@ -37,7 +37,7 @@ impl<P: Platform> System<P> {
             if self.cpu.status.div.divisible_by_power_of_2(12) {
                 self.cpu_timer_1024_hz();
             }
-            //TODO Thread::step(1);
+            self.cpu_thread.step(1);
             if self.cpu_is_sync_needed() {
                 self.cpu_return_to_sync = true;
                 self.cpu_local_u32s.push(i + 1);
