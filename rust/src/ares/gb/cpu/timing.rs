@@ -9,8 +9,15 @@ use malachite_base::num::arithmetic::traits::{
 use malachite_base::num::basic::traits::One;
 
 impl<P: Platform> System<P> {
-    pub fn cpu_step(&mut self, clocks: u32) {
-        for _ in self.cpu_step_clocks..clocks {
+    // synchronized
+    pub fn s_cpu_step(&mut self, clocks: u32) {
+        let start = if self.cpu_resuming_after_sync {
+            self.cpu_resuming_after_sync = false;
+            self.cpu_local_u32s.pop().unwrap()
+        } else {
+            0
+        };
+        for i in start..clocks {
             self.cpu.status.div.wrapping_add_assign(1);
             if self.cpu.status.div.divisible_by_power_of_2(4) {
                 self.cpu.timer_262144_hz();
@@ -31,13 +38,12 @@ impl<P: Platform> System<P> {
                 self.cpu_timer_1024_hz();
             }
             //TODO Thread::step(1);
-            self.cpu_step_clocks += 1;
             if self.cpu_is_sync_needed() {
                 self.cpu_return_to_sync = true;
+                self.cpu_local_u32s.push(i + 1);
                 return;
             }
         }
-        self.cpu_step_clocks = 0;
         if self.model == Model::SuperGameBoy {
             self.information.clocks_executed += clocks;
         }

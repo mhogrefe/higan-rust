@@ -4,18 +4,18 @@ use ares::platform::Platform;
 use malachite_base::num::logic::traits::BitBlockAccess;
 
 impl<P: Platform> System<P> {
-    pub fn instruction(&mut self) {
-        match self.cpu_operand() {
+    pub fn s_instruction(&mut self) {
+        match self.s_cpu_operand() {
             0x00 => System::<P>::instruction_nop(),
             0x01 => {
                 let mut bc = self.cpu.r.get_bc();
-                self.instruction_ld_direct_data_16(&mut bc);
+                self.s_instruction_ld_direct_data_16(&mut bc);
                 self.cpu.r.set_bc(bc);
             }
-            0x02 => self.instruction_ld_indirect_direct(self.cpu.r.get_bc(), self.cpu.r.get_a()),
+            0x02 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_bc(), self.cpu.r.get_a()),
             0x03 => {
                 let mut bc = self.cpu.r.get_bc();
-                self.instruction_inc_direct_16(&mut bc);
+                self.s_instruction_inc_direct_16(&mut bc);
                 self.cpu.r.set_bc(bc);
             }
             0x04 => {
@@ -30,24 +30,24 @@ impl<P: Platform> System<P> {
             }
             0x06 => {
                 let mut b = self.cpu.r.get_b();
-                self.instruction_ld_direct_data_8(&mut b);
+                self.s_instruction_ld_direct_data_8(&mut b);
                 self.cpu.r.set_b(b);
             }
             0x07 => self.instruction_rlca(),
-            0x08 => self.instruction_ld_address_direct_16(self.cpu.r.get_sp()),
+            0x08 => self.s_instruction_ld_address_direct_16(self.cpu.r.get_sp()),
             0x09 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_bc());
+                self.s_instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_bc());
                 self.cpu.r.set_hl(hl);
             }
             0x0a => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ld_direct_indirect(&mut a, self.cpu.r.get_bc());
+                self.s_instruction_ld_direct_indirect(&mut a, self.cpu.r.get_bc());
                 self.cpu.r.set_a(a);
             }
             0x0b => {
                 let mut bc = self.cpu.r.get_bc();
-                self.instruction_dec_direct_16(&mut bc);
+                self.s_instruction_dec_direct_16(&mut bc);
                 self.cpu.r.set_bc(bc);
             }
             0x0c => {
@@ -62,20 +62,20 @@ impl<P: Platform> System<P> {
             }
             0x0e => {
                 let mut c = self.cpu.r.get_c();
-                self.instruction_ld_direct_data_8(&mut c);
+                self.s_instruction_ld_direct_data_8(&mut c);
                 self.cpu.r.set_c(c);
             }
             0x0f => self.instruction_rrca(),
             0x10 => self.instruction_stop(),
             0x11 => {
                 let mut de = self.cpu.r.get_de();
-                self.instruction_ld_direct_data_16(&mut de);
+                self.s_instruction_ld_direct_data_16(&mut de);
                 self.cpu.r.set_de(de);
             }
-            0x12 => self.instruction_ld_indirect_direct(self.cpu.r.get_de(), self.cpu.r.get_a()),
+            0x12 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_de(), self.cpu.r.get_a()),
             0x13 => {
                 let mut de = self.cpu.r.get_de();
-                self.instruction_inc_direct_16(&mut de);
+                self.s_instruction_inc_direct_16(&mut de);
                 self.cpu.r.set_de(de);
             }
             0x14 => {
@@ -90,24 +90,24 @@ impl<P: Platform> System<P> {
             }
             0x16 => {
                 let mut d = self.cpu.r.get_d();
-                self.instruction_ld_direct_data_8(&mut d);
+                self.s_instruction_ld_direct_data_8(&mut d);
                 self.cpu.r.set_d(d);
             }
             0x17 => self.instruction_rla(),
-            0x18 => self.instruction_jr_condition_relative(true),
+            0x18 => self.s_instruction_jr_condition_relative(true),
             0x19 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_de());
+                self.s_instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_de());
                 self.cpu.r.set_hl(hl);
             }
             0x1a => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ld_direct_indirect(&mut a, self.cpu.r.get_de());
+                self.s_instruction_ld_direct_indirect(&mut a, self.cpu.r.get_de());
                 self.cpu.r.set_a(a);
             }
             0x1b => {
                 let mut de = self.cpu.r.get_de();
-                self.instruction_dec_direct_16(&mut de);
+                self.s_instruction_dec_direct_16(&mut de);
                 self.cpu.r.set_de(de);
             }
             0x1c => {
@@ -122,24 +122,24 @@ impl<P: Platform> System<P> {
             }
             0x1e => {
                 let mut e = self.cpu.r.get_e();
-                self.instruction_ld_direct_data_8(&mut e);
+                self.s_instruction_ld_direct_data_8(&mut e);
                 self.cpu.r.set_e(e);
             }
             0x1f => self.instruction_rra(),
-            0x20 => self.instruction_jr_condition_relative(!self.cpu.r.get_zf()),
+            0x20 => self.s_instruction_jr_condition_relative(!self.cpu.r.get_zf()),
             0x21 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_ld_direct_data_16(&mut hl);
+                self.s_instruction_ld_direct_data_16(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
             0x22 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_ld_indirect_increment_direct(&mut hl, self.cpu.r.get_a());
+                self.s_instruction_ld_indirect_increment_direct(&mut hl, self.cpu.r.get_a());
                 self.cpu.r.set_hl(hl);
             }
             0x23 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_inc_direct_16(&mut hl);
+                self.s_instruction_inc_direct_16(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
             0x24 => {
@@ -154,27 +154,27 @@ impl<P: Platform> System<P> {
             }
             0x26 => {
                 let mut h = self.cpu.r.get_h();
-                self.instruction_ld_direct_data_8(&mut h);
+                self.s_instruction_ld_direct_data_8(&mut h);
                 self.cpu.r.set_h(h);
             }
             0x27 => self.instruction_daa(),
-            0x28 => self.instruction_jr_condition_relative(self.cpu.r.get_zf()),
+            0x28 => self.s_instruction_jr_condition_relative(self.cpu.r.get_zf()),
             0x29 => {
                 let mut hl = self.cpu.r.get_hl();
                 let hl_copy = hl;
-                self.instruction_add_direct_direct_16(&mut hl, hl_copy);
+                self.s_instruction_add_direct_direct_16(&mut hl, hl_copy);
                 self.cpu.r.set_hl(hl);
             }
             0x2a => {
                 let mut a = self.cpu.r.get_a();
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_ld_direct_indirect_increment(&mut a, &mut hl);
+                self.s_instruction_ld_direct_indirect_increment(&mut a, &mut hl);
                 self.cpu.r.set_a(a);
                 self.cpu.r.set_hl(hl);
             }
             0x2b => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_dec_direct_16(&mut hl);
+                self.s_instruction_dec_direct_16(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
             0x2c => {
@@ -189,54 +189,54 @@ impl<P: Platform> System<P> {
             }
             0x2e => {
                 let mut l = self.cpu.r.get_l();
-                self.instruction_ld_direct_data_8(&mut l);
+                self.s_instruction_ld_direct_data_8(&mut l);
                 self.cpu.r.set_l(l);
             }
             0x2f => self.instruction_cpl(),
-            0x30 => self.instruction_jr_condition_relative(!self.cpu.r.get_cf()),
+            0x30 => self.s_instruction_jr_condition_relative(!self.cpu.r.get_cf()),
             0x31 => {
                 let mut sp = self.cpu.r.get_sp();
-                self.instruction_ld_direct_data_16(&mut sp);
+                self.s_instruction_ld_direct_data_16(&mut sp);
                 self.cpu.r.set_sp(sp);
             }
             0x32 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_ld_indirect_decrement_direct(&mut hl, self.cpu.r.get_a());
+                self.s_instruction_ld_indirect_decrement_direct(&mut hl, self.cpu.r.get_a());
                 self.cpu.r.set_hl(hl);
             }
             0x33 => {
                 let mut sp = self.cpu.r.get_sp();
-                self.instruction_inc_direct_16(&mut sp);
+                self.s_instruction_inc_direct_16(&mut sp);
                 self.cpu.r.set_sp(sp);
             }
             0x34 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_inc_direct_16(&mut hl);
+                self.s_instruction_inc_direct_16(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
             0x35 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_dec_direct_16(&mut hl);
+                self.s_instruction_dec_direct_16(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
-            0x36 => self.instruction_ld_indirect_data(self.cpu.r.get_hl()),
+            0x36 => self.s_instruction_ld_indirect_data(self.cpu.r.get_hl()),
             0x37 => self.instruction_scf(),
-            0x38 => self.instruction_jr_condition_relative(self.cpu.r.get_cf()),
+            0x38 => self.s_instruction_jr_condition_relative(self.cpu.r.get_cf()),
             0x39 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_sp());
+                self.s_instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_sp());
                 self.cpu.r.set_hl(hl);
             }
             0x3a => {
                 let mut a = self.cpu.r.get_a();
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_ld_direct_indirect_decrement(&mut a, &mut hl);
+                self.s_instruction_ld_direct_indirect_decrement(&mut a, &mut hl);
                 self.cpu.r.set_a(a);
                 self.cpu.r.set_hl(hl);
             }
             0x3b => {
                 let mut sp = self.cpu.r.get_sp();
-                self.instruction_dec_direct_16(&mut sp);
+                self.s_instruction_dec_direct_16(&mut sp);
                 self.cpu.r.set_sp(sp);
             }
             0x3c => {
@@ -251,7 +251,7 @@ impl<P: Platform> System<P> {
             }
             0x3e => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ld_direct_data_8(&mut a);
+                self.s_instruction_ld_direct_data_8(&mut a);
                 self.cpu.r.set_a(a);
             }
             0x3f => self.instruction_ccf(),
@@ -288,7 +288,7 @@ impl<P: Platform> System<P> {
             }
             0x46 => {
                 let mut b = self.cpu.r.get_b();
-                self.instruction_ld_direct_indirect(&mut b, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut b, self.cpu.r.get_hl());
                 self.cpu.r.set_b(b);
             }
             0x47 => {
@@ -329,7 +329,7 @@ impl<P: Platform> System<P> {
             }
             0x4e => {
                 let mut c = self.cpu.r.get_c();
-                self.instruction_ld_direct_indirect(&mut c, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut c, self.cpu.r.get_hl());
                 self.cpu.r.set_c(c);
             }
             0x4f => {
@@ -370,7 +370,7 @@ impl<P: Platform> System<P> {
             }
             0x56 => {
                 let mut d = self.cpu.r.get_d();
-                self.instruction_ld_direct_indirect(&mut d, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut d, self.cpu.r.get_hl());
                 self.cpu.r.set_d(d);
             }
             0x57 => {
@@ -411,7 +411,7 @@ impl<P: Platform> System<P> {
             }
             0x5e => {
                 let mut e = self.cpu.r.get_e();
-                self.instruction_ld_direct_indirect(&mut e, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut e, self.cpu.r.get_hl());
                 self.cpu.r.set_e(e);
             }
             0x5f => {
@@ -452,7 +452,7 @@ impl<P: Platform> System<P> {
             }
             0x66 => {
                 let mut h = self.cpu.r.get_h();
-                self.instruction_ld_direct_indirect(&mut h, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut h, self.cpu.r.get_hl());
                 self.cpu.r.set_h(h);
             }
             0x67 => {
@@ -493,7 +493,7 @@ impl<P: Platform> System<P> {
             }
             0x6e => {
                 let mut l = self.cpu.r.get_l();
-                self.instruction_ld_direct_indirect(&mut l, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut l, self.cpu.r.get_hl());
                 self.cpu.r.set_l(l);
             }
             0x6f => {
@@ -501,14 +501,14 @@ impl<P: Platform> System<P> {
                 System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_a());
                 self.cpu.r.set_l(l);
             }
-            0x70 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_b()),
-            0x71 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_c()),
-            0x72 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_d()),
-            0x73 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_e()),
-            0x74 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_h()),
-            0x75 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_l()),
-            0x76 => self.instruction_halt(),
-            0x77 => self.instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_a()),
+            0x70 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_b()),
+            0x71 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_c()),
+            0x72 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_d()),
+            0x73 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_e()),
+            0x74 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_h()),
+            0x75 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_l()),
+            0x76 => self.s_instruction_halt(),
+            0x77 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_a()),
             0x78 => {
                 let mut a = self.cpu.r.get_a();
                 System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_b());
@@ -541,7 +541,7 @@ impl<P: Platform> System<P> {
             }
             0x7e => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ld_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0x7f => {
@@ -583,7 +583,7 @@ impl<P: Platform> System<P> {
             }
             0x86 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_add_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_add_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0x87 => {
@@ -624,7 +624,7 @@ impl<P: Platform> System<P> {
             }
             0x8e => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_adc_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_adc_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0x8f => {
@@ -665,7 +665,7 @@ impl<P: Platform> System<P> {
             }
             0x96 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_sub_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_sub_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0x97 => {
@@ -706,7 +706,7 @@ impl<P: Platform> System<P> {
             }
             0x9e => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_sbc_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_sbc_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0x9f => {
@@ -747,7 +747,7 @@ impl<P: Platform> System<P> {
             }
             0xa6 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_and_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_and_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0xa7 => {
@@ -788,7 +788,7 @@ impl<P: Platform> System<P> {
             }
             0xae => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_xor_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_xor_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0xaf => {
@@ -829,7 +829,7 @@ impl<P: Platform> System<P> {
             }
             0xb6 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_or_direct_indirect(&mut a, self.cpu.r.get_hl());
+                self.s_instruction_or_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
             0xb7 => {
@@ -844,136 +844,136 @@ impl<P: Platform> System<P> {
             0xbb => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_e()),
             0xbc => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_h()),
             0xbd => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_l()),
-            0xbe => self.instruction_cp_direct_indirect(self.cpu.r.get_a(), self.cpu.r.get_hl()),
+            0xbe => self.s_instruction_cp_direct_indirect(self.cpu.r.get_a(), self.cpu.r.get_hl()),
             0xbf => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_a()),
-            0xc0 => self.instruction_ret_condition(!self.cpu.r.get_zf()),
+            0xc0 => self.s_instruction_ret_condition(!self.cpu.r.get_zf()),
             0xc1 => {
                 let mut bc = self.cpu.r.get_bc();
-                self.instruction_pop_direct(&mut bc);
+                self.s_instruction_pop_direct(&mut bc);
                 self.cpu.r.set_bc(bc);
             }
-            0xc2 => self.instruction_jp_condition_address(!self.cpu.r.get_zf()),
-            0xc3 => self.instruction_jp_condition_address(true),
-            0xc4 => self.instruction_call_condition_address(!self.cpu.r.get_zf()),
-            0xc5 => self.instruction_push_direct(self.cpu.r.get_bc()),
+            0xc2 => self.s_instruction_jp_condition_address(!self.cpu.r.get_zf()),
+            0xc3 => self.s_instruction_jp_condition_address(true),
+            0xc4 => self.s_instruction_call_condition_address(!self.cpu.r.get_zf()),
+            0xc5 => self.s_instruction_push_direct(self.cpu.r.get_bc()),
             0xc6 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_add_direct_data(&mut a);
+                self.s_instruction_add_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xc7 => self.instruction_rst_implied(0),
-            0xc8 => self.instruction_ret_condition(self.cpu.r.get_zf()),
+            0xc7 => self.s_instruction_rst_implied(0),
+            0xc8 => self.s_instruction_ret_condition(self.cpu.r.get_zf()),
             0xc9 => self.instruction_ret(),
-            0xca => self.instruction_jp_condition_address(self.cpu.r.get_zf()),
-            0xcb => self.instruction_cb(),
-            0xcc => self.instruction_call_condition_address(self.cpu.r.get_zf()),
-            0xcd => self.instruction_call_condition_address(true),
+            0xca => self.s_instruction_jp_condition_address(self.cpu.r.get_zf()),
+            0xcb => self.s_instruction_cb(),
+            0xcc => self.s_instruction_call_condition_address(self.cpu.r.get_zf()),
+            0xcd => self.s_instruction_call_condition_address(true),
             0xce => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_adc_direct_data(&mut a);
+                self.s_instruction_adc_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xcf => self.instruction_rst_implied(0x08),
-            0xd0 => self.instruction_ret_condition(!self.cpu.r.get_cf()),
+            0xcf => self.s_instruction_rst_implied(0x08),
+            0xd0 => self.s_instruction_ret_condition(!self.cpu.r.get_cf()),
             0xd1 => {
                 let mut de = self.cpu.r.get_de();
-                self.instruction_pop_direct(&mut de);
+                self.s_instruction_pop_direct(&mut de);
                 self.cpu.r.set_de(de);
             }
-            0xd2 => self.instruction_jp_condition_address(!self.cpu.r.get_cf()),
-            0xd4 => self.instruction_call_condition_address(!self.cpu.r.get_cf()),
-            0xd5 => self.instruction_push_direct(self.cpu.r.get_de()),
+            0xd2 => self.s_instruction_jp_condition_address(!self.cpu.r.get_cf()),
+            0xd4 => self.s_instruction_call_condition_address(!self.cpu.r.get_cf()),
+            0xd5 => self.s_instruction_push_direct(self.cpu.r.get_de()),
             0xd6 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_sub_direct_data(&mut a);
+                self.s_instruction_sub_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xd7 => self.instruction_rst_implied(0x10),
-            0xd8 => self.instruction_ret_condition(self.cpu.r.get_cf()),
-            0xd9 => self.instruction_reti(),
-            0xda => self.instruction_jp_condition_address(self.cpu.r.get_cf()),
-            0xdc => self.instruction_call_condition_address(self.cpu.r.get_cf()),
+            0xd7 => self.s_instruction_rst_implied(0x10),
+            0xd8 => self.s_instruction_ret_condition(self.cpu.r.get_cf()),
+            0xd9 => self.s_instruction_reti(),
+            0xda => self.s_instruction_jp_condition_address(self.cpu.r.get_cf()),
+            0xdc => self.s_instruction_call_condition_address(self.cpu.r.get_cf()),
             0xde => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_sbc_direct_data(&mut a);
+                self.s_instruction_sbc_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xdf => self.instruction_rst_implied(0x18),
-            0xe0 => self.instruction_ldh_address_direct(self.cpu.r.get_a()),
+            0xdf => self.s_instruction_rst_implied(0x18),
+            0xe0 => self.s_instruction_ldh_address_direct(self.cpu.r.get_a()),
             0xe1 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_pop_direct(&mut hl);
+                self.s_instruction_pop_direct(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
-            0xe2 => self.instruction_ldh_indirect_direct(self.cpu.r.get_c(), self.cpu.r.get_a()),
-            0xe5 => self.instruction_push_direct(self.cpu.r.get_hl()),
+            0xe2 => self.s_instruction_ldh_indirect_direct(self.cpu.r.get_c(), self.cpu.r.get_a()),
+            0xe5 => self.s_instruction_push_direct(self.cpu.r.get_hl()),
             0xe6 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_and_direct_data(&mut a);
+                self.s_instruction_and_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xe7 => self.instruction_rst_implied(0x20),
+            0xe7 => self.s_instruction_rst_implied(0x20),
             0xe8 => {
                 let mut sp = self.cpu.r.get_sp();
-                self.instruction_add_direct_relative(&mut sp);
+                self.s_instruction_add_direct_relative(&mut sp);
                 self.cpu.r.set_sp(sp);
             }
             0xe9 => self.instruction_jp_direct(self.cpu.r.get_hl()),
-            0xea => self.instruction_ld_address_direct_8(self.cpu.r.get_a()),
+            0xea => self.s_instruction_ld_address_direct_8(self.cpu.r.get_a()),
             0xee => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_xor_direct_data(&mut a);
+                self.s_instruction_xor_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xef => self.instruction_rst_implied(0x28),
+            0xef => self.s_instruction_rst_implied(0x28),
             0xf0 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ldh_direct_address(&mut a);
+                self.s_instruction_ldh_direct_address(&mut a);
                 self.cpu.r.set_a(a);
             }
             0xf1 => {
                 let mut af = self.cpu.r.get_af();
-                self.instruction_pop_direct_af(&mut af);
+                self.s_instruction_pop_direct_af(&mut af);
                 self.cpu.r.set_af(af);
             }
             0xf2 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ldh_direct_indirect(&mut a, self.cpu.r.get_c());
+                self.s_instruction_ldh_direct_indirect(&mut a, self.cpu.r.get_c());
                 self.cpu.r.set_a(a);
             }
             0xf3 => self.instruction_di(),
-            0xf5 => self.instruction_push_direct(self.cpu.r.get_af()),
+            0xf5 => self.s_instruction_push_direct(self.cpu.r.get_af()),
             0xf6 => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_or_direct_data(&mut a);
+                self.s_instruction_or_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
-            0xf7 => self.instruction_rst_implied(0x30),
+            0xf7 => self.s_instruction_rst_implied(0x30),
             0xf8 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.instruction_ld_direct_direct_relative(&mut hl, self.cpu.r.get_sp());
+                self.s_instruction_ld_direct_direct_relative(&mut hl, self.cpu.r.get_sp());
                 self.cpu.r.set_hl(hl);
             }
             0xf9 => {
                 let mut sp = self.cpu.r.get_sp();
-                self.instruction_ld_direct_direct_16(&mut sp, self.cpu.r.get_hl());
+                self.s_instruction_ld_direct_direct_16(&mut sp, self.cpu.r.get_hl());
                 self.cpu.r.set_sp(sp);
             }
             0xfa => {
                 let mut a = self.cpu.r.get_a();
-                self.instruction_ld_direct_address(&mut a);
+                self.s_instruction_ld_direct_address(&mut a);
                 self.cpu.r.set_a(a);
             }
             0xfb => self.instruction_ei(),
-            0xfe => self.instruction_cp_direct_data(self.cpu.r.get_a()),
-            0xff => self.instruction_rst_implied(0x38),
+            0xfe => self.s_instruction_cp_direct_data(self.cpu.r.get_a()),
+            0xff => self.s_instruction_rst_implied(0x38),
             _ => {}
         }
     }
 
-    pub fn instruction_cb(&mut self) {
+    pub fn s_instruction_cb(&mut self) {
         let mut ret = true;
-        let opcode = self.cpu_operand();
+        let opcode = self.s_cpu_operand();
         match opcode {
             0x00 => {
                 let mut b = self.cpu.r.get_b();
@@ -1005,7 +1005,7 @@ impl<P: Platform> System<P> {
                 self.instruction_rlc_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x06 => self.instruction_rlc_indirect(self.cpu.r.get_hl()),
+            0x06 => self.s_instruction_rlc_indirect(self.cpu.r.get_hl()),
             0x07 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rlc_direct(&mut a);
@@ -1041,7 +1041,7 @@ impl<P: Platform> System<P> {
                 self.instruction_rrc_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x0e => self.instruction_rrc_indirect(self.cpu.r.get_hl()),
+            0x0e => self.s_instruction_rrc_indirect(self.cpu.r.get_hl()),
             0x0f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rrc_direct(&mut a);
@@ -1077,7 +1077,7 @@ impl<P: Platform> System<P> {
                 self.instruction_rl_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x16 => self.instruction_rl_indirect(self.cpu.r.get_hl()),
+            0x16 => self.s_instruction_rl_indirect(self.cpu.r.get_hl()),
             0x17 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rl_direct(&mut a);
@@ -1113,7 +1113,7 @@ impl<P: Platform> System<P> {
                 self.instruction_rr_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x1e => self.instruction_rr_indirect(self.cpu.r.get_hl()),
+            0x1e => self.s_instruction_rr_indirect(self.cpu.r.get_hl()),
             0x1f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rr_direct(&mut a);
@@ -1149,7 +1149,7 @@ impl<P: Platform> System<P> {
                 self.instruction_sla_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x26 => self.instruction_sla_indirect(self.cpu.r.get_hl()),
+            0x26 => self.s_instruction_sla_indirect(self.cpu.r.get_hl()),
             0x27 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_sla_direct(&mut a);
@@ -1185,7 +1185,7 @@ impl<P: Platform> System<P> {
                 self.instruction_sra_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x2e => self.instruction_sra_indirect(self.cpu.r.get_hl()),
+            0x2e => self.s_instruction_sra_indirect(self.cpu.r.get_hl()),
             0x2f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_sra_direct(&mut a);
@@ -1221,7 +1221,7 @@ impl<P: Platform> System<P> {
                 self.instruction_swap_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x36 => self.instruction_swap_indirect(self.cpu.r.get_hl()),
+            0x36 => self.s_instruction_swap_indirect(self.cpu.r.get_hl()),
             0x37 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_swap_direct(&mut a);
@@ -1257,7 +1257,7 @@ impl<P: Platform> System<P> {
                 self.instruction_srl_direct(&mut l);
                 self.cpu.r.set_l(l);
             }
-            0x3e => self.instruction_srl_indirect(self.cpu.r.get_hl()),
+            0x3e => self.s_instruction_srl_indirect(self.cpu.r.get_hl()),
             0x3f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_srl_direct(&mut a);
@@ -1277,7 +1277,7 @@ impl<P: Platform> System<P> {
             0x0b => self.instruction_bit_index_direct(bit, self.cpu.r.get_e()),
             0x0c => self.instruction_bit_index_direct(bit, self.cpu.r.get_h()),
             0x0d => self.instruction_bit_index_direct(bit, self.cpu.r.get_l()),
-            0x0e => self.instruction_bit_index_indirect(bit, self.cpu.r.get_hl()),
+            0x0e => self.s_instruction_bit_index_indirect(bit, self.cpu.r.get_hl()),
             0x0f => self.instruction_bit_index_direct(bit, self.cpu.r.get_a()),
             0x10 => {
                 let mut b = self.cpu.r.get_b();
@@ -1309,7 +1309,7 @@ impl<P: Platform> System<P> {
                 System::<P>::instruction_res_index_direct(bit, &mut l);
                 self.cpu.r.set_l(l);
             }
-            0x16 => self.instruction_res_index_indirect(bit, self.cpu.r.get_hl()),
+            0x16 => self.s_instruction_res_index_indirect(bit, self.cpu.r.get_hl()),
             0x17 => {
                 let mut a = self.cpu.r.get_a();
                 System::<P>::instruction_res_index_direct(bit, &mut a);
@@ -1345,7 +1345,7 @@ impl<P: Platform> System<P> {
                 System::<P>::instruction_set_index_direct(bit, &mut l);
                 self.cpu.r.set_l(l);
             }
-            0x1e => self.instruction_set_index_indirect(bit, self.cpu.r.get_hl()),
+            0x1e => self.s_instruction_set_index_indirect(bit, self.cpu.r.get_hl()),
             0x1f => {
                 let mut a = self.cpu.r.get_a();
                 System::<P>::instruction_set_index_direct(bit, &mut a);

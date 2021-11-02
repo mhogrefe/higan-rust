@@ -142,20 +142,20 @@ impl CPU {
 }
 
 impl<P: Platform> System<P> {
-    pub fn cpu_main(&mut self) {
+    pub fn s_cpu_main(&mut self) {
         match self.cpu_main_sync_point {
-            0 => self.cpu_main_fresh(),
-            1 => self.cpu_main_resume_at_1(),
-            2 => self.cpu_main_resume_at_2(),
-            3 => self.cpu_main_resume_at_3(),
-            4 => self.cpu_main_resume_at_4(),
-            5 => self.cpu_main_resume_at_5(),
-            6 => self.cpu_main_resume_at_6(),
+            0 => self.s_cpu_main_fresh(),
+            1 => self.s_cpu_main_resume_at_1(),
+            2 => self.s_cpu_main_resume_at_2(),
+            3 => self.s_cpu_main_resume_at_3(),
+            4 => self.s_cpu_main_resume_at_4(),
+            5 => self.s_cpu_main_resume_at_5(),
+            6 => self.s_cpu_main_resume_at_6(),
             _ => panic!(),
         }
     }
 
-    fn cpu_main_fresh(&mut self) {
+    fn s_cpu_main_fresh(&mut self) {
         if self.cpu.status.h_blank_pending {
             self.cpu.status.h_blank_pending = false;
             self.cpu_h_blank_trigger();
@@ -166,21 +166,21 @@ impl<P: Platform> System<P> {
             if self.cpu.status.interrupt_latch != 0 {
                 //TODO debugger.interrupt("IRQ");
                 // ** S1
-                self.cpu_idle();
+                self.s_cpu_idle();
                 if self.cpu_return_to_sync {
                     self.cpu_main_sync_point = 1;
                     return;
                 }
 
                 // ** S2
-                self.cpu_idle();
+                self.s_cpu_idle();
                 if self.cpu_return_to_sync {
                     self.cpu_main_sync_point = 2;
                     return;
                 }
 
                 // ** S3
-                self.cpu_idle();
+                self.s_cpu_idle();
                 if self.cpu_return_to_sync {
                     self.cpu_main_sync_point = 3;
                     return;
@@ -192,7 +192,7 @@ impl<P: Platform> System<P> {
                 self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
                 // ** S4
-                self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+                self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
                 if self.cpu_return_to_sync {
                     self.cpu_main_sync_point = 4;
                     return;
@@ -205,7 +205,7 @@ impl<P: Platform> System<P> {
                 self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
 
                 // ** S5
-                self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+                self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
                 if self.cpu_return_to_sync {
                     self.cpu_main_sync_point = 5;
                     return;
@@ -228,7 +228,7 @@ impl<P: Platform> System<P> {
         //TODO debugger.instruction();
 
         // ** S6
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;
@@ -240,23 +240,23 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn cpu_main_resume_at_1(&mut self) {
+    fn s_cpu_main_resume_at_1(&mut self) {
         // ** S1
-        self.cpu_idle();
+        self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 1;
             return;
         }
 
         // ** S2
-        self.cpu_idle();
+        self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 2;
             return;
         }
 
         // ** S3
-        self.cpu_idle();
+        self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 3;
             return;
@@ -268,7 +268,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
         // ** S4
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 4;
             return;
@@ -280,7 +280,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 5;
             return;
@@ -301,7 +301,7 @@ impl<P: Platform> System<P> {
         //TODO debugger.instruction();
 
         // ** S6
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;
@@ -313,16 +313,16 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn cpu_main_resume_at_2(&mut self) {
+    fn s_cpu_main_resume_at_2(&mut self) {
         // ** S2
-        self.cpu_idle();
+        self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 2;
             return;
         }
 
         // ** S3
-        self.cpu_idle();
+        self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 3;
             return;
@@ -334,7 +334,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
         // ** S4
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 4;
             return;
@@ -346,7 +346,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 5;
             return;
@@ -367,7 +367,7 @@ impl<P: Platform> System<P> {
         //TODO debugger.instruction();
 
         // ** S6
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;
@@ -379,9 +379,9 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn cpu_main_resume_at_3(&mut self) {
+    fn s_cpu_main_resume_at_3(&mut self) {
         // ** S3
-        self.cpu_idle();
+        self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 3;
             return;
@@ -393,7 +393,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
         // ** S4
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 4;
             return;
@@ -405,7 +405,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 5;
             return;
@@ -426,7 +426,7 @@ impl<P: Platform> System<P> {
         //TODO debugger.instruction();
 
         // ** S6
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;
@@ -438,9 +438,9 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn cpu_main_resume_at_4(&mut self) {
+    fn s_cpu_main_resume_at_4(&mut self) {
         // ** S4
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 4;
             return;
@@ -452,7 +452,7 @@ impl<P: Platform> System<P> {
         self.cpu_main_pc = u8::wrapping_from(self.cpu.r.get_pc());
 
         // ** S5
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 5;
             return;
@@ -473,7 +473,7 @@ impl<P: Platform> System<P> {
         //TODO debugger.instruction();
 
         // ** S6
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;
@@ -485,9 +485,9 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn cpu_main_resume_at_5(&mut self) {
+    fn s_cpu_main_resume_at_5(&mut self) {
         // ** S5
-        self.cpu_write(self.cpu_main_sp, self.cpu_main_pc);
+        self.s_cpu_write(self.cpu_main_sp, self.cpu_main_pc);
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 5;
             return;
@@ -508,7 +508,7 @@ impl<P: Platform> System<P> {
         //TODO debugger.instruction();
         // ** S6
 
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;
@@ -520,9 +520,9 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn cpu_main_resume_at_6(&mut self) {
+    fn s_cpu_main_resume_at_6(&mut self) {
         // ** S6
-        self.instruction();
+        self.s_instruction();
         if self.cpu_return_to_sync {
             self.cpu_main_sync_point = 6;
             return;

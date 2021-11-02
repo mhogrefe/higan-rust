@@ -63,18 +63,36 @@ pub struct System<P: Platform> {
     pub information: Information,
 
     pub cpu_return_to_sync: bool,
-
-    pub cpu_step_clocks: u32,
+    pub cpu_resuming_after_sync: bool,
+    pub cpu_sync_points: Vec<usize>,
+    pub cpu_local_u8s: Vec<u8>,
+    pub cpu_local_u32s: Vec<u32>,
 
     pub cpu_main_sync_point: usize,
     pub cpu_main_sp: u16,
     pub cpu_main_pc: u8,
     pub cpu_main_mask: u8,
 
-    pub cpu_idle_sync_point: usize,
+    pub cpu_instruction_add_direct_relative_sync_point: usize,
+    pub cpu_instruction_add_direct_relative_fresh_data: u8,
 
-    pub cpu_read_sync_point: usize,
-    pub cpu_read_data: u8,
+    pub cpu_instruction_call_condition_address_sync_point: usize,
+    pub cpu_instruction_call_condition_address_address: u16,
+
+    pub cpu_instruction_jp_condition_address_sync_point: usize,
+    pub cpu_instruction_jp_condition_address_address: u16,
+
+    pub cpu_instruction_jr_condition_relative_sync_point: usize,
+    pub cpu_instruction_jr_condition_relative_data: u8,
+
+    pub cpu_instruction_ld_direct_direct_relative_sync_point: usize,
+    pub cpu_instruction_ld_direct_direct_relative_data: u8,
+
+    pub cpu_instruction_ret_sync_point: usize,
+    pub cpu_instruction_ret_address: u16,
+
+    pub cpu_instruction_reti_sync_point: usize,
+    pub cpu_instruction_reti_address: u16,
 }
 
 pub mod controls;
