@@ -3,6 +3,11 @@ extern crate malachite_base;
 extern crate rand;
 
 pub mod ares {
+    pub mod ares {
+        pub mod scheduler {
+            pub mod thread;
+        }
+    }
     pub mod component {
         pub mod processor {
             pub mod sm83 {

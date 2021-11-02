@@ -30,36 +30,312 @@ impl<P: Platform> System<P> {
     }
 
     pub fn cpu_idle(&mut self) {
+        match self.cpu_idle_sync_point {
+            0 => self.cpu_idle_fresh(),
+            1 => self.cpu_idle_resume_at_1(),
+            2 => self.cpu_idle_resume_at_2(),
+            3 => self.cpu_idle_resume_at_3(),
+            4 => self.cpu_idle_resume_at_4(),
+            _ => panic!(),
+        }
+    }
+
+    fn cpu_idle_fresh(&mut self) {
         if self.cpu.r.ei {
             self.cpu.r.ei = false;
             self.cpu.r.ime = true
         };
+        // ** S1
         self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 1;
+            return;
+        }
+
+        // ** S2
         self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 2;
+            return;
+        }
+
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        // ** S3
         self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 3;
+            return;
+        }
+
+        // ** S4
         self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 4;
+            return;
+        }
+
+        self.cpu_idle_sync_point = 0;
+    }
+
+    fn cpu_idle_resume_at_1(&mut self) {
+        // ** S1
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 1;
+            return;
+        }
+
+        // ** S2
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 2;
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        // ** S3
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 3;
+            return;
+        }
+
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 4;
+            return;
+        }
+
+        self.cpu_idle_sync_point = 0;
+    }
+
+    fn cpu_idle_resume_at_2(&mut self) {
+        // ** S2
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 2;
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        // ** S3
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 3;
+            return;
+        }
+
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 4;
+            return;
+        }
+
+        self.cpu_idle_sync_point = 0;
+    }
+
+    fn cpu_idle_resume_at_3(&mut self) {
+        // ** S3
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 3;
+            return;
+        }
+
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 4;
+            return;
+        }
+
+        self.cpu_idle_sync_point = 0;
+    }
+
+    fn cpu_idle_resume_at_4(&mut self) {
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_idle_sync_point = 4;
+            return;
+        }
+
+        self.cpu_idle_sync_point = 0;
     }
 
     pub fn cpu_read(&mut self, address: u16) -> u8 {
-        let mut data = 0xff;
+        match self.cpu_read_sync_point {
+            0 => self.cpu_read_fresh(address),
+            1 => self.cpu_read_resume_at_1(address),
+            2 => self.cpu_read_resume_at_2(address),
+            3 => self.cpu_read_resume_at_3(address),
+            4 => self.cpu_read_resume_at_4(address),
+            _ => panic!(),
+        }
+    }
+
+    fn cpu_read_fresh(&mut self, address: u16) -> u8 {
+        self.cpu_read_data = 0xff;
         if self.cpu.r.ei {
             self.cpu.r.ei = false;
             self.cpu.r.ime = true
         };
-        data &= self.bus_read_with_cycle(0, address, data);
+        self.cpu_read_data &= self.bus_read_with_cycle(0, address, self.cpu_read_data);
+
+        // ** S1
         self.cpu_step(1);
-        data &= self.bus_read_with_cycle(1, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 1;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(1, address, self.cpu_read_data);
+
+        // ** S2
         self.cpu_step(1);
-        data &= self.bus_read_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 2;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(2, address, self.cpu_read_data);
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+
+        // ** S3
         self.cpu_step(1);
-        data &= self.bus_read_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 3;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(3, address, self.cpu_read_data);
+
+        // ** S4
         self.cpu_step(1);
-        data &= self.bus_read_with_cycle(4, address, data);
-        data
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 4;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(4, address, self.cpu_read_data);
+        self.cpu_read_sync_point = 0;
+        self.cpu_read_data
+    }
+
+    fn cpu_read_resume_at_1(&mut self, address: u16) -> u8 {
+        // ** S1
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 1;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(1, address, self.cpu_read_data);
+
+        // ** S2
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 2;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(2, address, self.cpu_read_data);
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+
+        // ** S3
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 3;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(3, address, self.cpu_read_data);
+
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 4;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(4, address, self.cpu_read_data);
+        self.cpu_read_sync_point = 0;
+        self.cpu_read_data
+    }
+
+    fn cpu_read_resume_at_2(&mut self, address: u16) -> u8 {
+        // ** S2
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 2;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(2, address, self.cpu_read_data);
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+
+        // ** S3
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 3;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(3, address, self.cpu_read_data);
+
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 4;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(4, address, self.cpu_read_data);
+        self.cpu_read_sync_point = 0;
+        self.cpu_read_data
+    }
+
+    fn cpu_read_resume_at_3(&mut self, address: u16) -> u8 {
+        // ** S3
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 3;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(3, address, self.cpu_read_data);
+
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 4;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(4, address, self.cpu_read_data);
+        self.cpu_read_sync_point = 0;
+        self.cpu_read_data
+    }
+
+    fn cpu_read_resume_at_4(&mut self, address: u16) -> u8 {
+        // ** S4
+        self.cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_read_sync_point = 4;
+            return 0;
+        }
+
+        self.cpu_read_data &= self.bus_read_with_cycle(4, address, self.cpu_read_data);
+        self.cpu_read_sync_point = 0;
+        self.cpu_read_data
     }
 
     pub fn cpu_write(&mut self, address: u16, data: u8) {

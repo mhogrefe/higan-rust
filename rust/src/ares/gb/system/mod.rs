@@ -61,6 +61,20 @@ pub struct System<P: Platform> {
     pub cpu: CPU,
     pub apu: APU,
     pub information: Information,
+
+    pub cpu_return_to_sync: bool,
+
+    pub cpu_step_clocks: u32,
+
+    pub cpu_main_sync_point: usize,
+    pub cpu_main_sp: u16,
+    pub cpu_main_pc: u8,
+    pub cpu_main_mask: u8,
+
+    pub cpu_idle_sync_point: usize,
+
+    pub cpu_read_sync_point: usize,
+    pub cpu_read_data: u8,
 }
 
 pub mod controls;
