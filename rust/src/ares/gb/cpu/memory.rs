@@ -86,7 +86,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_step(1);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(4);
-            return;
         }
     }
 
@@ -118,7 +117,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_step(1);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(4);
-            return;
         }
     }
 
@@ -143,7 +141,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_step(1);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(4);
-            return;
         }
     }
 
@@ -159,7 +156,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_step(1);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(4);
-            return;
         }
     }
 
@@ -168,7 +164,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_step(1);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(4);
-            return;
         }
     }
 
@@ -824,8 +819,9 @@ impl<P: Platform> System<P> {
     }
 
     // VRAM DMA target is always VRAM
+    // synchronized
     pub fn s_cpu_write_dma(&mut self, address: U13, data: u8) {
-        self.s_bus_write(0x8000 | address.x(), data)
+        self.s_bus_write(0x8000 | address.x(), data);
     }
 
     pub fn cpu_read_debugger(&mut self, address: u16) -> u8 {

@@ -1,6 +1,11 @@
 extern crate higan_rust;
 extern crate malachite_base;
 
+#[allow(
+    clippy::bool_assert_comparison,
+    clippy::field_reassign_with_default,
+    clippy::module_inception
+)]
 pub mod ares {
     pub mod component {
         pub mod processor {

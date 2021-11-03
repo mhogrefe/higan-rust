@@ -59,9 +59,9 @@ impl<P: Platform> System<P> {
     pub fn cpu_read_io(&mut self, cycle: u32, address: u16, mut data: u8) -> u8 {
         if address <= 0xbfff {
             data
-        } else if address >= 0xc000 && address <= 0xfdff && cycle == 2 {
+        } else if (0xc000..=0xfdff).contains(&address) && cycle == 2 {
             self.cpu.wram[self.cpu.wram_address(U13::wrapping_from(address)) as usize]
-        } else if address >= 0xff80 && address <= 0xfffe && cycle == 2 {
+        } else if (0xff80..=0xfffe).contains(&address) && cycle == 2 {
             self.cpu.hram[address.mod_power_of_2(7) as usize]
         } else if address == 0xff00 && cycle == 2 {
             //JOYP
@@ -75,7 +75,7 @@ impl<P: Platform> System<P> {
             data
         } else if address == 0xff01 && cycle == 2 {
             //SB
-            return self.cpu.status.serial_data;
+            self.cpu.status.serial_data
         } else if address == 0xff02 && cycle == 2 {
             //SC
             data.assign_bit(0, self.cpu.status.serial_clock);

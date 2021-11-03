@@ -2,6 +2,7 @@ extern crate fixed_width;
 extern crate malachite_base;
 extern crate rand;
 
+#[allow(clippy::module_inception, clippy::field_reassign_with_default)]
 pub mod ares {
     pub mod ares {
         pub mod scheduler {

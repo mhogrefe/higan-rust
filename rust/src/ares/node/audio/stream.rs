@@ -177,18 +177,19 @@ impl Stream {
 
     // Returns whether to send samples to audio output
     pub fn write(&mut self, samples: &[f64]) -> bool {
-        for c in 0..self.channels.len() {
-            let mut sample = samples[c] + 1e-25; //constant offset used to suppress denormals
-            for filter in &mut self.channels[c].filters {
+        assert_eq!(self.channels.len(), samples.len());
+        for (channel, &i_sample) in self.channels.iter_mut().zip(samples.iter()) {
+            let mut sample = i_sample + 1e-25; //constant offset used to suppress denormals
+            for filter in &mut channel.filters {
                 match filter.mode {
                     FilterMode::OnePole => sample = filter.one_pole.process(sample),
                     FilterMode::Biquad => sample = filter.biquad.process(sample),
                 }
             }
-            for filter in &mut self.channels[c].nyquist {
+            for filter in &mut channel.nyquist {
                 sample = filter.process(sample);
             }
-            self.channels[c].resampler.write(sample);
+            channel.resampler.write(sample);
         }
         //if there are samples pending, then alert the frontend to possibly process them.
         //this will generally happen when every audio stream has pending samples to be mixed.

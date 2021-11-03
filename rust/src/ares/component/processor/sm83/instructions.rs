@@ -7,8 +7,12 @@ use malachite_base::num::logic::traits::BitAccess;
 
 // See higan-rust/rust/src/ares/component/processor/sm83/instructions.rs
 impl<P: Platform> System<P> {
+    // synchronized
     pub fn s_instruction_adc_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.add(*target, op, self.cpu.r.get_cf());
     }
 
@@ -16,13 +20,21 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.add(*target, source, self.cpu.r.get_cf());
     }
 
+    // synchronized
     pub fn s_instruction_adc_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.add(*target, s, self.cpu.r.get_cf());
     }
 
+    // synchronized
     pub fn s_instruction_add_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.add(*target, op, false);
     }
 
@@ -36,7 +48,6 @@ impl<P: Platform> System<P> {
         if self.cpu_return_to_sync {
             return;
         }
-
         let x = u32::from(*target) + u32::from(source);
         let y = u32::from(target.mod_power_of_2(12)) + u32::from(source.mod_power_of_2(12));
         *target = u16::wrapping_from(x);
@@ -45,8 +56,12 @@ impl<P: Platform> System<P> {
         self.cpu.r.set_nf(false);
     }
 
+    // synchronized
     pub fn s_instruction_add_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.add(*target, s, false);
     }
 
@@ -160,8 +175,12 @@ impl<P: Platform> System<P> {
         }
     }
 
+    // synchronized
     pub fn s_instruction_and_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.and(*target, op);
     }
 
@@ -169,8 +188,12 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.and(*target, source);
     }
 
+    // synchronized
     pub fn s_instruction_and_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.and(*target, s);
     }
 
@@ -178,8 +201,12 @@ impl<P: Platform> System<P> {
         self.cpu.r.bit(index, data);
     }
 
+    // synchronized
     pub fn s_instruction_bit_index_indirect(&mut self, index: U3, address: u16) {
         let data = self.s_cpu_read(address);
+        if self.cpu_return_to_sync {
+            return;
+        }
         self.cpu.r.bit(index, data);
     }
 
@@ -260,8 +287,12 @@ impl<P: Platform> System<P> {
         self.cpu.r.set_nf(false);
     }
 
+    // synchronized
     pub fn s_instruction_cp_direct_data(&mut self, target: u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         self.cpu.r.cp(target, op);
     }
 
@@ -269,8 +300,12 @@ impl<P: Platform> System<P> {
         self.cpu.r.cp(target, source);
     }
 
+    // synchronized
     pub fn s_instruction_cp_direct_indirect(&mut self, target: u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         self.cpu.r.cp(target, s);
     }
 
@@ -483,10 +518,12 @@ impl<P: Platform> System<P> {
         *data = self.s_cpu_read(op);
     }
 
+    // synchronized
     pub fn s_instruction_ld_direct_data_8(&mut self, target: &mut u8) {
         *target = self.s_cpu_operand();
     }
 
+    // synchronized
     pub fn s_instruction_ld_direct_data_16(&mut self, target: &mut u16) {
         *target = self.s_cpu_operands();
     }
@@ -580,25 +617,34 @@ impl<P: Platform> System<P> {
         };
     }
 
+    // synchronized
     pub fn s_instruction_ld_direct_indirect(&mut self, target: &mut u8, source: u16) {
         *target = self.s_cpu_read(source);
     }
 
+    // synchronized
     pub fn s_instruction_ld_direct_indirect_decrement(
         &mut self,
         target: &mut u8,
         source: &mut u16,
     ) {
         *target = self.s_cpu_read(*source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         source.wrapping_sub_assign(1);
     }
 
+    // synchronized
     pub fn s_instruction_ld_direct_indirect_increment(
         &mut self,
         target: &mut u8,
         source: &mut u16,
     ) {
         *target = self.s_cpu_read(*source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         source.wrapping_add_assign(1);
     }
 
@@ -607,17 +653,26 @@ impl<P: Platform> System<P> {
         self.s_cpu_write(target, op);
     }
 
+    // synchronized
     pub fn s_instruction_ld_indirect_direct(&mut self, target: u16, source: u8) {
         self.s_cpu_write(target, source);
     }
 
+    // synchronized
     pub fn s_instruction_ld_indirect_decrement_direct(&mut self, target: &mut u16, source: u8) {
         self.s_cpu_write(*target, source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         target.wrapping_sub_assign(1);
     }
 
+    // synchronized
     pub fn s_instruction_ld_indirect_increment_direct(&mut self, target: &mut u16, source: u8) {
         self.s_cpu_write(*target, source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         target.wrapping_add_assign(1);
     }
 
@@ -631,18 +686,24 @@ impl<P: Platform> System<P> {
         *data = self.s_cpu_read(0xff00 | u16::from(op));
     }
 
+    // synchronized
     pub fn s_instruction_ldh_direct_indirect(&mut self, target: &mut u8, source: u8) {
         *target = self.s_cpu_read(0xff00 | u16::from(source));
     }
 
+    // synchronized
     pub fn s_instruction_ldh_indirect_direct(&mut self, target: u8, source: u8) {
         self.s_cpu_write(0xff00 | u16::from(target), source);
     }
 
     pub fn instruction_nop() {}
 
+    // synchronized
     pub fn s_instruction_or_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.or(*target, op);
     }
 
@@ -650,15 +711,21 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.or(*target, source);
     }
 
+    // synchronized
     pub fn s_instruction_or_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.or(*target, s);
     }
 
+    // synchronized
     pub fn s_instruction_pop_direct(&mut self, data: &mut u16) {
         *data = self.s_cpu_pop();
     }
 
+    // synchronized
     pub fn s_instruction_pop_direct_af(&mut self, data: &mut u16) {
         *data = self.s_cpu_pop() & !15; // flag bits 0-3 are forced to zero
     }
@@ -689,7 +756,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_push(data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(2);
-            return;
         }
     }
 
@@ -698,7 +764,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_push(data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(2);
-            return;
         }
     }
 
@@ -796,7 +861,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
-            return;
         }
     }
 
@@ -814,7 +878,6 @@ impl<P: Platform> System<P> {
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
-            return;
         }
     }
 
@@ -823,11 +886,8 @@ impl<P: Platform> System<P> {
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
-            return;
         }
     }
-
-    //TODO
 
     // synchronized
     pub fn s_instruction_reti(&mut self) {
@@ -945,8 +1005,12 @@ impl<P: Platform> System<P> {
         self.cpu.r.set_pc(u16::from(vector));
     }
 
+    // synchronized
     pub fn s_instruction_sbc_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.sub(*target, op, self.cpu.r.get_cf());
     }
 
@@ -954,8 +1018,12 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.sub(*target, source, self.cpu.r.get_cf());
     }
 
+    // synchronized
     pub fn s_instruction_sbc_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.sub(*target, s, self.cpu.r.get_cf());
     }
 
@@ -1015,8 +1083,12 @@ impl<P: Platform> System<P> {
         }
     }
 
+    // synchronized
     pub fn s_instruction_sub_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.sub(*target, op, false);
     }
 
@@ -1024,8 +1096,12 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.sub(*target, source, false);
     }
 
+    // synchronized
     pub fn s_instruction_sub_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.sub(*target, s, false);
     }
 
@@ -1039,8 +1115,12 @@ impl<P: Platform> System<P> {
         self.s_cpu_write(address, d);
     }
 
+    // synchronized
     pub fn s_instruction_xor_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.xor(*target, op);
     }
 
@@ -1048,8 +1128,12 @@ impl<P: Platform> System<P> {
         *target = self.cpu.r.xor(*target, source);
     }
 
+    // synchronized
     pub fn s_instruction_xor_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
+        if self.cpu_return_to_sync {
+            return;
+        }
         *target = self.cpu.r.xor(*target, s);
     }
 }

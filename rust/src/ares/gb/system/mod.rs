@@ -1,5 +1,6 @@
 use ares::ares::scheduler::scheduler::Scheduler;
 use ares::ares::scheduler::thread::Thread;
+use ares::emulator::types::U3;
 use ares::gb::apu::APU;
 use ares::gb::cpu::CPU;
 use ares::node::InputNode;
@@ -89,6 +90,7 @@ pub struct System<P: Platform> {
     pub cpu_return_to_sync: bool,
     pub cpu_resuming_after_sync: bool,
     pub cpu_sync_points: SmallStack<usize>,
+    pub cpu_local_u3s: SmallStack<U3>,
     pub cpu_local_u8s: SmallStack<u8>,
     pub cpu_local_u16s: SmallStack<u16>,
     pub cpu_local_u32s: SmallStack<u32>,

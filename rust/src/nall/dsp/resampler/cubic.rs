@@ -34,6 +34,7 @@ impl Cubic {
         );
     }
 
+    #[allow(clippy::many_single_char_names)]
     pub fn write(&mut self, sample: f64) {
         let mu = &mut self.fraction;
         let s = &mut self.history;

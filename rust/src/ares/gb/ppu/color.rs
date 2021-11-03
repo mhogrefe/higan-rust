@@ -68,6 +68,6 @@ impl PPU {
             g = normalize(min(960, temp_g), 10, 16);
             b = normalize(min(960, temp_b), 10, 16);
         }
-        return r << 32 | g << 16 | b;
+        r << 32 | g << 16 | b
     }
 }
