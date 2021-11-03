@@ -94,24 +94,6 @@ pub struct System<P: Platform> {
     pub cpu_local_u32s: SmallStack<u32>,
 
     pub apu_return_to_sync: bool,
-
-    pub cpu_instruction_call_condition_address_sync_point: usize,
-    pub cpu_instruction_call_condition_address_address: u16,
-
-    pub cpu_instruction_jp_condition_address_sync_point: usize,
-    pub cpu_instruction_jp_condition_address_address: u16,
-
-    pub cpu_instruction_jr_condition_relative_sync_point: usize,
-    pub cpu_instruction_jr_condition_relative_data: u8,
-
-    pub cpu_instruction_ld_direct_direct_relative_sync_point: usize,
-    pub cpu_instruction_ld_direct_direct_relative_data: u8,
-
-    pub cpu_instruction_ret_sync_point: usize,
-    pub cpu_instruction_ret_address: u16,
-
-    pub cpu_instruction_reti_sync_point: usize,
-    pub cpu_instruction_reti_address: u16,
 }
 
 pub mod controls;

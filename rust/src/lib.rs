@@ -28,6 +28,7 @@ pub mod ares {
         pub mod apu;
         pub mod bus;
         pub mod cpu;
+        pub mod ppu;
         pub mod system;
     }
     pub mod node;
@@ -42,6 +43,9 @@ pub mod nall {
         pub mod resampler {
             pub mod cubic;
         }
+    }
+    pub mod image {
+        pub mod image_static;
     }
     pub mod random;
 }

@@ -11,8 +11,8 @@ impl<P: Platform> System<P> {
         data
     }
 
-    pub fn bus_write_with_cycle(&mut self, cycle: u32, address: u16, data: u8) {
-        // cpu.writeIO(cycle, address, data);
+    pub fn s_bus_write_with_cycle(&mut self, cycle: u32, address: u16, data: u8) {
+        self.s_cpu_write_io(cycle, address, data);
         self.apu.write_io(cycle, address, data);
         //ppu.writeIO(cycle, address, data);
         //cartridge.write(cycle, address, data);
@@ -24,8 +24,8 @@ impl<P: Platform> System<P> {
         data
     }
 
-    pub fn bus_write(&mut self, address: u16, data: u8) {
-        self.bus_write_with_cycle(2, address, data);
-        self.bus_write_with_cycle(4, address, data);
+    pub fn s_bus_write(&mut self, address: u16, data: u8) {
+        self.s_bus_write_with_cycle(2, address, data);
+        self.s_bus_write_with_cycle(4, address, data);
     }
 }

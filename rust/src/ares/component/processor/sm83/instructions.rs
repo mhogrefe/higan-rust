@@ -183,19 +183,23 @@ impl<P: Platform> System<P> {
         self.cpu.r.bit(index, data);
     }
 
-    //TODO fix sync!
-
     // synchronized
     pub fn s_instruction_call_condition_address(&mut self, take: bool) {
-        match self.cpu_instruction_call_condition_address_sync_point {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
             0 => self.s_instruction_call_condition_address_fresh(take),
-            1 => self.s_instruction_call_condition_address_fresh_resume_at_1(),
+            1 => self.s_instruction_call_condition_address_resume_at_1(),
+            2 => self.s_instruction_call_condition_address_resume_at_2(),
             _ => panic!(),
         }
     }
 
     fn s_instruction_call_condition_address_fresh(&mut self, take: bool) {
-        self.cpu_instruction_call_condition_address_address = self.s_cpu_operands();
+        let address = self.s_cpu_operands();
         if !take {
             return;
         }
@@ -203,30 +207,51 @@ impl<P: Platform> System<P> {
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_call_condition_address_sync_point = 1;
+            self.cpu_sync_points.push(1);
+            self.cpu_local_u16s.push(address);
             return;
         }
 
+        // ** S2
         self.s_cpu_push(self.cpu.r.get_pc());
-        self.cpu
-            .r
-            .set_pc(self.cpu_instruction_call_condition_address_address);
-        self.cpu_instruction_call_condition_address_sync_point = 0;
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(address);
+            return;
+        }
+
+        self.cpu.r.set_pc(address);
     }
 
-    fn s_instruction_call_condition_address_fresh_resume_at_1(&mut self) {
+    fn s_instruction_call_condition_address_resume_at_1(&mut self) {
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_call_condition_address_sync_point = 1;
+            self.cpu_sync_points.push(1);
+            return;
+        }
+        let address = self.cpu_local_u16s.pop();
+
+        // ** S2
+        self.s_cpu_push(self.cpu.r.get_pc());
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(address);
             return;
         }
 
+        self.cpu.r.set_pc(address);
+    }
+
+    fn s_instruction_call_condition_address_resume_at_2(&mut self) {
+        // ** S2
         self.s_cpu_push(self.cpu.r.get_pc());
-        self.cpu
-            .r
-            .set_pc(self.cpu_instruction_call_condition_address_address);
-        self.cpu_instruction_call_condition_address_sync_point = 0;
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            return;
+        }
+        let address = self.cpu_local_u16s.pop();
+        self.cpu.r.set_pc(address);
     }
 
     pub fn instruction_ccf(&mut self) {
@@ -336,7 +361,12 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_jp_condition_address(&mut self, take: bool) {
-        match self.cpu_instruction_jp_condition_address_sync_point {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
             0 => self.s_instruction_jp_condition_address_fresh(take),
             1 => self.s_instruction_jp_condition_address_resume_at_1(),
             _ => panic!(),
@@ -344,35 +374,30 @@ impl<P: Platform> System<P> {
     }
 
     fn s_instruction_jp_condition_address_fresh(&mut self, take: bool) {
-        self.cpu_instruction_jp_condition_address_address = self.s_cpu_operands();
+        let address = self.s_cpu_operands();
         if !take {
             return;
         }
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_jp_condition_address_sync_point = 1;
+            self.cpu_sync_points.push(1);
+            self.cpu_local_u16s.push(address);
             return;
         }
 
-        self.cpu
-            .r
-            .set_pc(self.cpu_instruction_jp_condition_address_address);
-        self.cpu_instruction_jp_condition_address_sync_point = 0;
+        self.cpu.r.set_pc(address);
     }
 
     fn s_instruction_jp_condition_address_resume_at_1(&mut self) {
         // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_jp_condition_address_sync_point = 1;
+            self.cpu_sync_points.push(1);
             return;
         }
-
-        self.cpu
-            .r
-            .set_pc(self.cpu_instruction_jp_condition_address_address);
-        self.cpu_instruction_jp_condition_address_sync_point = 0;
+        let address = self.cpu_local_u16s.pop();
+        self.cpu.r.set_pc(address);
     }
 
     pub fn instruction_jp_direct(&mut self, data: u16) {
@@ -381,28 +406,40 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_jr_condition_relative(&mut self, take: bool) {
-        match self.cpu_instruction_jr_condition_relative_sync_point {
-            0 => self.s_instruction_jr_condition_relative_fresh(take),
-            1 => self.s_instruction_jr_condition_relative_resume_at_1(),
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_jr_condition_relative_fresh(take),
+            2 => self.s_instruction_jr_condition_relative_resume_at_2(),
             _ => panic!(),
         }
     }
 
     fn s_instruction_jr_condition_relative_fresh(&mut self, take: bool) {
-        self.cpu_instruction_jr_condition_relative_data = self.s_cpu_operand();
+        // ** S1
+        let data = self.s_cpu_operand();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(1);
+            // no point pushing data onto stack, it's garbage at this point
+            return;
+        }
         if !take {
             return;
         }
 
-        // ** S1
+        // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_jr_condition_relative_sync_point = 1;
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(data);
             return;
         }
-
+        let data = self.cpu_local_u8s.pop();
         let mut pc = self.cpu.r.get_pc();
-        let data = i8::wrapping_from(self.cpu_instruction_jr_condition_relative_data);
+        let data = i8::wrapping_from(data);
         let abs_data = u16::wrapping_from(data.unsigned_abs());
         if data >= 0 {
             pc.wrapping_add_assign(abs_data);
@@ -410,19 +447,18 @@ impl<P: Platform> System<P> {
             pc.wrapping_sub_assign(abs_data);
         }
         self.cpu.r.set_pc(pc);
-        self.cpu_instruction_jr_condition_relative_sync_point = 0;
     }
 
-    fn s_instruction_jr_condition_relative_resume_at_1(&mut self) {
-        // ** S1
+    fn s_instruction_jr_condition_relative_resume_at_2(&mut self) {
+        // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_jr_condition_relative_sync_point = 1;
+            self.cpu_sync_points.push(2);
             return;
         }
-
+        let data = self.cpu_local_u8s.pop();
         let mut pc = self.cpu.r.get_pc();
-        let data = i8::wrapping_from(self.cpu_instruction_jr_condition_relative_data);
+        let data = i8::wrapping_from(data);
         let abs_data = u16::wrapping_from(data.unsigned_abs());
         if data >= 0 {
             pc.wrapping_add_assign(abs_data);
@@ -430,7 +466,6 @@ impl<P: Platform> System<P> {
             pc.wrapping_sub_assign(abs_data);
         }
         self.cpu.r.set_pc(pc);
-        self.cpu_instruction_jr_condition_relative_sync_point = 0;
     }
 
     pub fn s_instruction_ld_address_direct_8(&mut self, data: u8) {
@@ -471,83 +506,78 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_ld_direct_direct_relative(&mut self, target: &mut u16, source: u16) {
-        match self.cpu_instruction_ld_direct_direct_relative_sync_point {
-            0 => self.s_instruction_ld_direct_direct_relative_fresh(target, source),
-            1 => self.s_instruction_ld_direct_direct_relative_resume_at_1(target, source),
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ld_direct_direct_relative_fresh(target, source),
+            2 => self.s_instruction_ld_direct_direct_relative_resume_at_2(target, source),
             _ => panic!(),
         }
     }
 
     fn s_instruction_ld_direct_direct_relative_fresh(&mut self, target: &mut u16, source: u16) {
-        self.cpu_instruction_ld_direct_direct_relative_data = self.s_cpu_operand();
-
         // ** S1
-        self.s_cpu_idle();
+        let data = self.s_cpu_operand();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_ld_direct_direct_relative_sync_point = 1;
+            self.cpu_sync_points.push(1);
             return;
         }
 
-        self.cpu.r.set_cf(
-            source.mod_power_of_2(8)
-                + u16::from(self.cpu_instruction_ld_direct_direct_relative_data)
-                > 0xff,
-        );
-        self.cpu.r.set_hf(
-            source.mod_power_of_2(4)
-                + u16::from(
-                    self.cpu_instruction_ld_direct_direct_relative_data
-                        .mod_power_of_2(4),
-                )
-                > 0x0f,
-        );
+        // ** S2
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(data);
+            return;
+        }
+
+        self.cpu
+            .r
+            .set_cf(source.mod_power_of_2(8) + u16::from(data) > 0xff);
+        self.cpu
+            .r
+            .set_hf(source.mod_power_of_2(4) + u16::from(data.mod_power_of_2(4)) > 0x0f);
         self.cpu.r.set_nf(false);
         self.cpu.r.set_zf(false);
-        let data = i8::wrapping_from(self.cpu_instruction_ld_direct_direct_relative_data);
+        let data = i8::wrapping_from(data);
         let abs_data = u16::from(data.unsigned_abs());
         *target = if data >= 0 {
             source.wrapping_add(abs_data)
         } else {
             source.wrapping_sub(abs_data)
         };
-        self.cpu_instruction_ld_direct_direct_relative_sync_point = 0;
     }
 
-    fn s_instruction_ld_direct_direct_relative_resume_at_1(
+    fn s_instruction_ld_direct_direct_relative_resume_at_2(
         &mut self,
         target: &mut u16,
         source: u16,
     ) {
-        // ** S1
+        // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_ld_direct_direct_relative_sync_point = 1;
+            self.cpu_sync_points.push(2);
             return;
         }
-
-        self.cpu.r.set_cf(
-            source.mod_power_of_2(8)
-                + u16::from(self.cpu_instruction_ld_direct_direct_relative_data)
-                > 0xff,
-        );
-        self.cpu.r.set_hf(
-            source.mod_power_of_2(4)
-                + u16::from(
-                    self.cpu_instruction_ld_direct_direct_relative_data
-                        .mod_power_of_2(4),
-                )
-                > 0x0f,
-        );
+        let data = self.cpu_local_u8s.pop();
+        self.cpu
+            .r
+            .set_cf(source.mod_power_of_2(8) + u16::from(data) > 0xff);
+        self.cpu
+            .r
+            .set_hf(source.mod_power_of_2(4) + u16::from(data.mod_power_of_2(4)) > 0x0f);
         self.cpu.r.set_nf(false);
         self.cpu.r.set_zf(false);
-        let data = i8::wrapping_from(self.cpu_instruction_ld_direct_direct_relative_data);
+        let data = i8::wrapping_from(data);
         let abs_data = u16::from(data.unsigned_abs());
         *target = if data >= 0 {
             source.wrapping_add(abs_data)
         } else {
             source.wrapping_sub(abs_data)
         };
-        self.cpu_instruction_ld_direct_direct_relative_sync_point = 0;
     }
 
     pub fn s_instruction_ld_direct_indirect(&mut self, target: &mut u8, source: u16) {
@@ -635,11 +665,41 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_push_direct(&mut self, data: u16) {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_push_direct_fresh(data),
+            2 => self.s_instruction_push_direct_resume_at_2(data),
+            _ => panic!(),
+        }
+    }
+
+    // synchronized
+    fn s_instruction_push_direct_fresh(&mut self, data: u16) {
+        // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(1);
             return;
         }
+        // ** S2
         self.s_cpu_push(data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            return;
+        }
+    }
+
+    fn s_instruction_push_direct_resume_at_2(&mut self, data: u16) {
+        // ** S2
+        self.s_cpu_push(data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            return;
+        }
     }
 
     pub fn instruction_res_index_direct(index: U3, data: &mut u8) {
@@ -653,89 +713,166 @@ impl<P: Platform> System<P> {
     }
 
     // synchronized
-    pub fn instruction_ret(&mut self) {
-        match self.cpu_instruction_ret_sync_point {
-            0 => self.instruction_ret_fresh(),
-            1 => self.s_instruction_ret_resume_at_1(),
+    pub fn s_instruction_ret(&mut self) {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ret_fresh(),
+            2 => self.s_instruction_ret_resume_at_2(),
             _ => panic!(),
         }
     }
 
-    fn instruction_ret_fresh(&mut self) {
-        self.cpu_instruction_ret_address = self.s_cpu_pop();
-
+    fn s_instruction_ret_fresh(&mut self) {
         // ** S1
-        self.s_cpu_idle();
+        let address = self.s_cpu_pop();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_ret_sync_point = 1;
+            self.cpu_sync_points.push(1);
             return;
         }
 
-        self.cpu.r.set_pc(self.cpu_instruction_ret_address);
-        self.cpu_instruction_ret_sync_point = 0;
+        // ** S2
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(address);
+            return;
+        }
+
+        self.cpu.r.set_pc(address);
     }
 
-    fn s_instruction_ret_resume_at_1(&mut self) {
-        // ** S1
+    fn s_instruction_ret_resume_at_2(&mut self) {
+        // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_ret_sync_point = 1;
+            self.cpu_sync_points.push(2);
             return;
         }
-
-        self.cpu.r.set_pc(self.cpu_instruction_ret_address);
-        self.cpu_instruction_ret_sync_point = 0;
+        let address = self.cpu_local_u16s.pop();
+        self.cpu.r.set_pc(address);
     }
 
     // synchronized
     pub fn s_instruction_ret_condition(&mut self, take: bool) {
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ret_condition_fresh(take),
+            2 => self.s_instruction_ret_condition_resume_at_2(),
+            3 => self.s_instruction_ret_condition_resume_at_3(),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_ret_condition_fresh(&mut self, take: bool) {
+        // ** S1
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(1);
             return;
         }
+
         if !take {
             return;
         }
+
+        // ** S2
         let p = self.s_cpu_pop();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            return;
+        }
+
         self.cpu.r.set_pc(p);
+
+        // ** S3
         self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(3);
+            return;
+        }
     }
+
+    fn s_instruction_ret_condition_resume_at_2(&mut self) {
+        // ** S2
+        let p = self.s_cpu_pop();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            return;
+        }
+
+        self.cpu.r.set_pc(p);
+
+        // ** S3
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(3);
+            return;
+        }
+    }
+
+    fn s_instruction_ret_condition_resume_at_3(&mut self) {
+        // ** S3
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(3);
+            return;
+        }
+    }
+
+    //TODO
 
     // synchronized
     pub fn s_instruction_reti(&mut self) {
-        match self.cpu_instruction_reti_sync_point {
-            0 => self.s_instruction_reti_fresh(),
-            1 => self.s_instruction_reti_resume_at_1(),
+        let sync_point = if self.cpu_resuming_after_sync {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_reti_fresh(),
+            2 => self.s_instruction_reti_resume_at_2(),
             _ => panic!(),
         }
     }
 
     fn s_instruction_reti_fresh(&mut self) {
-        self.cpu_instruction_reti_address = self.s_cpu_pop();
-
         // ** S1
-        self.s_cpu_idle();
+        let address = self.s_cpu_pop();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_reti_sync_point = 1;
+            self.cpu_sync_points.push(1);
             return;
         }
 
-        self.cpu.r.set_pc(self.cpu_instruction_reti_address);
+        // ** S2
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(address);
+            return;
+        }
+
+        self.cpu.r.set_pc(address);
         self.cpu.r.ime = true;
-        self.cpu_instruction_reti_sync_point = 0;
     }
 
-    fn s_instruction_reti_resume_at_1(&mut self) {
-        // ** S1
+    fn s_instruction_reti_resume_at_2(&mut self) {
+        // ** S2
         self.s_cpu_idle();
         if self.cpu_return_to_sync {
-            self.cpu_instruction_reti_sync_point = 1;
+            self.cpu_sync_points.push(2);
             return;
         }
-
-        self.cpu.r.set_pc(self.cpu_instruction_reti_address);
+        let address = self.cpu_local_u16s.pop();
+        self.cpu.r.set_pc(address);
         self.cpu.r.ime = true;
-        self.cpu_instruction_reti_sync_point = 0;
     }
 
     pub fn instruction_rl_direct(&mut self, data: &mut u8) {

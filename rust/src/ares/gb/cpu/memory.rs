@@ -369,6 +369,11 @@ impl<P: Platform> System<P> {
             2 => self.s_cpu_write_fresh_resume_at_2(address, data),
             3 => self.s_cpu_write_fresh_resume_at_3(address, data),
             4 => self.s_cpu_write_fresh_resume_at_4(address, data),
+            5 => self.s_cpu_write_fresh_resume_at_5(address, data),
+            6 => self.s_cpu_write_fresh_resume_at_6(address, data),
+            7 => self.s_cpu_write_fresh_resume_at_7(address, data),
+            8 => self.s_cpu_write_fresh_resume_at_8(address, data),
+            9 => self.s_cpu_write_fresh_resume_at_9(address, data),
             _ => panic!(),
         }
     }
@@ -378,16 +383,12 @@ impl<P: Platform> System<P> {
             self.cpu.r.ei = false;
             self.cpu.r.ime = true
         };
-        self.bus_write_with_cycle(0, address, data);
-
         // ** S1
-        self.s_cpu_step(1);
+        self.s_bus_write_with_cycle(0, address, data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(1);
             return;
         }
-
-        self.bus_write_with_cycle(1, address, data);
 
         // ** S2
         self.s_cpu_step(1);
@@ -396,11 +397,8 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(2, address, data);
-
         // ** S3
-        self.s_cpu_step(1);
-        self.bus_write_with_cycle(3, address, data);
+        self.s_bus_write_with_cycle(1, address, data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
             return;
@@ -413,20 +411,52 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(4, address, data);
+        // ** S5
+        self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            return;
+        }
+
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
     }
 
     fn s_cpu_write_fresh_resume_at_1(&mut self, address: u16, data: u8) {
         // ** S1
-        self.s_cpu_step(1);
+        self.s_bus_write_with_cycle(0, address, data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(1);
             return;
         }
-
-        self.bus_write_with_cycle(1, address, data);
 
         // ** S2
         self.s_cpu_step(1);
@@ -435,11 +465,8 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(2, address, data);
-
         // ** S3
-        self.s_cpu_step(1);
-        self.bus_write_with_cycle(3, address, data);
+        self.s_bus_write_with_cycle(1, address, data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
             return;
@@ -452,7 +479,41 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(4, address, data);
+        // ** S5
+        self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            return;
+        }
+
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
     }
@@ -465,11 +526,8 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(2, address, data);
-
         // ** S3
-        self.s_cpu_step(1);
-        self.bus_write_with_cycle(3, address, data);
+        self.s_bus_write_with_cycle(1, address, data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
             return;
@@ -482,15 +540,48 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(4, address, data);
+        // ** S5
+        self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            return;
+        }
+
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
     }
 
     fn s_cpu_write_fresh_resume_at_3(&mut self, address: u16, data: u8) {
         // ** S3
-        self.s_cpu_step(1);
-        self.bus_write_with_cycle(3, address, data);
+        self.s_bus_write_with_cycle(1, address, data);
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(3);
             return;
@@ -503,7 +594,41 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(4, address, data);
+        // ** S5
+        self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            return;
+        }
+
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
     }
@@ -516,7 +641,171 @@ impl<P: Platform> System<P> {
             return;
         }
 
-        self.bus_write_with_cycle(4, address, data);
+        // ** S5
+        self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            return;
+        }
+
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+    }
+
+    fn s_cpu_write_fresh_resume_at_5(&mut self, address: u16, data: u8) {
+        // ** S5
+        self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            return;
+        }
+
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+    }
+
+    fn s_cpu_write_fresh_resume_at_6(&mut self, address: u16, data: u8) {
+        // ** S6
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            return;
+        }
+
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+    }
+
+    fn s_cpu_write_fresh_resume_at_7(&mut self, address: u16, data: u8) {
+        // ** S7
+        self.s_bus_write_with_cycle(3, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+    }
+
+    fn s_cpu_write_fresh_resume_at_8(&mut self, address: u16, data: u8) {
+        // ** S8
+        self.s_cpu_step(1);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(8);
+            return;
+        }
+
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
+        self.cpu.status.interrupt_latch =
+            self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+    }
+
+    fn s_cpu_write_fresh_resume_at_9(&mut self, address: u16, data: u8) {
+        // ** S9
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(9);
+            return;
+        }
+
         self.cpu.status.interrupt_latch =
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
     }
@@ -535,8 +824,8 @@ impl<P: Platform> System<P> {
     }
 
     // VRAM DMA target is always VRAM
-    pub fn cpu_write_dma(&mut self, address: U13, data: u8) {
-        self.bus_write(0x8000 | address.x(), data)
+    pub fn s_cpu_write_dma(&mut self, address: U13, data: u8) {
+        self.s_bus_write(0x8000 | address.x(), data)
     }
 
     pub fn cpu_read_debugger(&mut self, address: u16) -> u8 {

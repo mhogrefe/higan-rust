@@ -159,6 +159,7 @@ impl<P: Platform> System<P> {
             4 => self.s_cpu_main_resume_at_4(),
             5 => self.s_cpu_main_resume_at_5(),
             6 => self.s_cpu_main_resume_at_6(),
+            7 => self.s_cpu_main_resume_at_7(),
             _ => panic!(),
         }
     }
@@ -166,20 +167,18 @@ impl<P: Platform> System<P> {
     fn s_cpu_main_fresh(&mut self) {
         if self.cpu.status.h_blank_pending {
             self.cpu.status.h_blank_pending = false;
-            self.cpu_h_blank_trigger();
+            // ** S1
+            self.s_cpu_h_blank_trigger();
+            if self.cpu_return_to_sync {
+                self.cpu_sync_points.push(1);
+                return;
+            }
         }
         // are interrupts enabled?
         if self.cpu.r.ime {
             // are any interrupts pending?
             if self.cpu.status.interrupt_latch != 0 {
                 //TODO debugger.interrupt("IRQ");
-                // ** S1
-                self.s_cpu_idle();
-                if self.cpu_return_to_sync {
-                    self.cpu_sync_points.push(1);
-                    return;
-                }
-
                 // ** S2
                 self.s_cpu_idle();
                 if self.cpu_return_to_sync {
@@ -194,15 +193,22 @@ impl<P: Platform> System<P> {
                     return;
                 }
 
+                // ** S4
+                self.s_cpu_idle();
+                if self.cpu_return_to_sync {
+                    self.cpu_sync_points.push(4);
+                    return;
+                }
+
                 self.cpu.r.ime = false;
                 // upper byte may write to IE before it is polled again
                 let sp = self.cpu.r.pre_decrement_sp();
                 let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
-                // ** S4
+                // ** S5
                 self.s_cpu_write(sp, pc);
                 if self.cpu_return_to_sync {
-                    self.cpu_sync_points.push(4);
+                    self.cpu_sync_points.push(5);
                     self.cpu_local_u16s.push(sp);
                     self.cpu_local_u8s.push(pc);
                     return;
@@ -213,10 +219,10 @@ impl<P: Platform> System<P> {
                 let sp = self.cpu.r.pre_decrement_sp();
                 let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
-                // ** S5
+                // ** S6
                 self.s_cpu_write(sp, pc);
                 if self.cpu_return_to_sync {
-                    self.cpu_sync_points.push(5);
+                    self.cpu_sync_points.push(6);
                     self.cpu_local_u16s.push(sp);
                     self.cpu_local_u8s.push(pc);
                     self.cpu_local_u8s.push(mask);
@@ -239,10 +245,10 @@ impl<P: Platform> System<P> {
         }
         //TODO debugger.instruction();
 
-        // ** S6
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 
@@ -253,73 +259,86 @@ impl<P: Platform> System<P> {
 
     fn s_cpu_main_resume_at_1(&mut self) {
         // ** S1
-        self.s_cpu_idle();
+        self.s_cpu_h_blank_trigger();
         if self.cpu_return_to_sync {
             self.cpu_sync_points.push(1);
             return;
         }
+        // are interrupts enabled?
+        if self.cpu.r.ime {
+            // are any interrupts pending?
+            if self.cpu.status.interrupt_latch != 0 {
+                //TODO debugger.interrupt("IRQ");
+                // ** S2
+                self.s_cpu_idle();
+                if self.cpu_return_to_sync {
+                    self.cpu_sync_points.push(2);
+                    return;
+                }
 
-        // ** S2
-        self.s_cpu_idle();
-        if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(2);
-            return;
-        }
+                // ** S3
+                self.s_cpu_idle();
+                if self.cpu_return_to_sync {
+                    self.cpu_sync_points.push(3);
+                    return;
+                }
 
-        // ** S3
-        self.s_cpu_idle();
-        if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(3);
-            return;
-        }
+                // ** S4
+                self.s_cpu_idle();
+                if self.cpu_return_to_sync {
+                    self.cpu_sync_points.push(4);
+                    return;
+                }
 
-        self.cpu.r.ime = false;
-        // upper byte may write to IE before it is polled again
-        let sp = self.cpu.r.pre_decrement_sp();
-        let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
+                self.cpu.r.ime = false;
+                // upper byte may write to IE before it is polled again
+                let sp = self.cpu.r.pre_decrement_sp();
+                let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
-        // ** S4
-        self.s_cpu_write(sp, pc);
-        if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(4);
-            self.cpu_local_u16s.push(sp);
-            self.cpu_local_u8s.push(pc);
-            return;
-        }
+                // ** S5
+                self.s_cpu_write(sp, pc);
+                if self.cpu_return_to_sync {
+                    self.cpu_sync_points.push(5);
+                    self.cpu_local_u16s.push(sp);
+                    self.cpu_local_u8s.push(pc);
+                    return;
+                }
 
-        let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
-        // lower byte write to IE has no effect
-        let sp = self.cpu.r.pre_decrement_sp();
-        let pc = u8::wrapping_from(self.cpu.r.get_pc());
+                let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+                // lower byte write to IE has no effect
+                let sp = self.cpu.r.pre_decrement_sp();
+                let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
-        // ** S5
-        self.s_cpu_write(sp, pc);
-        if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(5);
-            self.cpu_local_u16s.push(sp);
-            self.cpu_local_u8s.push(pc);
-            self.cpu_local_u8s.push(mask);
-            return;
-        }
+                // ** S6
+                self.s_cpu_write(sp, pc);
+                if self.cpu_return_to_sync {
+                    self.cpu_sync_points.push(6);
+                    self.cpu_local_u16s.push(sp);
+                    self.cpu_local_u8s.push(pc);
+                    self.cpu_local_u8s.push(mask);
+                    return;
+                }
 
-        if mask != 0 {
-            // find highest priority interrupt
-            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
-            self.cpu.lower(u32::wrapping_from(interrupt_id));
-            self.cpu
-                .r
-                .set_pc(u16::wrapping_from(0x0040 + interrupt_id * 8))
-        } else {
-            // if push(PCH) writes to IE and disables all requested interrupts,
-            // PC is forced to zero
-            self.cpu.r.set_pc(0x0000);
+                if mask != 0 {
+                    // find highest priority interrupt
+                    let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
+                    self.cpu.lower(u32::wrapping_from(interrupt_id));
+                    self.cpu
+                        .r
+                        .set_pc(u16::wrapping_from(0x0040 + interrupt_id * 8))
+                } else {
+                    // if push(PCH) writes to IE and disables all requested interrupts,
+                    // PC is forced to zero
+                    self.cpu.r.set_pc(0x0000);
+                }
+            }
         }
         //TODO debugger.instruction();
 
-        // ** S6
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 
@@ -343,15 +362,22 @@ impl<P: Platform> System<P> {
             return;
         }
 
+        // ** S4
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(4);
+            return;
+        }
+
         self.cpu.r.ime = false;
         // upper byte may write to IE before it is polled again
         let sp = self.cpu.r.pre_decrement_sp();
         let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
-        // ** S4
+        // ** S5
         self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(4);
+            self.cpu_sync_points.push(5);
             self.cpu_local_u16s.push(sp);
             self.cpu_local_u8s.push(pc);
             return;
@@ -362,10 +388,10 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.pre_decrement_sp();
         let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
-        // ** S5
+        // ** S6
         self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(5);
+            self.cpu_sync_points.push(6);
             self.cpu_local_u16s.push(sp);
             self.cpu_local_u8s.push(pc);
             self.cpu_local_u8s.push(mask);
@@ -386,10 +412,10 @@ impl<P: Platform> System<P> {
         }
         //TODO debugger.instruction();
 
-        // ** S6
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 
@@ -406,15 +432,22 @@ impl<P: Platform> System<P> {
             return;
         }
 
+        // ** S4
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(4);
+            return;
+        }
+
         self.cpu.r.ime = false;
         // upper byte may write to IE before it is polled again
         let sp = self.cpu.r.pre_decrement_sp();
         let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
 
-        // ** S4
+        // ** S5
         self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(4);
+            self.cpu_sync_points.push(5);
             self.cpu_local_u16s.push(sp);
             self.cpu_local_u8s.push(pc);
             return;
@@ -425,10 +458,10 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.pre_decrement_sp();
         let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
-        // ** S5
+        // ** S6
         self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(5);
+            self.cpu_sync_points.push(6);
             self.cpu_local_u16s.push(sp);
             self.cpu_local_u8s.push(pc);
             self.cpu_local_u8s.push(mask);
@@ -449,10 +482,10 @@ impl<P: Platform> System<P> {
         }
         //TODO debugger.instruction();
 
-        // ** S6
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 
@@ -463,6 +496,69 @@ impl<P: Platform> System<P> {
 
     fn s_cpu_main_resume_at_4(&mut self) {
         // ** S4
+        self.s_cpu_idle();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(4);
+            return;
+        }
+
+        self.cpu.r.ime = false;
+        // upper byte may write to IE before it is polled again
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc() >> 8);
+
+        // ** S5
+        self.s_cpu_write(sp, pc);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(5);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            return;
+        }
+
+        let mask = self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
+        // lower byte write to IE has no effect
+        let sp = self.cpu.r.pre_decrement_sp();
+        let pc = u8::wrapping_from(self.cpu.r.get_pc());
+
+        // ** S6
+        self.s_cpu_write(sp, pc);
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(6);
+            self.cpu_local_u16s.push(sp);
+            self.cpu_local_u8s.push(pc);
+            self.cpu_local_u8s.push(mask);
+            return;
+        }
+
+        if mask != 0 {
+            // find highest priority interrupt
+            let interrupt_id = mask.index_of_next_true_bit(0).unwrap();
+            self.cpu.lower(u32::wrapping_from(interrupt_id));
+            self.cpu
+                .r
+                .set_pc(u16::wrapping_from(0x0040 + interrupt_id * 8))
+        } else {
+            // if push(PCH) writes to IE and disables all requested interrupts,
+            // PC is forced to zero
+            self.cpu.r.set_pc(0x0000);
+        }
+        //TODO debugger.instruction();
+
+        // ** S7
+        self.s_instruction();
+        if self.cpu_return_to_sync {
+            self.cpu_sync_points.push(7);
+            return;
+        }
+
+        if self.model == Model::SuperGameBoy {
+            //TODO scheduler.exit(Event::Step);
+        }
+    }
+
+    fn s_cpu_main_resume_at_5(&mut self) {
+        // ** S5
         let sp = self.cpu_local_u16s.pop();
         let pc = self.cpu_local_u8s.pop();
         self.s_cpu_write(sp, pc);
@@ -478,10 +574,10 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.pre_decrement_sp();
         let pc = u8::wrapping_from(self.cpu.r.get_pc());
 
-        // ** S5
+        // ** S6
         self.s_cpu_write(sp, pc);
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(5);
+            self.cpu_sync_points.push(6);
             self.cpu_local_u16s.push(sp);
             self.cpu_local_u8s.push(pc);
             self.cpu_local_u8s.push(mask);
@@ -502,10 +598,10 @@ impl<P: Platform> System<P> {
         }
         //TODO debugger.instruction();
 
-        // ** S6
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 
@@ -514,8 +610,8 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn s_cpu_main_resume_at_5(&mut self) {
-        // ** S5
+    fn s_cpu_main_resume_at_6(&mut self) {
+        // ** S6
         let sp = self.cpu_local_u16s.pop();
         let mask = self.cpu_local_u8s.pop();
         let pc = self.cpu_local_u8s.pop();
@@ -541,10 +637,10 @@ impl<P: Platform> System<P> {
             self.cpu.r.set_pc(0x0000);
         }
         //TODO debugger.instruction();
-        // ** S6
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 
@@ -553,11 +649,11 @@ impl<P: Platform> System<P> {
         }
     }
 
-    fn s_cpu_main_resume_at_6(&mut self) {
-        // ** S6
+    fn s_cpu_main_resume_at_7(&mut self) {
+        // ** S7
         self.s_instruction();
         if self.cpu_return_to_sync {
-            self.cpu_sync_points.push(6);
+            self.cpu_sync_points.push(7);
             return;
         }
 

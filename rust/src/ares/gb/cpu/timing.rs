@@ -113,7 +113,8 @@ impl<P: Platform> System<P> {
         self.cpu_joyp_poll();
     }
 
-    pub fn cpu_h_blank_trigger(&mut self) {
+    // Need ppu.status
+    pub fn s_cpu_h_blank_trigger(&mut self) {
         unimplemented!()
     }
 }

@@ -863,7 +863,7 @@ impl<P: Platform> System<P> {
             }
             0xc7 => self.s_instruction_rst_implied(0),
             0xc8 => self.s_instruction_ret_condition(self.cpu.r.get_zf()),
-            0xc9 => self.instruction_ret(),
+            0xc9 => self.s_instruction_ret(),
             0xca => self.s_instruction_jp_condition_address(self.cpu.r.get_zf()),
             0xcb => self.s_instruction_cb(),
             0xcc => self.s_instruction_call_condition_address(self.cpu.r.get_zf()),

@@ -152,4 +152,8 @@ impl<P: Platform> System<P> {
             data
         }
     }
+
+    pub fn s_cpu_write_io(&mut self, _cycle: u32, _address: u16, _data: u8) {
+        unimplemented!()
+    }
 }
