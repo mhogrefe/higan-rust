@@ -3,6 +3,7 @@ use ares::ares::scheduler::thread::Thread;
 use ares::emulator::types::U3;
 use ares::gb::apu::APU;
 use ares::gb::cpu::CPU;
+use ares::gb::ppu::PPU;
 use ares::node::InputNode;
 use ares::platform::Platform;
 
@@ -81,21 +82,22 @@ pub struct System<P: Platform> {
     pub boot_rom: Vec<u8>,
     pub cpu: CPU,
     pub apu: APU,
+    pub ppu: PPU,
     pub information: Information,
 
     pub scheduler: Scheduler,
     pub cpu_thread: Thread,
     pub apu_thread: Thread,
 
-    pub cpu_return_to_sync: bool,
-    pub cpu_resuming_after_sync: bool,
+    pub cpu_pausing_execution: bool,
+    pub cpu_resuming_execution: bool,
     pub cpu_sync_points: SmallStack<usize>,
     pub cpu_local_u3s: SmallStack<U3>,
     pub cpu_local_u8s: SmallStack<u8>,
     pub cpu_local_u16s: SmallStack<u16>,
     pub cpu_local_u32s: SmallStack<u32>,
 
-    pub apu_return_to_sync: bool,
+    pub apu_pausing_execution: bool,
 }
 
 pub mod controls;

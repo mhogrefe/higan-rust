@@ -126,7 +126,7 @@ impl<P: Platform> System<P> {
 
     /// See higan-rust/cpp/ares/gb/apu/apu.cpp
     pub fn apu_main(&mut self) {
-        self.apu_return_to_sync = false;
+        self.apu_pausing_execution = false;
         self.apu.square_1.run();
         self.apu.square_2.run();
         self.apu.wave.run();
@@ -167,7 +167,7 @@ impl<P: Platform> System<P> {
         self.apu.cycle.wrapping_add_assign(U12::ONE);
         self.apu_thread.step(1);
         if self.apu_is_sync_needed() {
-            self.apu_return_to_sync = true;
+            self.apu_pausing_execution = true;
         }
     }
 }

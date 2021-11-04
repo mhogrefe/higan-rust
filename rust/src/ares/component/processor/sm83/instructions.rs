@@ -10,7 +10,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_adc_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.add(*target, op, self.cpu.r.get_cf());
@@ -23,7 +23,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_adc_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.add(*target, s, self.cpu.r.get_cf());
@@ -32,7 +32,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_add_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.add(*target, op, false);
@@ -45,7 +45,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_add_direct_direct_16(&mut self, target: &mut u16, source: u16) {
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         let x = u32::from(*target) + u32::from(source);
@@ -59,7 +59,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_add_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.add(*target, s, false);
@@ -67,7 +67,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_add_direct_relative(&mut self, target: &mut u16) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -85,7 +85,7 @@ impl<P: Platform> System<P> {
 
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             self.cpu_local_u8s.push(data);
             return;
@@ -93,7 +93,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u8s.push(data);
             return;
@@ -119,14 +119,14 @@ impl<P: Platform> System<P> {
     fn s_instruction_add_direct_relative_fresh_resume_at_1(&mut self, target: &mut u16) {
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -152,7 +152,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_add_direct_relative_fresh_resume_at_2(&mut self, target: &mut u16) {
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -178,7 +178,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_and_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.and(*target, op);
@@ -191,7 +191,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_and_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.and(*target, s);
@@ -204,7 +204,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_bit_index_indirect(&mut self, index: U3, address: u16) {
         let data = self.s_cpu_read(address);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         self.cpu.r.bit(index, data);
@@ -212,7 +212,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_call_condition_address(&mut self, take: bool) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -233,7 +233,7 @@ impl<P: Platform> System<P> {
 
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             self.cpu_local_u16s.push(address);
             return;
@@ -241,7 +241,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         self.s_cpu_push(self.cpu.r.get_pc());
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(address);
             return;
@@ -253,7 +253,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_call_condition_address_resume_at_1(&mut self) {
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
@@ -261,7 +261,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         self.s_cpu_push(self.cpu.r.get_pc());
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(address);
             return;
@@ -273,7 +273,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_call_condition_address_resume_at_2(&mut self) {
         // ** S2
         self.s_cpu_push(self.cpu.r.get_pc());
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -290,7 +290,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_cp_direct_data(&mut self, target: u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         self.cpu.r.cp(target, op);
@@ -303,7 +303,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_cp_direct_indirect(&mut self, target: u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         self.cpu.r.cp(target, s);
@@ -347,16 +347,50 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_dec_direct_16(&mut self, data: &mut u16) {
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *data -= 1;
     }
 
+    // synchronized
     pub fn s_instruction_dec_indirect(&mut self, address: u16) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_dec_indirect_fresh(address),
+            2 => self.s_instruction_dec_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_dec_indirect_fresh(&mut self, address: u16) {
+        // ** S1
         let data = self.s_cpu_read(address);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         let d = self.cpu.r.dec(data);
+        // ** S2
         self.s_cpu_write(address, d);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
+    }
+
+    fn s_instruction_dec_indirect_resume_at_2(&mut self, address: u16) {
+        // ** S2
+        let d = self.cpu_local_u8s.pop();
+        self.s_cpu_write(address, d);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
     }
 
     pub fn instruction_di(&mut self) {
@@ -367,11 +401,43 @@ impl<P: Platform> System<P> {
         self.cpu.r.ei = true;
     }
 
+    // synchronized
     pub fn s_instruction_halt(&mut self) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 => self.s_instruction_halt_fresh(),
+            1 => self.s_instruction_halt_resume_at_1(),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_halt_fresh(&mut self) {
         self.cpu.r.halt = true;
         self.cpu_halt_bug_trigger();
         while self.cpu.r.halt {
+            // ** S1
             self.s_cpu_halt();
+            if self.cpu_pausing_execution {
+                self.cpu_sync_points.push(1);
+                return;
+            }
+        }
+    }
+
+    fn s_instruction_halt_resume_at_1(&mut self) {
+        self.cpu.r.halt = true;
+        self.cpu_halt_bug_trigger();
+        while self.cpu_resuming_execution || self.cpu.r.halt {
+            // ** S1
+            self.s_cpu_halt();
+            if self.cpu_pausing_execution {
+                self.cpu_sync_points.push(1);
+                return;
+            }
         }
     }
 
@@ -382,21 +448,55 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_inc_direct_16(&mut self, data: &mut u16) {
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *data += 1;
     }
 
+    // synchronized
     pub fn s_instruction_inc_indirect(&mut self, address: u16) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_inc_indirect_fresh(address),
+            2 => self.s_instruction_inc_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_inc_indirect_fresh(&mut self, address: u16) {
+        // ** S1
         let data = self.s_cpu_read(address);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         let d = self.cpu.r.inc(data);
+        // ** S2
         self.s_cpu_write(address, d);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
+    }
+
+    fn s_instruction_inc_indirect_resume_at_2(&mut self, address: u16) {
+        // ** S2
+        let d = self.cpu_local_u8s.pop();
+        self.s_cpu_write(address, d);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
     }
 
     // synchronized
     pub fn s_instruction_jp_condition_address(&mut self, take: bool) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -415,7 +515,7 @@ impl<P: Platform> System<P> {
         }
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             self.cpu_local_u16s.push(address);
             return;
@@ -427,7 +527,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_jp_condition_address_resume_at_1(&mut self) {
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
@@ -441,7 +541,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_jr_condition_relative(&mut self, take: bool) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -456,9 +556,8 @@ impl<P: Platform> System<P> {
     fn s_instruction_jr_condition_relative_fresh(&mut self, take: bool) {
         // ** S1
         let data = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
-            // no point pushing data onto stack, it's garbage at this point
             return;
         }
         if !take {
@@ -467,7 +566,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u8s.push(data);
             return;
@@ -487,7 +586,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_jr_condition_relative_resume_at_2(&mut self) {
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -503,6 +602,7 @@ impl<P: Platform> System<P> {
         self.cpu.r.set_pc(pc);
     }
 
+    // TODO synchronize
     pub fn s_instruction_ld_address_direct_8(&mut self, data: u8) {
         let op = self.s_cpu_operands();
         self.s_cpu_write(op, data);
@@ -535,7 +635,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_ld_direct_direct_16(&mut self, target: &mut u16, source: u16) {
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = source;
@@ -543,7 +643,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_ld_direct_direct_relative(&mut self, target: &mut u16, source: u16) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -558,14 +658,14 @@ impl<P: Platform> System<P> {
     fn s_instruction_ld_direct_direct_relative_fresh(&mut self, target: &mut u16, source: u16) {
         // ** S1
         let data = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u8s.push(data);
             return;
@@ -595,7 +695,7 @@ impl<P: Platform> System<P> {
     ) {
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -629,7 +729,7 @@ impl<P: Platform> System<P> {
         source: &mut u16,
     ) {
         *target = self.s_cpu_read(*source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         source.wrapping_sub_assign(1);
@@ -642,7 +742,7 @@ impl<P: Platform> System<P> {
         source: &mut u16,
     ) {
         *target = self.s_cpu_read(*source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         source.wrapping_add_assign(1);
@@ -661,7 +761,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_ld_indirect_decrement_direct(&mut self, target: &mut u16, source: u8) {
         self.s_cpu_write(*target, source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         target.wrapping_sub_assign(1);
@@ -670,7 +770,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_ld_indirect_increment_direct(&mut self, target: &mut u16, source: u8) {
         self.s_cpu_write(*target, source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         target.wrapping_add_assign(1);
@@ -701,7 +801,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_or_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.or(*target, op);
@@ -714,7 +814,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_or_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.or(*target, s);
@@ -732,7 +832,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_push_direct(&mut self, data: u16) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -748,13 +848,13 @@ impl<P: Platform> System<P> {
     fn s_instruction_push_direct_fresh(&mut self, data: u16) {
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
         // ** S2
         self.s_cpu_push(data);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
         }
     }
@@ -762,7 +862,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_push_direct_resume_at_2(&mut self, data: u16) {
         // ** S2
         self.s_cpu_push(data);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
         }
     }
@@ -779,7 +879,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_ret(&mut self) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -794,14 +894,14 @@ impl<P: Platform> System<P> {
     fn s_instruction_ret_fresh(&mut self) {
         // ** S1
         let address = self.s_cpu_pop();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(address);
             return;
@@ -813,7 +913,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_ret_resume_at_2(&mut self) {
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -823,7 +923,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_ret_condition(&mut self, take: bool) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -839,7 +939,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_ret_condition_fresh(&mut self, take: bool) {
         // ** S1
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
@@ -850,7 +950,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         let p = self.s_cpu_pop();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -859,7 +959,7 @@ impl<P: Platform> System<P> {
 
         // ** S3
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(3);
         }
     }
@@ -867,7 +967,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_ret_condition_resume_at_2(&mut self) {
         // ** S2
         let p = self.s_cpu_pop();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -876,7 +976,7 @@ impl<P: Platform> System<P> {
 
         // ** S3
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(3);
         }
     }
@@ -884,14 +984,14 @@ impl<P: Platform> System<P> {
     fn s_instruction_ret_condition_resume_at_3(&mut self) {
         // ** S3
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(3);
         }
     }
 
     // synchronized
     pub fn s_instruction_reti(&mut self) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -906,14 +1006,14 @@ impl<P: Platform> System<P> {
     fn s_instruction_reti_fresh(&mut self) {
         // ** S1
         let address = self.s_cpu_pop();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(address);
             return;
@@ -926,7 +1026,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_reti_resume_at_2(&mut self) {
         // ** S2
         self.s_cpu_idle();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -1008,7 +1108,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_sbc_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.sub(*target, op, self.cpu.r.get_cf());
@@ -1021,7 +1121,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_sbc_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.sub(*target, s, self.cpu.r.get_cf());
@@ -1086,7 +1186,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_sub_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.sub(*target, op, false);
@@ -1099,7 +1199,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_sub_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.sub(*target, s, false);
@@ -1118,7 +1218,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_xor_direct_data(&mut self, target: &mut u8) {
         let op = self.s_cpu_operand();
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.xor(*target, op);
@@ -1131,7 +1231,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_instruction_xor_direct_indirect(&mut self, target: &mut u8, source: u16) {
         let s = self.s_cpu_read(source);
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             return;
         }
         *target = self.cpu.r.xor(*target, s);

@@ -24,8 +24,40 @@ impl<P: Platform> System<P> {
         data
     }
 
+    // synchronized
     pub fn s_bus_write(&mut self, address: u16, data: u8) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_bus_write_fresh(address, data),
+            2 => self.s_bus_write_resume_at_2(address, data),
+            _ => panic!(),
+        }
+    }
+
+    fn s_bus_write_fresh(&mut self, address: u16, data: u8) {
+        // ** S1
         self.s_bus_write_with_cycle(2, address, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+
+        // ** S2
         self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+        }
+    }
+
+    fn s_bus_write_resume_at_2(&mut self, address: u16, data: u8) {
+        // ** S2
+        self.s_bus_write_with_cycle(4, address, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+        }
     }
 }

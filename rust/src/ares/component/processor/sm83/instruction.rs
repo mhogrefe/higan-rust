@@ -971,9 +971,35 @@ impl<P: Platform> System<P> {
         }
     }
 
+    // synchronized
     pub fn s_instruction_cb(&mut self) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_cb_fresh(),
+            2 => self.s_instruction_cb_resume_at_2(),
+            3 => self.s_instruction_cb_resume_at_3(),
+            4 => self.s_instruction_cb_resume_at_4(),
+            5 => self.s_instruction_cb_resume_at_5(),
+            6 => self.s_instruction_cb_resume_at_6(),
+            7 => self.s_instruction_cb_resume_at_7(),
+            8 => self.s_instruction_cb_resume_at_8(),
+            9 => self.s_instruction_cb_resume_at_9(),
+            10 => self.s_instruction_cb_resume_at_10(),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_cb_fresh(&mut self) {
         // ** S1
         let opcode = self.s_cpu_operand();
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         match opcode {
             0x00 => {
                 let mut b = self.cpu.r.get_b();
@@ -1006,7 +1032,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S2
-            0x06 => self.s_instruction_rlc_indirect(self.cpu.r.get_hl()),
+            0x06 => {
+                self.s_instruction_rlc_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(2);
+                }
+            }
             0x07 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rlc_direct(&mut a);
@@ -1043,7 +1074,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S3
-            0x0e => self.s_instruction_rrc_indirect(self.cpu.r.get_hl()),
+            0x0e => {
+                self.s_instruction_rrc_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(3);
+                }
+            }
             0x0f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rrc_direct(&mut a);
@@ -1080,7 +1116,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S4
-            0x16 => self.s_instruction_rl_indirect(self.cpu.r.get_hl()),
+            0x16 => {
+                self.s_instruction_rl_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(4);
+                }
+            }
             0x17 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rl_direct(&mut a);
@@ -1117,7 +1158,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S5
-            0x1e => self.s_instruction_rr_indirect(self.cpu.r.get_hl()),
+            0x1e => {
+                self.s_instruction_rr_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(5);
+                }
+            }
             0x1f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_rr_direct(&mut a);
@@ -1154,7 +1200,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S6
-            0x26 => self.s_instruction_sla_indirect(self.cpu.r.get_hl()),
+            0x26 => {
+                self.s_instruction_sla_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(6);
+                }
+            }
             0x27 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_sla_direct(&mut a);
@@ -1191,7 +1242,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S7
-            0x2e => self.s_instruction_sra_indirect(self.cpu.r.get_hl()),
+            0x2e => {
+                self.s_instruction_sra_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(7);
+                }
+            }
             0x2f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_sra_direct(&mut a);
@@ -1228,7 +1284,12 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S8
-            0x36 => self.s_instruction_swap_indirect(self.cpu.r.get_hl()),
+            0x36 => {
+                self.s_instruction_swap_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(8);
+                }
+            }
             0x37 => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_swap_direct(&mut a);
@@ -1265,19 +1326,105 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             // ** S9
-            0x3e => self.s_instruction_srl_indirect(self.cpu.r.get_hl()),
+            0x3e => {
+                self.s_instruction_srl_indirect(self.cpu.r.get_hl());
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(9);
+                }
+            }
             0x3f => {
                 let mut a = self.cpu.r.get_a();
                 self.instruction_srl_direct(&mut a);
                 self.cpu.r.set_a(a);
             }
-            _ => self.s_bit_instruction_cb(opcode),
+            // ** S10
+            _ => {
+                self.s_bit_instruction_cb(opcode);
+                if self.cpu_pausing_execution {
+                    self.cpu_sync_points.push(10);
+                    self.cpu_local_u8s.push(opcode);
+                }
+            }
+        }
+    }
+
+    fn s_instruction_cb_resume_at_2(&mut self) {
+        // ** S2
+        self.s_instruction_rlc_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_3(&mut self) {
+        // ** S3
+        self.s_instruction_rrc_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(3);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_4(&mut self) {
+        // ** S4
+        self.s_instruction_rl_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(4);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_5(&mut self) {
+        // ** S5
+        self.s_instruction_rr_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(5);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_6(&mut self) {
+        // ** S6
+        self.s_instruction_sla_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(6);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_7(&mut self) {
+        // ** S7
+        self.s_instruction_sra_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(7);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_8(&mut self) {
+        // ** S8
+        self.s_instruction_swap_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(8);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_9(&mut self) {
+        // ** S9
+        self.s_instruction_srl_indirect(self.cpu.r.get_hl());
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(9);
+        }
+    }
+
+    fn s_instruction_cb_resume_at_10(&mut self) {
+        // ** S10
+        let opcode = self.cpu_local_u8s.pop();
+        self.s_bit_instruction_cb(opcode);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(10);
+            self.cpu_local_u8s.push(opcode);
         }
     }
 
     // synchronized
     pub fn s_bit_instruction_cb(&mut self, opcode: u8) {
-        let sync_point = if self.cpu_resuming_after_sync {
+        let sync_point = if self.cpu_resuming_execution {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -1304,7 +1451,7 @@ impl<P: Platform> System<P> {
             // ** S1
             0x0e => {
                 self.s_instruction_bit_index_indirect(bit, self.cpu.r.get_hl());
-                if self.cpu_return_to_sync {
+                if self.cpu_pausing_execution {
                     self.cpu_sync_points.push(1);
                     self.cpu_local_u3s.push(bit);
                 }
@@ -1343,7 +1490,7 @@ impl<P: Platform> System<P> {
             // ** S2
             0x16 => {
                 self.s_instruction_res_index_indirect(bit, self.cpu.r.get_hl());
-                if self.cpu_return_to_sync {
+                if self.cpu_pausing_execution {
                     self.cpu_sync_points.push(2);
                     self.cpu_local_u3s.push(bit);
                 }
@@ -1386,7 +1533,7 @@ impl<P: Platform> System<P> {
             // ** S3
             0x1e => {
                 self.s_instruction_set_index_indirect(bit, self.cpu.r.get_hl());
-                if self.cpu_return_to_sync {
+                if self.cpu_pausing_execution {
                     self.cpu_sync_points.push(3);
                     self.cpu_local_u3s.push(bit);
                 }
@@ -1403,7 +1550,7 @@ impl<P: Platform> System<P> {
     fn s_bit_instruction_cb_resume_at_1(&mut self) {
         let bit = self.cpu_local_u3s.pop();
         self.s_instruction_bit_index_indirect(bit, self.cpu.r.get_hl());
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(1);
             self.cpu_local_u3s.push(bit);
         }
@@ -1412,7 +1559,7 @@ impl<P: Platform> System<P> {
     fn s_bit_instruction_cb_resume_at_2(&mut self) {
         let bit = self.cpu_local_u3s.pop();
         self.s_instruction_res_index_indirect(bit, self.cpu.r.get_hl());
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(2);
             self.cpu_local_u3s.push(bit);
         }
@@ -1421,7 +1568,7 @@ impl<P: Platform> System<P> {
     fn s_bit_instruction_cb_resume_at_3(&mut self) {
         let bit = self.cpu_local_u3s.pop();
         self.s_instruction_set_index_indirect(bit, self.cpu.r.get_hl());
-        if self.cpu_return_to_sync {
+        if self.cpu_pausing_execution {
             self.cpu_sync_points.push(3);
             self.cpu_local_u3s.push(bit);
         }
