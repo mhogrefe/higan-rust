@@ -116,4 +116,17 @@ pub struct Background {
     pub tiledata: u16,
 }
 
+//flips 2bpp tiledata line horizontally
+pub fn hflip(tiledata: u16) -> u16 {
+    tiledata >> 7 & 0x0101
+        | tiledata >> 5 & 0x0202
+        | tiledata >> 3 & 0x0404
+        | tiledata >> 1 & 0x0808
+        | tiledata << 1 & 0x1010
+        | tiledata << 3 & 0x2020
+        | tiledata << 5 & 0x4040
+        | tiledata << 7 & 0x8080
+}
+
+pub mod cgb;
 pub mod color;

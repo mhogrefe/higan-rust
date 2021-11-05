@@ -602,20 +602,122 @@ impl<P: Platform> System<P> {
         self.cpu.r.set_pc(pc);
     }
 
-    // TODO synchronize
+    // synchronized
     pub fn s_instruction_ld_address_direct_8(&mut self, data: u8) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ld_address_direct_8_fresh(data),
+            2 => self.s_instruction_ld_address_direct_8_resume_at_2(data),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_ld_address_direct_8_fresh(&mut self, data: u8) {
+        // ** S1
         let op = self.s_cpu_operands();
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+
+        // ** S2
         self.s_cpu_write(op, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(op);
+        }
     }
 
+    fn s_instruction_ld_address_direct_8_resume_at_2(&mut self, data: u8) {
+        // ** S2
+        let op = self.cpu_local_u16s.pop();
+        self.s_cpu_write(op, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(op);
+        }
+    }
+
+    // synchronized
     pub fn s_instruction_ld_address_direct_16(&mut self, data: u16) {
-        let op = self.s_cpu_operands();
-        self.s_cpu_store(op, data);
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ld_address_direct_16_fresh(data),
+            2 => self.s_instruction_ld_address_direct_16_resume_at_2(data),
+            _ => panic!(),
+        }
     }
 
-    pub fn s_instruction_ld_direct_address(&mut self, data: &mut u8) {
+    fn s_instruction_ld_address_direct_16_fresh(&mut self, data: u16) {
+        // ** S1
         let op = self.s_cpu_operands();
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+        // ** S2
+        self.s_cpu_store(op, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(op);
+        }
+    }
+
+    fn s_instruction_ld_address_direct_16_resume_at_2(&mut self, data: u16) {
+        // ** S2
+        let op = self.cpu_local_u16s.pop();
+        self.s_cpu_store(op, data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(op);
+        }
+    }
+
+    // synchronized
+    pub fn s_instruction_ld_direct_address(&mut self, data: &mut u8) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ld_direct_address_fresh(data),
+            2 => self.s_instruction_ld_direct_address_resume_at_2(data),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_ld_direct_address_fresh(&mut self, data: &mut u8) {
+        // ** S1
+        let op = self.s_cpu_operands();
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+        // ** S2
         *data = self.s_cpu_read(op);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(op);
+        }
+    }
+
+    fn s_instruction_ld_direct_address_resume_at_2(&mut self, data: &mut u8) {
+        // ** S2
+        let op = self.cpu_local_u16s.pop();
+        *data = self.s_cpu_read(op);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(op);
+        }
     }
 
     // synchronized
@@ -748,9 +850,43 @@ impl<P: Platform> System<P> {
         source.wrapping_add_assign(1);
     }
 
+    // synchronized
     pub fn s_instruction_ld_indirect_data(&mut self, target: u16) {
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ld_indirect_data_fresh(target),
+            2 => self.s_instruction_ld_indirect_data_resume_at_2(target),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_ld_indirect_data_fresh(&mut self, target: u16) {
+        // ** S1
         let op = self.s_cpu_operand();
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+        // ** S2
         self.s_cpu_write(target, op);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(op);
+        }
+    }
+
+    fn s_instruction_ld_indirect_data_resume_at_2(&mut self, target: u16) {
+        // ** S2
+        let op = self.cpu_local_u8s.pop();
+        self.s_cpu_write(target, op);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(op);
+        }
     }
 
     // synchronized
@@ -776,11 +912,45 @@ impl<P: Platform> System<P> {
         target.wrapping_add_assign(1);
     }
 
+    // synchronized
     pub fn s_instruction_ldh_address_direct(&mut self, data: u8) {
-        let op = self.s_cpu_operand();
-        self.s_cpu_write(0xff00 | u16::from(op), data);
+        let sync_point = if self.cpu_resuming_execution {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_ldh_address_direct_fresh(data),
+            2 => self.s_instruction_ldh_address_direct_resume_at_2(data),
+            _ => panic!(),
+        }
     }
 
+    fn s_instruction_ldh_address_direct_fresh(&mut self, data: u8) {
+        // ** S1
+        let op = self.s_cpu_operand();
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+        // ** S2
+        self.s_cpu_write(0xff00 | u16::from(op), data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(op);
+        }
+    }
+
+    fn s_instruction_ldh_address_direct_resume_at_2(&mut self, data: u8) {
+        // ** S2
+        let op = self.cpu_local_u8s.pop();
+        self.s_cpu_write(0xff00 | u16::from(op), data);
+        if self.cpu_pausing_execution {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(op);
+        }
+    }
+    //TODO
     pub fn s_instruction_ldh_direct_address(&mut self, data: &mut u8) {
         let op = self.s_cpu_operand();
         *data = self.s_cpu_read(0xff00 | u16::from(op));
