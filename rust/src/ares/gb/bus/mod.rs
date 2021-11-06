@@ -1,4 +1,4 @@
-use ares::gb::system::System;
+use ares::gb::system::{System, ThreadState};
 use ares::platform::Platform;
 
 // See higan-rust/cpp/ares/gb/bus/bus.cpp
@@ -26,7 +26,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_bus_write(&mut self, address: u16, data: u8) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -41,14 +41,14 @@ impl<P: Platform> System<P> {
     fn s_bus_write_fresh(&mut self, address: u16, data: u8) {
         // ** S1
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
         }
     }
@@ -56,7 +56,7 @@ impl<P: Platform> System<P> {
     fn s_bus_write_resume_at_2(&mut self, address: u16, data: u8) {
         // ** S2
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
         }
     }

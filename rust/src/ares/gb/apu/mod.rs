@@ -4,7 +4,7 @@ use ares::gb::apu::sequencer::Sequencer;
 use ares::gb::apu::square_1::Square1;
 use ares::gb::apu::square_2::Square2;
 use ares::gb::apu::wave::Wave;
-use ares::gb::system::{Model, System};
+use ares::gb::system::{Model, System, ThreadState};
 use ares::node::audio::stream::Stream;
 use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{WrappingAdd, WrappingAddAssign};
@@ -126,7 +126,7 @@ impl<P: Platform> System<P> {
 
     /// See higan-rust/cpp/ares/gb/apu/apu.cpp
     pub fn apu_main(&mut self) {
-        self.apu_pausing_execution = false;
+        self.apu_thread_state = ThreadState::NormalExecution;
         self.apu.square_1.run();
         self.apu.square_2.run();
         self.apu.wave.run();
@@ -167,7 +167,7 @@ impl<P: Platform> System<P> {
         self.apu.cycle.wrapping_add_assign(U12::ONE);
         self.apu_thread.step(1);
         if self.apu_is_sync_needed() {
-            self.apu_pausing_execution = true;
+            self.apu_thread_state = ThreadState::Pausing;
         }
     }
 }

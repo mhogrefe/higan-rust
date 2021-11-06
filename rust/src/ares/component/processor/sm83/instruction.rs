@@ -1,5 +1,5 @@
 use ares::emulator::types::U3;
-use ares::gb::system::System;
+use ares::gb::system::{System, ThreadState};
 use ares::platform::Platform;
 use malachite_base::num::logic::traits::BitBlockAccess;
 
@@ -973,7 +973,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_instruction_cb(&mut self) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -996,7 +996,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_fresh(&mut self) {
         // ** S1
         let opcode = self.s_cpu_operand();
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
@@ -1034,7 +1034,7 @@ impl<P: Platform> System<P> {
             // ** S2
             0x06 => {
                 self.s_instruction_rlc_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(2);
                 }
             }
@@ -1076,7 +1076,7 @@ impl<P: Platform> System<P> {
             // ** S3
             0x0e => {
                 self.s_instruction_rrc_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(3);
                 }
             }
@@ -1118,7 +1118,7 @@ impl<P: Platform> System<P> {
             // ** S4
             0x16 => {
                 self.s_instruction_rl_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(4);
                 }
             }
@@ -1160,7 +1160,7 @@ impl<P: Platform> System<P> {
             // ** S5
             0x1e => {
                 self.s_instruction_rr_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(5);
                 }
             }
@@ -1202,7 +1202,7 @@ impl<P: Platform> System<P> {
             // ** S6
             0x26 => {
                 self.s_instruction_sla_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(6);
                 }
             }
@@ -1244,7 +1244,7 @@ impl<P: Platform> System<P> {
             // ** S7
             0x2e => {
                 self.s_instruction_sra_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(7);
                 }
             }
@@ -1286,7 +1286,7 @@ impl<P: Platform> System<P> {
             // ** S8
             0x36 => {
                 self.s_instruction_swap_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(8);
                 }
             }
@@ -1328,7 +1328,7 @@ impl<P: Platform> System<P> {
             // ** S9
             0x3e => {
                 self.s_instruction_srl_indirect(self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(9);
                 }
             }
@@ -1340,7 +1340,7 @@ impl<P: Platform> System<P> {
             // ** S10
             _ => {
                 self.s_bit_instruction_cb(opcode);
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(10);
                     self.cpu_local_u8s.push(opcode);
                 }
@@ -1351,7 +1351,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_2(&mut self) {
         // ** S2
         self.s_instruction_rlc_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
         }
     }
@@ -1359,7 +1359,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_3(&mut self) {
         // ** S3
         self.s_instruction_rrc_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
         }
     }
@@ -1367,7 +1367,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_4(&mut self) {
         // ** S4
         self.s_instruction_rl_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
         }
     }
@@ -1375,7 +1375,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_5(&mut self) {
         // ** S5
         self.s_instruction_rr_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
         }
     }
@@ -1383,7 +1383,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_6(&mut self) {
         // ** S6
         self.s_instruction_sla_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
         }
     }
@@ -1391,7 +1391,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_7(&mut self) {
         // ** S7
         self.s_instruction_sra_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
         }
     }
@@ -1399,7 +1399,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_8(&mut self) {
         // ** S8
         self.s_instruction_swap_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
         }
     }
@@ -1407,7 +1407,7 @@ impl<P: Platform> System<P> {
     fn s_instruction_cb_resume_at_9(&mut self) {
         // ** S9
         self.s_instruction_srl_indirect(self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
         }
     }
@@ -1416,7 +1416,7 @@ impl<P: Platform> System<P> {
         // ** S10
         let opcode = self.cpu_local_u8s.pop();
         self.s_bit_instruction_cb(opcode);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(10);
             self.cpu_local_u8s.push(opcode);
         }
@@ -1424,7 +1424,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_bit_instruction_cb(&mut self, opcode: u8) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -1451,7 +1451,7 @@ impl<P: Platform> System<P> {
             // ** S1
             0x0e => {
                 self.s_instruction_bit_index_indirect(bit, self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(1);
                     self.cpu_local_u3s.push(bit);
                 }
@@ -1490,7 +1490,7 @@ impl<P: Platform> System<P> {
             // ** S2
             0x16 => {
                 self.s_instruction_res_index_indirect(bit, self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(2);
                     self.cpu_local_u3s.push(bit);
                 }
@@ -1533,7 +1533,7 @@ impl<P: Platform> System<P> {
             // ** S3
             0x1e => {
                 self.s_instruction_set_index_indirect(bit, self.cpu.r.get_hl());
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(3);
                     self.cpu_local_u3s.push(bit);
                 }
@@ -1550,7 +1550,7 @@ impl<P: Platform> System<P> {
     fn s_bit_instruction_cb_resume_at_1(&mut self) {
         let bit = self.cpu_local_u3s.pop();
         self.s_instruction_bit_index_indirect(bit, self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             self.cpu_local_u3s.push(bit);
         }
@@ -1559,7 +1559,7 @@ impl<P: Platform> System<P> {
     fn s_bit_instruction_cb_resume_at_2(&mut self) {
         let bit = self.cpu_local_u3s.pop();
         self.s_instruction_res_index_indirect(bit, self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u3s.push(bit);
         }
@@ -1568,7 +1568,7 @@ impl<P: Platform> System<P> {
     fn s_bit_instruction_cb_resume_at_3(&mut self) {
         let bit = self.cpu_local_u3s.pop();
         self.s_instruction_set_index_indirect(bit, self.cpu.r.get_hl());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             self.cpu_local_u3s.push(bit);
         }

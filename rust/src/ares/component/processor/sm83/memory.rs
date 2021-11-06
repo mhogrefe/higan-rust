@@ -1,4 +1,4 @@
-use ares::gb::system::System;
+use ares::gb::system::{System, ThreadState};
 use ares::platform::Platform;
 use malachite_base::num::conversion::traits::WrappingFrom;
 
@@ -6,7 +6,7 @@ use malachite_base::num::conversion::traits::WrappingFrom;
 impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_operand(&mut self) -> u8 {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -24,7 +24,7 @@ impl<P: Platform> System<P> {
             self.cpu.r.halt_bug = false;
             // ** S1
             let r = self.s_cpu_read(self.cpu.r.get_pc());
-            if self.cpu_pausing_execution {
+            if self.cpu_thread_state == ThreadState::Pausing {
                 self.cpu_sync_points.push(1);
                 return 0;
             }
@@ -33,7 +33,7 @@ impl<P: Platform> System<P> {
             let pc = self.cpu.r.post_increment_pc();
             // ** S2
             let r = self.s_cpu_read(pc);
-            if self.cpu_pausing_execution {
+            if self.cpu_thread_state == ThreadState::Pausing {
                 self.cpu_sync_points.push(2);
                 self.cpu_local_u16s.push(pc);
                 return 0;
@@ -45,7 +45,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_operand_resume_at_1(&mut self) -> u8 {
         // ** S1
         let r = self.s_cpu_read(self.cpu.r.get_pc());
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return 0;
         }
@@ -56,7 +56,7 @@ impl<P: Platform> System<P> {
         // ** S2
         let pc = self.cpu_local_u16s.pop();
         let r = self.s_cpu_read(pc);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(pc);
             return 0;
@@ -66,7 +66,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_operands(&mut self) -> u16 {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -81,7 +81,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_operands_fresh(&mut self) -> u16 {
         // ** S1
         let op = self.s_cpu_operand();
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return 0;
         }
@@ -89,7 +89,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         let op = self.s_cpu_operand();
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(data);
             return 0;
@@ -100,7 +100,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_operands_resume_at_2(&mut self) -> u16 {
         // ** S2
         let op = self.s_cpu_operand();
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return 0;
         }
@@ -110,7 +110,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_load(&mut self, address: u16) -> u16 {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -125,7 +125,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_load_fresh(&mut self, address: u16) -> u16 {
         // ** S1
         let r = self.s_cpu_read(address);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return 0;
         }
@@ -135,7 +135,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         let r = self.s_cpu_read(next_address);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(data);
             self.cpu_local_u16s.push(next_address);
@@ -149,7 +149,7 @@ impl<P: Platform> System<P> {
         // ** S2
         let next_address = self.cpu_local_u16s.pop();
         let r = self.s_cpu_read(next_address);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(next_address);
             return 0;
@@ -160,7 +160,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_store(&mut self, address: u16, data: u16) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -175,7 +175,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_store_fresh(&mut self, address: u16, data: u16) {
         // ** S1
         self.s_cpu_write(address, u8::wrapping_from(data));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
@@ -183,7 +183,7 @@ impl<P: Platform> System<P> {
         let next_address = address + 1;
         // ** S2
         self.s_cpu_write(next_address, u8::wrapping_from(data >> 8));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(next_address);
         }
@@ -193,7 +193,7 @@ impl<P: Platform> System<P> {
         // ** S2
         let next_address = self.cpu_local_u16s.pop();
         self.s_cpu_write(next_address, u8::wrapping_from(data >> 8));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(next_address);
         }
@@ -201,7 +201,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_pop(&mut self) -> u16 {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -218,7 +218,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.post_increment_sp();
         // ** S1
         let x = self.s_cpu_read(sp);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             self.cpu_local_u16s.push(sp);
             return 0;
@@ -228,7 +228,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.post_increment_sp();
         // ** S2
         let x = self.s_cpu_read(sp);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(data);
             self.cpu_local_u16s.push(sp);
@@ -242,7 +242,7 @@ impl<P: Platform> System<P> {
         // ** S1
         let sp = self.cpu_local_u16s.pop();
         let x = self.s_cpu_read(sp);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             self.cpu_local_u16s.push(sp);
             return 0;
@@ -252,7 +252,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.post_increment_sp();
         // ** S2
         let x = self.s_cpu_read(sp);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(data);
             self.cpu_local_u16s.push(sp);
@@ -265,7 +265,7 @@ impl<P: Platform> System<P> {
         // ** S2
         let sp = self.cpu_local_u16s.pop();
         let x = self.s_cpu_read(sp);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(sp);
             return 0;
@@ -276,7 +276,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_push(&mut self, data: u16) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -293,7 +293,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.pre_decrement_sp();
         // ** S1
         self.s_cpu_write(sp, u8::wrapping_from(data));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             self.cpu_local_u16s.push(sp);
             return;
@@ -302,7 +302,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.pre_decrement_sp();
         // ** S2
         self.s_cpu_write(sp, u8::wrapping_from(data));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(sp);
         }
@@ -312,7 +312,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu_local_u16s.pop();
         // ** S1
         self.s_cpu_write(sp, u8::wrapping_from(data));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             self.cpu_local_u16s.push(sp);
             return;
@@ -321,7 +321,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu.r.pre_decrement_sp();
         // ** S2
         self.s_cpu_write(sp, u8::wrapping_from(data));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(sp);
         }
@@ -331,7 +331,7 @@ impl<P: Platform> System<P> {
         let sp = self.cpu_local_u16s.pop();
         // ** S2
         self.s_cpu_write(sp, u8::wrapping_from(data));
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u16s.push(sp);
         }

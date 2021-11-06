@@ -74,6 +74,19 @@ impl<T: Copy + Default> SmallStack<T> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ThreadState {
+    NormalExecution,
+    Pausing,
+    Resuming,
+}
+
+impl Default for ThreadState {
+    fn default() -> ThreadState {
+        ThreadState::NormalExecution
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct System<P: Platform> {
     pub platform: P,
@@ -89,15 +102,14 @@ pub struct System<P: Platform> {
     pub cpu_thread: Thread,
     pub apu_thread: Thread,
 
-    pub cpu_pausing_execution: bool,
-    pub cpu_resuming_execution: bool,
+    pub cpu_thread_state: ThreadState,
     pub cpu_sync_points: SmallStack<usize>,
     pub cpu_local_u3s: SmallStack<U3>,
     pub cpu_local_u8s: SmallStack<u8>,
     pub cpu_local_u16s: SmallStack<u16>,
     pub cpu_local_u32s: SmallStack<u32>,
 
-    pub apu_pausing_execution: bool,
+    pub apu_thread_state: ThreadState,
 }
 
 pub mod controls;

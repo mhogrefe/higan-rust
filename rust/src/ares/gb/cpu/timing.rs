@@ -1,7 +1,7 @@
 use ares::emulator::types::{U13, U4, U7};
 use ares::gb::cpu::Interrupt;
 use ares::gb::cpu::CPU;
-use ares::gb::system::{Model, System};
+use ares::gb::system::{Model, System, ThreadState};
 use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{
     DivisibleByPowerOf2, Parity, WrappingAddAssign, WrappingSubAssign,
@@ -12,8 +12,8 @@ use malachite_base::num::conversion::traits::WrappingFrom;
 impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_step(&mut self, clocks: u32) {
-        let start = if self.cpu_resuming_execution {
-            self.cpu_resuming_execution = false;
+        let start = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_thread_state = ThreadState::NormalExecution;
             self.cpu_local_u32s.pop()
         } else {
             0
@@ -40,7 +40,7 @@ impl<P: Platform> System<P> {
             }
             self.cpu_thread.step(1);
             if self.cpu_is_sync_needed() {
-                self.cpu_pausing_execution = true;
+                self.cpu_thread_state = ThreadState::Pausing;
                 self.cpu_local_u32s.push(i + 1);
                 return;
             }

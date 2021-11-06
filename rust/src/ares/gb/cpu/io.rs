@@ -1,6 +1,6 @@
 use ares::emulator::types::{U13, U2, U3, U4, U5, U7};
 use ares::gb::cpu::{Interrupt, CPU};
-use ares::gb::system::{Model, System};
+use ares::gb::system::{Model, System, ThreadState};
 use ares::platform::Platform;
 use malachite_base::num::arithmetic::traits::{
     ModPowerOf2, WrappingAdd, WrappingAddAssign, WrappingSubAssign,
@@ -136,7 +136,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_write_io(&mut self, cycle: u32, address: u16, data: u8) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -224,7 +224,7 @@ impl<P: Platform> System<P> {
                             let r = self.cpu_read_dma(self.cpu.status.dma_source, 0xff);
                             // ** S1
                             self.s_cpu_write_dma(U13::wrapping_from(self.cpu.status.dma_target), r);
-                            if self.cpu_pausing_execution {
+                            if self.cpu_thread_state == ThreadState::Pausing {
                                 self.cpu_sync_points.push(1);
                                 self.cpu_local_u8s.push(r);
                                 self.cpu_local_u8s.push(i);
@@ -236,7 +236,7 @@ impl<P: Platform> System<P> {
                         }
                         // ** S2
                         self.s_cpu_step(if self.cpu.status.speed_double { 16 } else { 8 });
-                        if self.cpu_pausing_execution {
+                        if self.cpu_thread_state == ThreadState::Pausing {
                             self.cpu_sync_points.push(2);
                             return;
                         }
@@ -265,20 +265,20 @@ impl<P: Platform> System<P> {
 
     fn s_cpu_write_io_resume_at_1(&mut self) {
         loop {
-            let initial_i = if self.cpu_resuming_execution {
+            let initial_i = if self.cpu_thread_state == ThreadState::Resuming {
                 self.cpu_local_u8s.pop()
             } else {
                 0
             };
             for i in initial_i..16 {
-                let r = if self.cpu_resuming_execution {
+                let r = if self.cpu_thread_state == ThreadState::Resuming {
                     self.cpu_local_u8s.pop()
                 } else {
                     self.cpu_read_dma(self.cpu.status.dma_source, 0xff)
                 };
                 // ** S1
                 self.s_cpu_write_dma(U13::wrapping_from(self.cpu.status.dma_target), r);
-                if self.cpu_pausing_execution {
+                if self.cpu_thread_state == ThreadState::Pausing {
                     self.cpu_sync_points.push(1);
                     self.cpu_local_u8s.push(r);
                     self.cpu_local_u8s.push(i);
@@ -290,7 +290,7 @@ impl<P: Platform> System<P> {
             }
             // ** S2
             self.s_cpu_step(if self.cpu.status.speed_double { 16 } else { 8 });
-            if self.cpu_pausing_execution {
+            if self.cpu_thread_state == ThreadState::Pausing {
                 self.cpu_sync_points.push(2);
                 return;
             }
@@ -305,12 +305,12 @@ impl<P: Platform> System<P> {
 
     fn s_cpu_write_io_resume_at_2(&mut self) {
         loop {
-            if !self.cpu_resuming_execution {
+            if self.cpu_thread_state != ThreadState::Resuming {
                 for i in 0..16 {
                     let r = self.cpu_read_dma(self.cpu.status.dma_source, 0xff);
                     // ** S1
                     self.s_cpu_write_dma(U13::wrapping_from(self.cpu.status.dma_target), r);
-                    if self.cpu_pausing_execution {
+                    if self.cpu_thread_state == ThreadState::Pausing {
                         self.cpu_sync_points.push(1);
                         self.cpu_local_u8s.push(r);
                         self.cpu_local_u8s.push(i);
@@ -323,7 +323,7 @@ impl<P: Platform> System<P> {
             }
             // ** S2
             self.s_cpu_step(if self.cpu.status.speed_double { 16 } else { 8 });
-            if self.cpu_pausing_execution {
+            if self.cpu_thread_state == ThreadState::Pausing {
                 self.cpu_sync_points.push(2);
                 return;
             }

@@ -1,5 +1,5 @@
 use ares::emulator::types::U13;
-use ares::gb::system::{Model, System};
+use ares::gb::system::{Model, System, ThreadState};
 use ares::platform::Platform;
 
 // See higan-rust/cpp/ares/gb/cpu/memory.cpp
@@ -7,7 +7,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_stop(&mut self) {
         self.s_cpu_idle();
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             return;
         }
         if self.cpu.model == Model::SuperGameBoy {
@@ -18,7 +18,7 @@ impl<P: Platform> System<P> {
     // synchronized
     pub fn s_cpu_halt(&mut self) {
         self.s_cpu_idle();
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             return;
         }
         if self.cpu.status.interrupt_latch != 0 {
@@ -39,7 +39,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_idle(&mut self) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -61,14 +61,14 @@ impl<P: Platform> System<P> {
         };
         // ** S1
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -77,14 +77,14 @@ impl<P: Platform> System<P> {
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
         }
     }
@@ -92,14 +92,14 @@ impl<P: Platform> System<P> {
     fn s_cpu_idle_resume_at_1(&mut self) {
         // ** S1
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -108,14 +108,14 @@ impl<P: Platform> System<P> {
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
         }
     }
@@ -123,7 +123,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_idle_resume_at_2(&mut self) {
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return;
         }
@@ -132,14 +132,14 @@ impl<P: Platform> System<P> {
             self.cpu.status.interrupt_flag.x() & self.cpu.status.interrupt_enable;
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
         }
     }
@@ -147,14 +147,14 @@ impl<P: Platform> System<P> {
     fn s_cpu_idle_resume_at_3(&mut self) {
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
         }
     }
@@ -162,14 +162,14 @@ impl<P: Platform> System<P> {
     fn s_cpu_idle_resume_at_4(&mut self) {
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
         }
     }
 
     // synchronized
     pub fn s_cpu_read(&mut self, address: u16) -> u8 {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -194,7 +194,7 @@ impl<P: Platform> System<P> {
 
         // ** S1
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -204,7 +204,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -216,7 +216,7 @@ impl<P: Platform> System<P> {
 
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -226,7 +226,7 @@ impl<P: Platform> System<P> {
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -239,7 +239,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_read_resume_at_1(&mut self, address: u16) -> u8 {
         // ** S1
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return 0;
         }
@@ -249,7 +249,7 @@ impl<P: Platform> System<P> {
 
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -261,7 +261,7 @@ impl<P: Platform> System<P> {
 
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -271,7 +271,7 @@ impl<P: Platform> System<P> {
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -284,7 +284,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_read_resume_at_2(&mut self, address: u16) -> u8 {
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return 0;
         }
@@ -296,7 +296,7 @@ impl<P: Platform> System<P> {
 
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -306,7 +306,7 @@ impl<P: Platform> System<P> {
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             self.cpu_local_u8s.push(data);
             return 0;
@@ -319,7 +319,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_read_resume_at_3(&mut self, address: u16) -> u8 {
         // ** S3
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return 0;
         }
@@ -329,7 +329,7 @@ impl<P: Platform> System<P> {
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             self.cpu_local_u8s.push(data);
         }
@@ -341,7 +341,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_read_resume_at_4(&mut self, address: u16) -> u8 {
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             return 0;
         }
@@ -353,7 +353,7 @@ impl<P: Platform> System<P> {
 
     // synchronized
     pub fn s_cpu_write(&mut self, address: u16, data: u8) {
-        let sync_point = if self.cpu_resuming_execution {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
             self.cpu_sync_points.pop()
         } else {
             0
@@ -380,63 +380,63 @@ impl<P: Platform> System<P> {
         };
         // ** S1
         self.s_bus_write_with_cycle(0, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return;
         }
 
         // ** S3
         self.s_bus_write_with_cycle(1, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             return;
         }
 
         // ** S5
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
             return;
         }
 
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -448,63 +448,63 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_1(&mut self, address: u16, data: u8) {
         // ** S1
         self.s_bus_write_with_cycle(0, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(1);
             return;
         }
 
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return;
         }
 
         // ** S3
         self.s_bus_write_with_cycle(1, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             return;
         }
 
         // ** S5
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
             return;
         }
 
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -516,56 +516,56 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_2(&mut self, address: u16, data: u8) {
         // ** S2
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(2);
             return;
         }
 
         // ** S3
         self.s_bus_write_with_cycle(1, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             return;
         }
 
         // ** S5
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
             return;
         }
 
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -577,49 +577,49 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_3(&mut self, address: u16, data: u8) {
         // ** S3
         self.s_bus_write_with_cycle(1, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(3);
             return;
         }
 
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             return;
         }
 
         // ** S5
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
             return;
         }
 
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -631,42 +631,42 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_4(&mut self, address: u16, data: u8) {
         // ** S4
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(4);
             return;
         }
 
         // ** S5
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
             return;
         }
 
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -678,35 +678,35 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_5(&mut self, address: u16, data: u8) {
         // ** S5
         self.s_bus_write_with_cycle(2, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(5);
             return;
         }
 
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -718,28 +718,28 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_6(&mut self, address: u16, data: u8) {
         // ** S6
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(6);
             return;
         }
 
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -751,21 +751,21 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_7(&mut self, address: u16, data: u8) {
         // ** S7
         self.s_bus_write_with_cycle(3, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(7);
             return;
         }
 
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -777,14 +777,14 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_8(&mut self, address: u16, data: u8) {
         // ** S8
         self.s_cpu_step(1);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(8);
             return;
         }
 
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
@@ -796,7 +796,7 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_resume_at_9(&mut self, address: u16, data: u8) {
         // ** S9
         self.s_bus_write_with_cycle(4, address, data);
-        if self.cpu_pausing_execution {
+        if self.cpu_thread_state == ThreadState::Pausing {
             self.cpu_sync_points.push(9);
             return;
         }
