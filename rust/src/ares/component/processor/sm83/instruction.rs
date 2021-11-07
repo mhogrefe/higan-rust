@@ -4,6 +4,7 @@ use ares::platform::Platform;
 use malachite_base::num::logic::traits::BitBlockAccess;
 
 impl<P: Platform> System<P> {
+    //TODO sync
     pub fn s_instruction(&mut self) {
         match self.s_cpu_operand() {
             0x00 => System::<P>::instruction_nop(),

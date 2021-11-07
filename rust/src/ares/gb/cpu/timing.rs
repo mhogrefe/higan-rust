@@ -114,6 +114,7 @@ impl<P: Platform> System<P> {
         self.cpu_joyp_poll();
     }
 
+    //TODO sync
     pub fn s_cpu_h_blank_trigger(&mut self) {
         if self.cpu.status.hdma_active && self.ppu.status.ly < 144 {
             for i in 0..16 {

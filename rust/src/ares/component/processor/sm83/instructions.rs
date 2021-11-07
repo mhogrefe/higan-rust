@@ -1049,7 +1049,6 @@ impl<P: Platform> System<P> {
         }
     }
 
-    // synchronized
     fn s_instruction_push_direct_fresh(&mut self, data: u16) {
         // ** S1
         self.s_cpu_idle();
@@ -1476,10 +1475,47 @@ impl<P: Platform> System<P> {
         self.cpu.r.set_zf(false);
     }
 
-    //TODO
+    // synchronized
     pub fn s_instruction_rst_implied(&mut self, vector: u8) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_rst_implied_fresh(vector),
+            2 => self.s_instruction_rst_implied_resume_at_2(vector),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_rst_implied_fresh(&mut self, vector: u8) {
+        // ** S1
         self.s_cpu_idle();
-        self.s_cpu_push(self.cpu.r.get_pc());
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(1);
+            return;
+        }
+        let pc = self.cpu.r.get_pc();
+        // ** S2
+        self.s_cpu_push(pc);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(pc);
+            return;
+        }
+        self.cpu.r.set_pc(u16::from(vector));
+    }
+
+    fn s_instruction_rst_implied_resume_at_2(&mut self, vector: u8) {
+        let pc = self.cpu_local_u16s.pop();
+        // ** S2
+        self.s_cpu_push(pc);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u16s.push(pc);
+            return;
+        }
         self.cpu.r.set_pc(u16::from(vector));
     }
 
@@ -1515,40 +1551,176 @@ impl<P: Platform> System<P> {
         data.set_bit(u64::from(index))
     }
 
+    // synchronized
     pub fn s_instruction_set_index_indirect(&mut self, index: U3, address: u16) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_set_index_indirect_fresh(index, address),
+            2 => self.s_instruction_set_index_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_set_index_indirect_fresh(&mut self, index: U3, address: u16) {
+        // ** S1
         let mut data = self.s_cpu_read(address);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         data.set_bit(u64::from(index));
+        // ** S2
         self.s_cpu_write(address, data);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(data);
+        }
+    }
+
+    fn s_instruction_set_index_indirect_resume_at_2(&mut self, address: u16) {
+        // ** S2
+        let data = self.cpu_local_u8s.pop();
+        self.s_cpu_write(address, data);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(data);
+        }
     }
 
     pub fn instruction_sla_direct(&mut self, data: &mut u8) {
         *data = self.cpu.r.sla(*data);
     }
 
+    // synchronized
     pub fn s_instruction_sla_indirect(&mut self, address: u16) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_sla_indirect_fresh(address),
+            2 => self.s_instruction_sla_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_sla_indirect_fresh(&mut self, address: u16) {
+        // ** S1
         let data = self.s_cpu_read(address);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         let d = self.cpu.r.sla(data);
+        // ** S2
         self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
+    }
+
+    fn s_instruction_sla_indirect_resume_at_2(&mut self, address: u16) {
+        let d = self.cpu_local_u8s.pop();
+        // ** S2
+        self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
     }
 
     pub fn instruction_sra_direct(&mut self, data: &mut u8) {
         *data = self.cpu.r.sra(*data);
     }
 
+    // synchronized
     pub fn s_instruction_sra_indirect(&mut self, address: u16) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_sra_indirect_fresh(address),
+            2 => self.s_instruction_sra_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_sra_indirect_fresh(&mut self, address: u16) {
+        // ** S1
         let data = self.s_cpu_read(address);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         let d = self.cpu.r.sra(data);
+        // ** S2
         self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
+    }
+
+    fn s_instruction_sra_indirect_resume_at_2(&mut self, address: u16) {
+        // ** S2
+        let d = self.cpu_local_u8s.pop();
+        self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
     }
 
     pub fn instruction_srl_direct(&mut self, data: &mut u8) {
         *data = self.cpu.r.srl(*data);
     }
 
+    // synchronized
     pub fn s_instruction_srl_indirect(&mut self, address: u16) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_srl_indirect_fresh(address),
+            2 => self.s_instruction_srl_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_srl_indirect_fresh(&mut self, address: u16) {
+        // ** S1
         let data = self.s_cpu_read(address);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         let d = self.cpu.r.srl(data);
+        // ** S2
         self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
+    }
+
+    fn s_instruction_srl_indirect_resume_at_2(&mut self, address: u16) {
+        // ** S2
+        let d = self.cpu_local_u8s.pop();
+        self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
     }
 
     pub fn instruction_stop(&mut self) {
@@ -1587,10 +1759,44 @@ impl<P: Platform> System<P> {
         *data = self.cpu.r.swap(*data);
     }
 
+    // synchronized
     pub fn s_instruction_swap_indirect(&mut self, address: u16) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_swap_indirect_fresh(address),
+            2 => self.s_instruction_swap_indirect_resume_at_2(address),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_swap_indirect_fresh(&mut self, address: u16) {
+        // ** S1
         let data = self.s_cpu_read(address);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(1);
+            return;
+        }
         let d = self.cpu.r.swap(data);
+        // ** S2
         self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
+    }
+
+    fn s_instruction_swap_indirect_resume_at_2(&mut self, address: u16) {
+        // ** S2
+        let d = self.cpu_local_u8s.pop();
+        self.s_cpu_write(address, d);
+        if self.cpu_thread_state == ThreadState::Pausing {
+            self.cpu_sync_points.push(2);
+            self.cpu_local_u8s.push(d);
+        }
     }
 
     // synchronized

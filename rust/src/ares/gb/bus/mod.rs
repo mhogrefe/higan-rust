@@ -11,6 +11,7 @@ impl<P: Platform> System<P> {
         data
     }
 
+    //TODO sync
     pub fn s_bus_write_with_cycle(&mut self, cycle: u32, address: u16, data: u8) {
         self.s_cpu_write_io(cycle, address, data);
         self.apu.write_io(cycle, address, data);
