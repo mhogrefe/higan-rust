@@ -131,3 +131,5 @@ pub fn hflip(tiledata: u16) -> u16 {
 pub mod cgb;
 pub mod color;
 pub mod dmg;
+pub mod io;
+pub mod timing;

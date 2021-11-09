@@ -6,7 +6,7 @@ impl<P: Platform> System<P> {
     pub fn bus_read_with_cycle(&mut self, cycle: u32, address: u16, mut data: u8) -> u8 {
         data &= self.cpu_read_io(cycle, address, data);
         data &= self.apu.read_io(cycle, address, data);
-        // data &= ppu.readIO(cycle, address, data);
+        data &= self.ppu_read_io(cycle, address, data);
         // data &= cartridge.read(cycle, address, data);
         data
     }

@@ -141,6 +141,14 @@ impl CPU {
             .interrupt_flag
             .clear_bit(u64::from(interrupt_id));
     }
+
+    pub const fn low_speed(&self) -> bool {
+        !self.status.speed_double
+    }
+
+    pub const fn high_speed(&self) -> bool {
+        self.status.speed_double
+    }
 }
 
 impl<P: Platform> System<P> {
