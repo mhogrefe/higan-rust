@@ -152,11 +152,11 @@ impl<P: Platform> System<P> {
     fn s_cpu_write_io_fresh(&mut self, cycle: u32, address: u16, data: u8) {
         match (address, cycle, self.model) {
             (address, _, _) if address <= 0xbfff => {}
-            (address, 2, _) if address >= 0xc000 && address <= 0xfdff => {
+            (address, 2, _) if (0xc000..=0xfdff).contains(&address) => {
                 let a = self.cpu.wram_address(U13::wrapping_from(address));
                 self.cpu.wram[a as usize] = data;
             }
-            (address, 2, _) if address >= 0xff80 && address <= 0xfffe => {
+            (address, 2, _) if (0xff80..=0xfffe).contains(&address) => {
                 self.cpu.hram[address.mod_power_of_2(7) as usize] = data
             }
             (0xff00, 2, model) => {

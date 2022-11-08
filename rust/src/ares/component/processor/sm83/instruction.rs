@@ -4,19 +4,53 @@ use ares::platform::Platform;
 use malachite_base::num::logic::traits::BitBlockAccess;
 
 impl<P: Platform> System<P> {
-    //TODO sync
+    // synchronized
     pub fn s_instruction(&mut self) {
+        let sync_point = if self.cpu_thread_state == ThreadState::Resuming {
+            self.cpu_sync_points.pop()
+        } else {
+            0
+        };
+        match sync_point {
+            0 | 1 => self.s_instruction_fresh(),
+            _ => panic!(),
+        }
+    }
+
+    fn s_instruction_fresh(&mut self) {
+        // ** S1
         match self.s_cpu_operand() {
             0x00 => System::<P>::instruction_nop(),
             0x01 => {
-                let mut bc = self.cpu.r.get_bc();
+                let mut bc = 0;
+                // ** S2
                 self.s_instruction_ld_direct_data_16(&mut bc);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(2);
+                    return;
+                }
                 self.cpu.r.set_bc(bc);
             }
-            0x02 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_bc(), self.cpu.r.get_a()),
+            // ** S3
+            0x02 => {
+                let bc = self.cpu.r.get_bc();
+                let a = self.cpu.r.get_a();
+                self.s_instruction_ld_indirect_direct(bc, a);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(3);
+                    self.cpu_local_u16s.push(bc);
+                    self.cpu_local_u8s.push(a);
+                }
+            }
             0x03 => {
                 let mut bc = self.cpu.r.get_bc();
+                // ** S4
                 self.s_instruction_inc_direct_16(&mut bc);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(4);
+                    self.cpu_local_u16s.push(bc);
+                    return;
+                }
                 self.cpu.r.set_bc(bc);
             }
             0x04 => {
@@ -30,25 +64,60 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_b(b);
             }
             0x06 => {
-                let mut b = self.cpu.r.get_b();
+                let mut b = 0;
+                // ** S5
                 self.s_instruction_ld_direct_data_8(&mut b);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(5);
+                    return;
+                }
                 self.cpu.r.set_b(b);
             }
             0x07 => self.instruction_rlca(),
-            0x08 => self.s_instruction_ld_address_direct_16(self.cpu.r.get_sp()),
+            // ** S6
+            0x08 => {
+                let sp = self.cpu.r.get_sp();
+                self.s_instruction_ld_address_direct_16(sp);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(6);
+                    self.cpu_local_u16s.push(sp);
+                }
+            }
             0x09 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.s_instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_bc());
+                let bc = self.cpu.r.get_bc();
+                // ** S7
+                self.s_instruction_add_direct_direct_16(&mut hl, bc);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(7);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u16s.push(bc);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x0a => {
                 let mut a = self.cpu.r.get_a();
-                self.s_instruction_ld_direct_indirect(&mut a, self.cpu.r.get_bc());
+                let bc = self.cpu.r.get_bc();
+                // ** S8
+                self.s_instruction_ld_direct_indirect(&mut a, bc);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(8);
+                    self.cpu_local_u8s.push(a);
+                    self.cpu_local_u16s.push(bc);
+                    return;
+                }
                 self.cpu.r.set_a(a);
             }
             0x0b => {
                 let mut bc = self.cpu.r.get_bc();
+                // ** S9
                 self.s_instruction_dec_direct_16(&mut bc);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(9);
+                    self.cpu_local_u16s.push(bc);
+                    return;
+                }
                 self.cpu.r.set_bc(bc);
             }
             0x0c => {
@@ -62,21 +131,47 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_c(c);
             }
             0x0e => {
-                let mut c = self.cpu.r.get_c();
+                let mut c = 0;
+                // ** S10
                 self.s_instruction_ld_direct_data_8(&mut c);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(10);
+                    return;
+                }
                 self.cpu.r.set_c(c);
             }
             0x0f => self.instruction_rrca(),
             0x10 => self.instruction_stop(),
             0x11 => {
-                let mut de = self.cpu.r.get_de();
+                let mut de = 0;
+                // ** S11
                 self.s_instruction_ld_direct_data_16(&mut de);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(11);
+                    return;
+                }
                 self.cpu.r.set_de(de);
             }
-            0x12 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_de(), self.cpu.r.get_a()),
+            // ** S12
+            0x12 => {
+                let de = self.cpu.r.get_de();
+                let a = self.cpu.r.get_a();
+                self.s_instruction_ld_indirect_direct(de, a);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(12);
+                    self.cpu_local_u16s.push(de);
+                    self.cpu_local_u8s.push(a);
+                }
+            }
             0x13 => {
                 let mut de = self.cpu.r.get_de();
+                // ** S13
                 self.s_instruction_inc_direct_16(&mut de);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(13);
+                    self.cpu_local_u16s.push(de);
+                    return;
+                }
                 self.cpu.r.set_de(de);
             }
             0x14 => {
@@ -90,25 +185,58 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_d(d);
             }
             0x16 => {
-                let mut d = self.cpu.r.get_d();
+                let mut d = 0;
+                // ** S14
                 self.s_instruction_ld_direct_data_8(&mut d);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(14);
+                    return;
+                }
                 self.cpu.r.set_d(d);
             }
             0x17 => self.instruction_rla(),
-            0x18 => self.s_instruction_jr_condition_relative(true),
+            // ** S15
+            0x18 => {
+                self.s_instruction_jr_condition_relative(true);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(15);
+                }
+            }
             0x19 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.s_instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_de());
+                let de = self.cpu.r.get_de();
+                // ** S16
+                self.s_instruction_add_direct_direct_16(&mut hl, de);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(16);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u16s.push(de);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x1a => {
                 let mut a = self.cpu.r.get_a();
-                self.s_instruction_ld_direct_indirect(&mut a, self.cpu.r.get_de());
+                let de = self.cpu.r.get_de();
+                // ** S17
+                self.s_instruction_ld_direct_indirect(&mut a, de);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(17);
+                    self.cpu_local_u8s.push(a);
+                    self.cpu_local_u16s.push(de);
+                    return;
+                }
                 self.cpu.r.set_a(a);
             }
             0x1b => {
                 let mut de = self.cpu.r.get_de();
+                // ** S18
                 self.s_instruction_dec_direct_16(&mut de);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(18);
+                    self.cpu_local_u16s.push(de);
+                    return;
+                }
                 self.cpu.r.set_de(de);
             }
             0x1c => {
@@ -122,25 +250,58 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_e(e);
             }
             0x1e => {
-                let mut e = self.cpu.r.get_e();
+                let mut e = 0;
+                // ** S19
                 self.s_instruction_ld_direct_data_8(&mut e);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(19);
+                    self.cpu_local_u8s.push(e);
+                    return;
+                }
                 self.cpu.r.set_e(e);
             }
             0x1f => self.instruction_rra(),
-            0x20 => self.s_instruction_jr_condition_relative(!self.cpu.r.get_zf()),
+            // ** S20
+            0x20 => {
+                let zf = self.cpu.r.get_zf();
+                self.s_instruction_jr_condition_relative(!zf);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(20);
+                    self.cpu_local_bools.push(zf);
+                }
+            }
             0x21 => {
-                let mut hl = self.cpu.r.get_hl();
+                let mut hl = 0;
+                // ** S21
                 self.s_instruction_ld_direct_data_16(&mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(21);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x22 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.s_instruction_ld_indirect_increment_direct(&mut hl, self.cpu.r.get_a());
+                let a = self.cpu.r.get_a();
+                // ** S22
+                self.s_instruction_ld_indirect_increment_direct(&mut hl, a);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(22);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(a);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x23 => {
                 let mut hl = self.cpu.r.get_hl();
+                // ** S23
                 self.s_instruction_inc_direct_16(&mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(23);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x24 => {
@@ -154,28 +315,60 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_h(h);
             }
             0x26 => {
-                let mut h = self.cpu.r.get_h();
+                let mut h = 0;
+                // ** S24
                 self.s_instruction_ld_direct_data_8(&mut h);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(24);
+                    return;
+                }
                 self.cpu.r.set_h(h);
             }
             0x27 => self.instruction_daa(),
-            0x28 => self.s_instruction_jr_condition_relative(self.cpu.r.get_zf()),
+            // ** S25
+            0x28 => {
+                let zf = self.cpu.r.get_zf();
+                self.s_instruction_jr_condition_relative(zf);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(25);
+                    self.cpu_local_bools.push(zf);
+                }
+            }
             0x29 => {
                 let mut hl = self.cpu.r.get_hl();
                 let hl_copy = hl;
+                // ** S26
                 self.s_instruction_add_direct_direct_16(&mut hl, hl_copy);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(26);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x2a => {
                 let mut a = self.cpu.r.get_a();
                 let mut hl = self.cpu.r.get_hl();
+                // ** S27
                 self.s_instruction_ld_direct_indirect_increment(&mut a, &mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(27);
+                    self.cpu_local_u8s.push(a);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_a(a);
                 self.cpu.r.set_hl(hl);
             }
             0x2b => {
                 let mut hl = self.cpu.r.get_hl();
+                // ** S28
                 self.s_instruction_dec_direct_16(&mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(28);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x2c => {
@@ -189,55 +382,135 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_l(l);
             }
             0x2e => {
-                let mut l = self.cpu.r.get_l();
+                let mut l = 0;
+                // ** S29
                 self.s_instruction_ld_direct_data_8(&mut l);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(29);
+                    return;
+                }
                 self.cpu.r.set_l(l);
             }
             0x2f => self.instruction_cpl(),
-            0x30 => self.s_instruction_jr_condition_relative(!self.cpu.r.get_cf()),
+            // ** S30
+            0x30 => {
+                let cf = self.cpu.r.get_cf();
+                self.s_instruction_jr_condition_relative(!cf);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(30);
+                    self.cpu_local_bools.push(cf);
+                }
+            }
             0x31 => {
-                let mut sp = self.cpu.r.get_sp();
+                let mut sp = 0;
+                // ** S31
                 self.s_instruction_ld_direct_data_16(&mut sp);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(31);
+                    return;
+                }
                 self.cpu.r.set_sp(sp);
             }
             0x32 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.s_instruction_ld_indirect_decrement_direct(&mut hl, self.cpu.r.get_a());
+                let a = self.cpu.r.get_a();
+                // ** S32
+                self.s_instruction_ld_indirect_decrement_direct(&mut hl, a);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(32);
+                    self.cpu_local_u8s.push(a);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x33 => {
                 let mut sp = self.cpu.r.get_sp();
+                // ** S33
                 self.s_instruction_inc_direct_16(&mut sp);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(33);
+                    self.cpu_local_u16s.push(sp);
+                    return;
+                }
                 self.cpu.r.set_sp(sp);
             }
             0x34 => {
                 let mut hl = self.cpu.r.get_hl();
+                // ** S34
                 self.s_instruction_inc_direct_16(&mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(34);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x35 => {
                 let mut hl = self.cpu.r.get_hl();
+                // ** S35
                 self.s_instruction_dec_direct_16(&mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(35);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
-            0x36 => self.s_instruction_ld_indirect_data(self.cpu.r.get_hl()),
+            // ** S36
+            0x36 => {
+                let hl = self.cpu.r.get_hl();
+                self.s_instruction_ld_indirect_data(hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(36);
+                    self.cpu_local_u16s.push(hl);
+                }
+            }
             0x37 => self.instruction_scf(),
-            0x38 => self.s_instruction_jr_condition_relative(self.cpu.r.get_cf()),
+            // ** S37
+            0x38 => {
+                let cf = self.cpu.r.get_cf();
+                self.s_instruction_jr_condition_relative(cf);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(37);
+                    self.cpu_local_bools.push(cf);
+                }
+            },
             0x39 => {
                 let mut hl = self.cpu.r.get_hl();
-                self.s_instruction_add_direct_direct_16(&mut hl, self.cpu.r.get_sp());
+                let sp = self.cpu.r.get_sp();
+                // ** S38
+                self.s_instruction_add_direct_direct_16(&mut hl, sp);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(38);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u16s.push(sp);
+                    return;
+                }
                 self.cpu.r.set_hl(hl);
             }
             0x3a => {
                 let mut a = self.cpu.r.get_a();
                 let mut hl = self.cpu.r.get_hl();
+                // ** S39
                 self.s_instruction_ld_direct_indirect_decrement(&mut a, &mut hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(39);
+                    self.cpu_local_u8s.push(a);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_a(a);
                 self.cpu.r.set_hl(hl);
             }
             0x3b => {
                 let mut sp = self.cpu.r.get_sp();
+                // ** S40
                 self.s_instruction_dec_direct_16(&mut sp);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(40);
+                    self.cpu_local_u16s.push(sp);
+                    return;
+                }
                 self.cpu.r.set_sp(sp);
             }
             0x3c => {
@@ -251,8 +524,13 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_a(a);
             }
             0x3e => {
-                let mut a = self.cpu.r.get_a();
+                let mut a = 0;
+                // ** S41
                 self.s_instruction_ld_direct_data_8(&mut a);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(41);
+                    return;
+                }
                 self.cpu.r.set_a(a);
             }
             0x3f => self.instruction_ccf(),
@@ -288,8 +566,15 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_b(b);
             }
             0x46 => {
-                let mut b = self.cpu.r.get_b();
-                self.s_instruction_ld_direct_indirect(&mut b, self.cpu.r.get_hl());
+                let mut b = 0;
+                let hl = self.cpu.r.get_hl();
+                // ** S42
+                self.s_instruction_ld_direct_indirect(&mut b, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(42);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_b(b);
             }
             0x47 => {
@@ -329,8 +614,15 @@ impl<P: Platform> System<P> {
                 self.cpu.r.set_c(c);
             }
             0x4e => {
-                let mut c = self.cpu.r.get_c();
-                self.s_instruction_ld_direct_indirect(&mut c, self.cpu.r.get_hl());
+                let mut c = 0;
+                let hl = self.cpu.r.get_hl();
+                // ** S43
+                self.s_instruction_ld_direct_indirect(&mut c, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(43);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_c(c);
             }
             0x4f => {
@@ -371,7 +663,15 @@ impl<P: Platform> System<P> {
             }
             0x56 => {
                 let mut d = self.cpu.r.get_d();
-                self.s_instruction_ld_direct_indirect(&mut d, self.cpu.r.get_hl());
+                let hl = self.cpu.r.get_hl();
+                // ** S44
+                self.s_instruction_ld_direct_indirect(&mut d, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(44);
+                    self.cpu_local_u8s.push(d);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_d(d);
             }
             0x57 => {
@@ -412,7 +712,15 @@ impl<P: Platform> System<P> {
             }
             0x5e => {
                 let mut e = self.cpu.r.get_e();
-                self.s_instruction_ld_direct_indirect(&mut e, self.cpu.r.get_hl());
+                let hl = self.cpu.r.get_hl();
+                // ** S45
+                self.s_instruction_ld_direct_indirect(&mut e, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(45);
+                    self.cpu_local_u8s.push(e);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_e(e);
             }
             0x5f => {
@@ -453,7 +761,15 @@ impl<P: Platform> System<P> {
             }
             0x66 => {
                 let mut h = self.cpu.r.get_h();
-                self.s_instruction_ld_direct_indirect(&mut h, self.cpu.r.get_hl());
+                let hl = self.cpu.r.get_hl();
+                // ** S46
+                self.s_instruction_ld_direct_indirect(&mut h, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(46);
+                    self.cpu_local_u8s.push(h);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_h(h);
             }
             0x67 => {
@@ -494,7 +810,15 @@ impl<P: Platform> System<P> {
             }
             0x6e => {
                 let mut l = self.cpu.r.get_l();
-                self.s_instruction_ld_direct_indirect(&mut l, self.cpu.r.get_hl());
+                let hl = self.cpu.r.get_hl();
+                // ** S47
+                self.s_instruction_ld_direct_indirect(&mut l, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(47);
+                    self.cpu_local_u8s.push(l);
+                    self.cpu_local_u16s.push(hl);
+                    return;
+                }
                 self.cpu.r.set_l(l);
             }
             0x6f => {
@@ -502,14 +826,90 @@ impl<P: Platform> System<P> {
                 System::<P>::instruction_ld_direct_direct_8(&mut l, self.cpu.r.get_a());
                 self.cpu.r.set_l(l);
             }
-            0x70 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_b()),
-            0x71 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_c()),
-            0x72 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_d()),
-            0x73 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_e()),
-            0x74 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_h()),
-            0x75 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_l()),
-            0x76 => self.s_instruction_halt(),
-            0x77 => self.s_instruction_ld_indirect_direct(self.cpu.r.get_hl(), self.cpu.r.get_a()),
+            // ** S48
+            0x70 => {
+                let hl = self.cpu.r.get_hl();
+                let b = self.cpu.r.get_b();
+                self.s_instruction_ld_indirect_direct(hl, b);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(48);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(b);
+                }
+            }
+            // ** S49
+            0x71 => {
+                let hl = self.cpu.r.get_hl();
+                let c = self.cpu.r.get_c();
+                self.s_instruction_ld_indirect_direct(hl, c);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(49);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(c);
+                }
+            }
+            // ** S50
+            0x72 => {
+                let hl = self.cpu.r.get_hl();
+                let d = self.cpu.r.get_d();
+                self.s_instruction_ld_indirect_direct(hl, d);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(50);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(d);
+                }
+            }
+            // ** S51
+            0x73 => {
+                let hl = self.cpu.r.get_hl();
+                let e = self.cpu.r.get_e();
+                self.s_instruction_ld_indirect_direct(hl, e);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(51);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(e);
+                }
+            }
+            // ** S52
+            0x74 => {
+                let hl = self.cpu.r.get_hl();
+                let h = self.cpu.r.get_h();
+                self.s_instruction_ld_indirect_direct(hl, h);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(52);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(h);
+                }
+            }
+            // ** S53
+            0x75 => {
+                let hl = self.cpu.r.get_hl();
+                let l = self.cpu.r.get_l();
+                self.s_instruction_ld_indirect_direct(hl, l);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(53);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(l);
+                }
+            }
+            // ** S54
+            0x76 => {
+                self.s_instruction_halt();
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(54);
+                }
+            },
+            // ** S55
+            0x77 => {
+                let hl = self.cpu.r.get_hl();
+                let a = self.cpu.r.get_b();
+                self.s_instruction_ld_indirect_direct(hl, a);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(55);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(a);
+                }
+            }
             0x78 => {
                 let mut a = self.cpu.r.get_a();
                 System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_b());
@@ -540,9 +940,16 @@ impl<P: Platform> System<P> {
                 System::<P>::instruction_ld_direct_direct_8(&mut a, self.cpu.r.get_l());
                 self.cpu.r.set_a(a);
             }
+            // ** S56
             0x7e => {
                 let mut a = self.cpu.r.get_a();
-                self.s_instruction_ld_direct_indirect(&mut a, self.cpu.r.get_hl());
+                let hl = self.cpu.r.get_hl();
+                self.s_instruction_ld_direct_indirect(&mut a, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(56);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(a);
+                }
                 self.cpu.r.set_a(a);
             }
             0x7f => {
@@ -582,9 +989,16 @@ impl<P: Platform> System<P> {
                 self.instruction_add_direct_direct_8(&mut a, self.cpu.r.get_l());
                 self.cpu.r.set_a(a);
             }
+            // ** S57
             0x86 => {
                 let mut a = self.cpu.r.get_a();
-                self.s_instruction_add_direct_indirect(&mut a, self.cpu.r.get_hl());
+                let hl = self.cpu.r.get_hl();
+                self.s_instruction_add_direct_indirect(&mut a, hl);
+                if self.cpu_thread_state == ThreadState::Pausing {
+                    self.cpu_sync_points.push(57);
+                    self.cpu_local_u16s.push(hl);
+                    self.cpu_local_u8s.push(a);
+                }
                 self.cpu.r.set_a(a);
             }
             0x87 => {
@@ -625,6 +1039,7 @@ impl<P: Platform> System<P> {
             }
             0x8e => {
                 let mut a = self.cpu.r.get_a();
+                // ** S58 TODO
                 self.s_instruction_adc_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
@@ -666,6 +1081,7 @@ impl<P: Platform> System<P> {
             }
             0x96 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S59
                 self.s_instruction_sub_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
@@ -707,6 +1123,7 @@ impl<P: Platform> System<P> {
             }
             0x9e => {
                 let mut a = self.cpu.r.get_a();
+                // ** S60
                 self.s_instruction_sbc_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
@@ -748,6 +1165,7 @@ impl<P: Platform> System<P> {
             }
             0xa6 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S61
                 self.s_instruction_and_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
@@ -789,6 +1207,7 @@ impl<P: Platform> System<P> {
             }
             0xae => {
                 let mut a = self.cpu.r.get_a();
+                // ** S62
                 self.s_instruction_xor_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
@@ -830,6 +1249,7 @@ impl<P: Platform> System<P> {
             }
             0xb6 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S63
                 self.s_instruction_or_direct_indirect(&mut a, self.cpu.r.get_hl());
                 self.cpu.r.set_a(a);
             }
@@ -845,132 +1265,191 @@ impl<P: Platform> System<P> {
             0xbb => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_e()),
             0xbc => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_h()),
             0xbd => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_l()),
+            // ** S64
             0xbe => self.s_instruction_cp_direct_indirect(self.cpu.r.get_a(), self.cpu.r.get_hl()),
             0xbf => self.instruction_cp_direct_direct(self.cpu.r.get_a(), self.cpu.r.get_a()),
+            // ** S65
             0xc0 => self.s_instruction_ret_condition(!self.cpu.r.get_zf()),
             0xc1 => {
                 let mut bc = self.cpu.r.get_bc();
+                // ** S66
                 self.s_instruction_pop_direct(&mut bc);
                 self.cpu.r.set_bc(bc);
             }
+            // ** S67
             0xc2 => self.s_instruction_jp_condition_address(!self.cpu.r.get_zf()),
+            // ** S68
             0xc3 => self.s_instruction_jp_condition_address(true),
+            // ** S69
             0xc4 => self.s_instruction_call_condition_address(!self.cpu.r.get_zf()),
+            // ** S70
             0xc5 => self.s_instruction_push_direct(self.cpu.r.get_bc()),
             0xc6 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S71
                 self.s_instruction_add_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S72
             0xc7 => self.s_instruction_rst_implied(0),
+            // ** S73
             0xc8 => self.s_instruction_ret_condition(self.cpu.r.get_zf()),
+            // ** S74
             0xc9 => self.s_instruction_ret(),
+            // ** S75
             0xca => self.s_instruction_jp_condition_address(self.cpu.r.get_zf()),
+            // ** S76
             0xcb => self.s_instruction_cb(),
+            // ** S77
             0xcc => self.s_instruction_call_condition_address(self.cpu.r.get_zf()),
+            // ** S78
             0xcd => self.s_instruction_call_condition_address(true),
             0xce => {
                 let mut a = self.cpu.r.get_a();
+                // ** S79
                 self.s_instruction_adc_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S80
             0xcf => self.s_instruction_rst_implied(0x08),
+            // ** S81
             0xd0 => self.s_instruction_ret_condition(!self.cpu.r.get_cf()),
             0xd1 => {
                 let mut de = self.cpu.r.get_de();
+                // ** S82
                 self.s_instruction_pop_direct(&mut de);
                 self.cpu.r.set_de(de);
             }
+            // ** S83
             0xd2 => self.s_instruction_jp_condition_address(!self.cpu.r.get_cf()),
+            // ** S84
             0xd4 => self.s_instruction_call_condition_address(!self.cpu.r.get_cf()),
+            // ** S85
             0xd5 => self.s_instruction_push_direct(self.cpu.r.get_de()),
             0xd6 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S86
                 self.s_instruction_sub_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S87
             0xd7 => self.s_instruction_rst_implied(0x10),
+            // ** S88
             0xd8 => self.s_instruction_ret_condition(self.cpu.r.get_cf()),
+            // ** S89
             0xd9 => self.s_instruction_reti(),
+            // ** S90
             0xda => self.s_instruction_jp_condition_address(self.cpu.r.get_cf()),
+            // ** S91
             0xdc => self.s_instruction_call_condition_address(self.cpu.r.get_cf()),
             0xde => {
                 let mut a = self.cpu.r.get_a();
+                // ** S92
                 self.s_instruction_sbc_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S93
             0xdf => self.s_instruction_rst_implied(0x18),
+            // ** S94
             0xe0 => self.s_instruction_ldh_address_direct(self.cpu.r.get_a()),
             0xe1 => {
                 let mut hl = self.cpu.r.get_hl();
+                // ** S95
                 self.s_instruction_pop_direct(&mut hl);
                 self.cpu.r.set_hl(hl);
             }
+            // ** S96
             0xe2 => self.s_instruction_ldh_indirect_direct(self.cpu.r.get_c(), self.cpu.r.get_a()),
+            // ** S97
             0xe5 => self.s_instruction_push_direct(self.cpu.r.get_hl()),
             0xe6 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S98
                 self.s_instruction_and_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S99
             0xe7 => self.s_instruction_rst_implied(0x20),
             0xe8 => {
                 let mut sp = self.cpu.r.get_sp();
+                // ** S100
                 self.s_instruction_add_direct_relative(&mut sp);
                 self.cpu.r.set_sp(sp);
             }
             0xe9 => self.instruction_jp_direct(self.cpu.r.get_hl()),
+            // ** S101
             0xea => self.s_instruction_ld_address_direct_8(self.cpu.r.get_a()),
             0xee => {
                 let mut a = self.cpu.r.get_a();
+                // ** S102
                 self.s_instruction_xor_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S103
             0xef => self.s_instruction_rst_implied(0x28),
             0xf0 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S104
                 self.s_instruction_ldh_direct_address(&mut a);
                 self.cpu.r.set_a(a);
             }
             0xf1 => {
                 let mut af = self.cpu.r.get_af();
+                // ** S105
                 self.s_instruction_pop_direct_af(&mut af);
                 self.cpu.r.set_af(af);
             }
             0xf2 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S106
                 self.s_instruction_ldh_direct_indirect(&mut a, self.cpu.r.get_c());
                 self.cpu.r.set_a(a);
             }
             0xf3 => self.instruction_di(),
+            // ** S107
             0xf5 => self.s_instruction_push_direct(self.cpu.r.get_af()),
             0xf6 => {
                 let mut a = self.cpu.r.get_a();
+                // ** S108
                 self.s_instruction_or_direct_data(&mut a);
                 self.cpu.r.set_a(a);
             }
+            // ** S109
             0xf7 => self.s_instruction_rst_implied(0x30),
             0xf8 => {
                 let mut hl = self.cpu.r.get_hl();
+                // ** S110
                 self.s_instruction_ld_direct_direct_relative(&mut hl, self.cpu.r.get_sp());
                 self.cpu.r.set_hl(hl);
             }
             0xf9 => {
                 let mut sp = self.cpu.r.get_sp();
+                // ** S111
                 self.s_instruction_ld_direct_direct_16(&mut sp, self.cpu.r.get_hl());
                 self.cpu.r.set_sp(sp);
             }
             0xfa => {
                 let mut a = self.cpu.r.get_a();
+                // ** S112
                 self.s_instruction_ld_direct_address(&mut a);
                 self.cpu.r.set_a(a);
             }
             0xfb => self.instruction_ei(),
+            // ** S113
             0xfe => self.s_instruction_cp_direct_data(self.cpu.r.get_a()),
+            // ** S114
             0xff => self.s_instruction_rst_implied(0x38),
             _ => {}
         }
     }
+
+    /*
+    fn s_instruction_resume_at_2(&mut self) {
+            let mut bc = self.cpu.r.get_bc();
+            // ** S2
+            self.s_instruction_ld_direct_data_16(&mut bc);
+            self.cpu.r.set_bc(bc);
+    }*/
 
     // synchronized
     pub fn s_instruction_cb(&mut self) {

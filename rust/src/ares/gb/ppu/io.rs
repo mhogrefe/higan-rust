@@ -16,22 +16,21 @@ impl PPU {
 impl<P: Platform> System<P> {
     pub fn ppu_read_io(&self, cycle: u32, address: u16, mut data: u8) -> u8 {
         match (address, cycle, self.model) {
-            (address, 2, _) if address >= 0x8000 && address <= 0x9fff => {
+            (address, 2, _) if (0x8000..=0x9fff).contains(&address) => {
                 if !self.ppu.can_access_vram() {
                     data
                 } else {
-                    return self.ppu.vram
-                        [usize::from(self.ppu.vram_address(U13::wrapping_from(address)))];
+                    self.ppu.vram[usize::from(self.ppu.vram_address(U13::wrapping_from(address)))]
                 }
             }
-            (address, 2, _) if address >= 0xfe00 && address <= 0xfe9f => {
+            (address, 2, _) if (0xfe00..=0xfe9f).contains(&address) => {
                 if !self.ppu.can_access_oam() {
                     data
                 } else {
                     self.ppu.oam[usize::from(u8::wrapping_from(address))]
                 }
             }
-            (address, 2, _) if address < 0xff40 || address > 0xff7f => data,
+            (address, 2, _) if !(0xff40..=0xff7f).contains(&address) => data,
             (0xff40, 2, _) => {
                 data.assign_bit(0, self.ppu.status.bg_enable);
                 data.assign_bit(1, self.ppu.status.ob_enable);

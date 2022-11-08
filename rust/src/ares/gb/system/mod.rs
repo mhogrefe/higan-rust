@@ -104,6 +104,7 @@ pub struct System<P: Platform> {
 
     pub cpu_thread_state: ThreadState,
     pub cpu_sync_points: SmallStack<usize>,
+    pub cpu_local_bools: SmallStack<bool>,
     pub cpu_local_u3s: SmallStack<U3>,
     pub cpu_local_u8s: SmallStack<u8>,
     pub cpu_local_u16s: SmallStack<u16>,

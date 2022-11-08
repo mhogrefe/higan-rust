@@ -136,7 +136,7 @@ impl PPU {
             .rev()
         {
             let tile_x = i32::from(self.px) - i32::from(s.x);
-            if tile_x < 0 || tile_x > 7 {
+            if !(0..8).contains(&tile_x) {
                 continue;
             }
             let mut index = 0;
@@ -168,9 +168,7 @@ impl<P: Platform> System<P> {
         }
         let _color = if self.ppu.ob.palette == 0 {
             self.ppu.bg.color
-        } else if self.ppu.bg.palette == 0 {
-            self.ppu.ob.color
-        } else if self.ppu.ob.priority {
+        } else if self.ppu.bg.palette == 0 || self.ppu.ob.priority {
             self.ppu.ob.color
         } else {
             self.ppu.bg.color
